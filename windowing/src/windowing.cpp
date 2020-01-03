@@ -36,6 +36,12 @@ const void* windowing_create()
     return new context_t { window, framebuffer };
 }
 
+void windowing_update(const void* cookie)
+{
+    const context_t* context = static_cast<const context_t*>(cookie);
+    SDL_UpdateWindowSurface(context->window);
+}
+
 bool windowing_pump(const void* cookie)
 {
     const context_t* context = static_cast<const context_t*>(cookie);
@@ -53,7 +59,6 @@ void windowing_destroy(const void* cookie)
     const context_t* context = static_cast<const context_t*>(cookie);
     SDL_FreeSurface(context->framebuffer);
     SDL_UpdateWindowSurface(context->window);
-    SDL_Delay(2000);
     SDL_DestroyWindow(context->window);
     SDL_Quit();
 }
