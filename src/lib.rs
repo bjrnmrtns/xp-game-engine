@@ -8,8 +8,8 @@ pub struct Color
 }
 
 extern "C" {
-    pub fn windowing_create(buffer: *const Color, size: libc::size_t) -> *const libc::c_void;
-    pub fn windowing_destroy(cookie: *const libc::c_void);
-    pub fn windowing_pump(cookie: *const libc::c_void) -> bool;
-    pub fn windowing_update(cookie: *const libc::c_void);
+    pub fn window_create(buffer: *const Color, size: libc::size_t) -> *const libc::c_void;
+    pub fn window_destroy(cookie: *const libc::c_void);
+    pub fn window_pump(cookie: *const libc::c_void) -> bool;
+    pub fn window_update(cookie: *const libc::c_void);
 }

@@ -6,7 +6,7 @@ find_package(SDL2 REQUIRED)
 set(CMAKE_CXX_STANDARD 20)
 
 add_library(windowing STATIC
-    src/windowing.cpp
+        src/window.cpp
 )
 
 target_link_libraries(windowing PRIVATE ${SDL2_LIBRARIES})

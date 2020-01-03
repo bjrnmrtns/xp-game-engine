@@ -8,14 +8,14 @@ fn main() {
             fb.push(Color { r: 255, g: 0, b: 0, a: 255});
         }
 
-        let context = windowing_create(fb.as_ptr(), fb.len() as libc::size_t);
+        let context = window_create(fb.as_ptr(), fb.len() as libc::size_t);
 
         let mut i = 0;
-        while windowing_pump(context) {
+        while window_pump(context) {
             fb[i % window_size] = Color {r: 0, g: 0, b: 255, a: 255 };
-            windowing_update(context);
+            window_update(context);
             i += 1;
         }
-        windowing_destroy(context);
+        window_destroy(context);
     }
 }

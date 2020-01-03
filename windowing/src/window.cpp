@@ -14,7 +14,7 @@ struct context_t {
     SDL_Surface* framebuffer;
 };
 
-const void* windowing_create(const color_t* const buffer, std::size_t size)
+const void* window_create(const color_t* const buffer, std::size_t size)
 {
     // check size = resolution
     SDL_Init(SDL_INIT_VIDEO);
@@ -23,16 +23,16 @@ const void* windowing_create(const color_t* const buffer, std::size_t size)
     return new context_t { window, framebuffer };
 }
 
-void windowing_update(const void* cookie)
+void window_update(const void* self)
 {
-    const context_t* context = static_cast<const context_t*>(cookie);
+    const context_t* context = static_cast<const context_t*>(self);
     SDL_BlitSurface(context->framebuffer, NULL, SDL_GetWindowSurface(context->window), NULL);
     SDL_UpdateWindowSurface(context->window);
 }
 
-bool windowing_pump(const void* cookie)
+bool window_pump(const void* self)
 {
-    const context_t* context = static_cast<const context_t*>(cookie);
+    const context_t* context = static_cast<const context_t*>(self);
     SDL_Event e;
     while(SDL_PollEvent(&e)) {
         if(e.type == SDL_QUIT) {
@@ -42,9 +42,9 @@ bool windowing_pump(const void* cookie)
     return true;
 }
 
-void windowing_destroy(const void* cookie)
+void window_destroy(const void* self)
 {
-    const context_t* context = static_cast<const context_t*>(cookie);
+    const context_t* context = static_cast<const context_t*>(self);
     SDL_FreeSurface(context->framebuffer);
     SDL_UpdateWindowSurface(context->window);
     SDL_DestroyWindow(context->window);
