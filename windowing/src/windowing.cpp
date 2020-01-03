@@ -1,4 +1,4 @@
-#include <SDL2/SDL.h>
+#include <SDL.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -13,9 +13,9 @@ struct context_t {
     SDL_Surface* framebuffer;
 };
 
-void* windowing_create()
+const void* windowing_create()
 {
-    SDL_Init(SDL_INIT_VIDEO);
+    SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
     SDL_Window* window = SDL_CreateWindow("framebuffer-test", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 640, 480, 0);
     SDL_Surface* screen = SDL_GetWindowSurface(window);
     color_t colors[640 * 480];
@@ -36,21 +36,26 @@ void* windowing_create()
     return new context_t { window, framebuffer };
 }
 
-void windowing_destroy(void* cookie)
+bool windowing_pump(const void* cookie)
 {
-    context_t* context = static_cast<context_t*>(cookie);
+    const context_t* context = static_cast<const context_t*>(cookie);
+    SDL_Event e;
+    while(SDL_PollEvent(&e)) {
+        if(e.type == SDL_QUIT) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void windowing_destroy(const void* cookie)
+{
+    const context_t* context = static_cast<const context_t*>(cookie);
     SDL_FreeSurface(context->framebuffer);
     SDL_UpdateWindowSurface(context->window);
     SDL_Delay(2000);
     SDL_DestroyWindow(context->window);
     SDL_Quit();
-}
-
-int main()
-{
-    void* handle = windowing_create();
-    windowing_destroy(handle);
-    return 0;
 }
 
 #ifdef __cplusplus
