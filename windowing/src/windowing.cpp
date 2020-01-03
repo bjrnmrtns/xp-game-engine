@@ -1,4 +1,5 @@
 #include <SDL.h>
+#include <cstdint>
 
 #ifdef __cplusplus
 extern "C" {
@@ -13,32 +14,19 @@ struct context_t {
     SDL_Surface* framebuffer;
 };
 
-const void* windowing_create()
+const void* windowing_create(const color_t* const buffer, std::size_t size)
 {
-    SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
+    // check size = resolution
+    SDL_Init(SDL_INIT_VIDEO);
     SDL_Window* window = SDL_CreateWindow("framebuffer-test", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 640, 480, 0);
-    SDL_Surface* screen = SDL_GetWindowSurface(window);
-    color_t colors[640 * 480];
-    SDL_Surface* framebuffer = SDL_CreateRGBSurfaceFrom(&colors, 640, 480, 32, 4 * 640, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
-    for(size_t i = 0; i < 640 * 240; i++) {
-        colors[i].r = 255;
-        colors[i].g = 0;
-        colors[i].b = 0;
-        colors[i].a = 255;
-    }
-    for(size_t i = 640 * 240; i < 640 * 480; i++) {
-        colors[i].r = 0;
-        colors[i].g = 0;
-        colors[i].b = 255;
-        colors[i].a = 255;
-    }
-    SDL_BlitSurface(framebuffer, NULL, screen, NULL);
+    SDL_Surface* framebuffer = SDL_CreateRGBSurfaceFrom(const_cast<color_t *>(buffer), 640, 480, 32, 4 * 640, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
     return new context_t { window, framebuffer };
 }
 
 void windowing_update(const void* cookie)
 {
     const context_t* context = static_cast<const context_t*>(cookie);
+    SDL_BlitSurface(context->framebuffer, NULL, SDL_GetWindowSurface(context->window), NULL);
     SDL_UpdateWindowSurface(context->window);
 }
 
