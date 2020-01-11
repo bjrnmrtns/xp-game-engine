@@ -14,12 +14,12 @@ struct context_t {
     SDL_Surface* framebuffer;
 };
 
-const void* window_create(const color_t* const buffer, std::size_t size)
+const void* window_create(std::size_t width, std::size_t height, const color_t* const buffer, std::size_t size)
 {
     // check size = resolution
     SDL_Init(SDL_INIT_VIDEO);
-    SDL_Window* window = SDL_CreateWindow("framebuffer-test", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 640, 480, 0);
-    SDL_Surface* framebuffer = SDL_CreateRGBSurfaceFrom(const_cast<color_t *>(buffer), 640, 480, 32, 4 * 640, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+    SDL_Window* window = SDL_CreateWindow("software-renderer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, 0);
+    SDL_Surface* framebuffer = SDL_CreateRGBSurfaceFrom(const_cast<color_t *>(buffer), width, height, 32, 4 * width, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
     return new context_t { window, framebuffer };
 }
 
