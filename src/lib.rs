@@ -1,4 +1,5 @@
 #[repr(C)]
+#[derive(Copy)]
 #[derive(Clone)]
 pub struct Color
 {
@@ -35,8 +36,8 @@ impl Canvas
             buffer: vec![color; width * height]
         }
     }
-    pub fn set(&mut self, x: usize, y: usize, color: Color) {
-        self.buffer[x + (self.height - y) * self.width] = color;
+    pub fn set(&mut self, x: usize, y: usize, color: &Color) {
+        self.buffer[x + (self.height - 1 - y) * self.width] = *color;
     }
 }
 
