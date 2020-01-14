@@ -1,5 +1,5 @@
 pub fn lex<T, F>(input: T, mut callback: F)
-    where T: std::io::BufRead, F: std::ops::FnMut(&str, Vec<&str>)
+    where T: std::io::BufRead, F: std::ops::FnMut(&str, &[&str])
 {
     let mut ml = String::new();
     for line in input.lines() {
@@ -20,9 +20,8 @@ pub fn lex<T, F>(input: T, mut callback: F)
             for token in tokens {
                 args.push(token);
             }
-            callback(&statement, args);
+            callback(&statement, &args);
         }
         ml.clear();
     }
-
 }
