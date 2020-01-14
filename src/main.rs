@@ -1,4 +1,5 @@
 use software_renderer_rs::*;
+mod obj;
 
 struct Vec2i {
     x: i32,
@@ -20,12 +21,16 @@ fn draw_line(v0: Vec2i, v1: Vec2i, color: &Color, canvas: &mut Canvas) {
         std::mem::swap(&mut x0, &mut x1);
         std::mem::swap(&mut y0, &mut y1);
     }
-    for x in x0 as i32..x1 as i32 +1 {
-        let t: f64 = (x as f64 - x0) / (x1 - x0);
-        let y= y0 * (1.0 - t) + y1 * t;
-        if steep {
+    if steep {
+        for x in x0 as i32..x1 as i32 + 1 {
+            let t: f64 = (x as f64 - x0) / (x1 - x0);
+            let y = y0 * (1.0 - t) + y1 * t;
             canvas.set(y as usize, x as usize, color);
-        } else {
+        }
+    } else {
+        for x in x0 as i32..x1 as i32 + 1 {
+            let t: f64 = (x as f64 - x0) / (x1 - x0);
+            let y = y0 * (1.0 - t) + y1 * t;
             canvas.set(x as usize, y as usize, color);
         }
     }
