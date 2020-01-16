@@ -37,7 +37,9 @@ impl Canvas
         }
     }
     pub fn set(&mut self, x: usize, y: usize, color: &Color) {
-        self.buffer[x + (self.height - 1 - y) * self.width] = *color;
+        if x < self.width && y < self.height {
+            self.buffer[x + (self.height - 1 - y) * self.width] = *color;
+        }
     }
 }
 

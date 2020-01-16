@@ -1,5 +1,7 @@
 use software_renderer_rs::*;
-mod obj;
+use std::fs::File;
+use std::io::BufReader;
+use obj::*;
 
 struct Vec2i {
     x: i32,
@@ -36,16 +38,37 @@ fn draw_line(v0: Vec2i, v1: Vec2i, color: &Color, canvas: &mut Canvas) {
     }
 }
 
-fn main() {
-    let width: usize = 801;
-    let height: usize = 801;
+fn main() -> Result<(), ObjError> {
+    let width: usize = 800;
+    let height: usize = 800;
     let mut canvas = Canvas::new(width, height, Color{r: 0, g:0, b: 0, a: 255});
     let window: Window = Window::new(&canvas);
-    draw_line(Vec2i {x: 130, y: 200}, Vec2i {x: 800, y: 400}, &Color {r: 255, g: 255, b: 255, a: 255 }, &mut canvas);
-    draw_line(Vec2i {x: 200, y: 130}, Vec2i {x: 400, y: 800}, &Color {r: 255, g: 0, b: 0, a: 255 }, &mut canvas);
-    draw_line(Vec2i {x: 800, y: 400}, Vec2i {x: 130, y: 200}, &Color {r: 255, g: 0, b: 0, a: 255 }, &mut canvas);
+
+    let input = BufReader::new(File::open("african_head.obj")?);
+    let model: Obj = load_obj(input)?;
+
+    let mut triangles : Vec<[[f32; 3]; 3]> = Vec::new();
+    let mut i  = 0;
+    while i < model.indices.len() {
+        let first = model.vertices[model.indices[i] as usize];
+        let second = model.vertices[model.indices[i+1] as usize];
+        let third = model.vertices[model.indices[i+2] as usize];
+        triangles.push([first.position, second.position, third.position]);
+        i = i + 3;
+    }
+
+    for t in triangles {
+        draw_line(Vec2i {x: ((t[0][0] + 1.0) * 400 as f32) as i32, y: ((t[0][1] + 1.0) * 400 as f32) as i32},
+                  Vec2i {x: ((t[1][0] + 1.0) * 400 as f32) as i32, y: ((t[1][1] + 1.0) * 400 as f32) as i32 }, &Color {r: 255, g: 255, b: 255, a: 255 }, &mut canvas);
+        draw_line(Vec2i {x: ((t[1][0] + 1.0) * 400 as f32) as i32, y: ((t[1][1] + 1.0) * 400 as f32) as i32},
+                  Vec2i {x: ((t[2][0] + 1.0) * 400 as f32) as i32, y: ((t[2][1] + 1.0) * 400 as f32) as i32 }, &Color {r: 255, g: 255, b: 255, a: 255 }, &mut canvas);
+        draw_line(Vec2i {x: ((t[2][0] + 1.0) * 400 as f32) as i32, y: ((t[2][1] + 1.0) * 400 as f32) as i32},
+                  Vec2i {x: ((t[0][0] + 1.0) * 400 as f32) as i32, y: ((t[0][1] + 1.0) * 400 as f32) as i32 }, &Color {r: 255, g: 255, b: 255, a: 255 }, &mut canvas);
+
+    }
 
     while window.pump() {
         window.update();
     }
+    Ok(())
 }
