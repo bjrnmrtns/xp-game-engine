@@ -2,6 +2,7 @@ use software_renderer_rs::*;
 use std::fs::File;
 use std::io::BufReader;
 use obj::*;
+use nalgebra::*;
 
 struct Vec2i {
     x: i32,
@@ -37,7 +38,13 @@ fn draw_line(v0: Vec2i, v1: Vec2i, color: &Color, canvas: &mut Canvas) {
         }
     }
 }
+/*
+fn barycentric(v0: I32Vec2, v1: I32Vec2, v2: I32Vec2) -> I32Vec3 {
+}
 
+fn draw_triangle(v0: I32Vec2, v1: I32Vec2, v2: I32Vec2, color: &Color, canvas: &mut Canvas) {
+}
+*/
 fn main() -> Result<(), ObjError> {
     let width: usize = 800;
     let height: usize = 800;
@@ -48,13 +55,11 @@ fn main() -> Result<(), ObjError> {
     let model: Obj = load_obj(input)?;
 
     let mut triangles : Vec<[[f32; 3]; 3]> = Vec::new();
-    let mut i  = 0;
-    while i < model.indices.len() {
-        let first = model.vertices[model.indices[i] as usize];
-        let second = model.vertices[model.indices[i+1] as usize];
-        let third = model.vertices[model.indices[i+2] as usize];
+    for indices in model.indices.chunks(3) {
+        let first = model.vertices[indices[0] as usize];
+        let second = model.vertices[indices[1] as usize];
+        let third = model.vertices[indices[2] as usize];
         triangles.push([first.position, second.position, third.position]);
-        i = i + 3;
     }
 
     for t in triangles {
@@ -65,6 +70,10 @@ fn main() -> Result<(), ObjError> {
         draw_line(Vec2i {x: ((t[2][0] + 1.0) * 400 as f32) as i32, y: ((t[2][1] + 1.0) * 400 as f32) as i32},
                   Vec2i {x: ((t[0][0] + 1.0) * 400 as f32) as i32, y: ((t[0][1] + 1.0) * 400 as f32) as i32 }, &Color {r: 255, g: 255, b: 255, a: 255 }, &mut canvas);
 
+       /* draw_triangle(Vec2i {x: ((t[0][0] + 1.0) * 400 as f32) as i32, y: ((t[0][1] + 1.0) * 400 as f32) as i32},
+                      Vec2i {x: ((t[1][0] + 1.0) * 400 as f32) as i32, y: ((t[1][1] + 1.0) * 400 as f32) as i32 },
+                      Vec2i {x: ((t[2][0] + 1.0) * 400 as f32) as i32, y: ((t[2][1] + 1.0) * 400 as f32) as i32 },
+                      &Color {r: 255, g: 255, b: 255, a: 255 }, &mut canvas);*/
     }
 
     while window.pump() {
