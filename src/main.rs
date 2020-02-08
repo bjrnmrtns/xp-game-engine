@@ -2,7 +2,8 @@ use software_renderer_rs::*;
 use std::fs::File;
 use std::io::BufReader;
 use obj::*;
-use nalgebra::{Vector3};
+use nalgebra::{Vector2, Vector3};
+use std::time::{Duration, Instant};
 
 fn draw_line(v0: Vector3<f32>, v1: Vector3<f32>, color: &Color, canvas: &mut Canvas) {
     let mut steep = false;
@@ -34,16 +35,60 @@ fn draw_line(v0: Vector3<f32>, v1: Vector3<f32>, color: &Color, canvas: &mut Can
     }
 }
 
-/*
-fn barycentric(v0: Vector2<f32>, v1: Vector2<f32>, v2: Vector2<f32>) -> Vector3<f32> {
+
+fn barycentric(v0: Vector2<f32>, v1: Vector2<f32>, v2: Vector2<f32>, p: Vector3<f32>) -> Vector3<f32> {
+    let x_vec: Vector3<f32> = Vector3::new(v2.x - v0.x, v1.x - v0.x, v0.x - p.x);
+    let y_vec: Vector3<f32> = Vector3::new(v2.y - v0.y, v1.y - v0.y, v0.y - p.y);
+    let u: Vector3<f32> = nalgebra::Vector3::cross(&x_vec, &y_vec);
+    if u.z.abs() < 1.0 {
+        return Vector3::new(-1.0, 1.0, 1.0);
+    }
+    return Vector3::new(1.0 - (u.x + u.y) / u.z, u.y / u.z, u.x / u.z);
 }
-*/
+
 fn draw_triangle(v0: Vector3<f32>, v1: Vector3<f32>, v2: Vector3<f32>, color: &Color, canvas: &mut Canvas) {
+    let x_min = std::cmp::min(v0.x.floor() as i32, std::cmp::min(v1.x.floor() as i32, v2.x.floor() as i32));
+    let x_max = std::cmp::max(v0.x.ceil() as i32, std::cmp::max(v1.x.ceil() as i32, v2.x.ceil() as i32));
+    let y_min = std::cmp::min(v0.y.floor() as i32, std::cmp::min(v1.y.floor() as i32, v2.y.floor() as i32));
+    let y_max = std::cmp::max(v0.y.ceil() as i32, std::cmp::max(v1.y.ceil() as i32, v2.y.ceil() as i32));
+    for x in x_min as i32.. x_max as i32 {
+        for y in y_min as i32.. y_max as i32 {
+            let barycentric_screen = barycentric(v0.xy(), v1.xy(), v2.xy(), Vector3::new(x as f32, y as f32, 0.0));
+            if barycentric_screen.x >= 0.0 && barycentric_screen.y >= 0.0 && barycentric_screen.z >= 0.0 {
+                canvas.set(x as usize, y as usize, color);
+            }
+        }
+    }
 }
 
 
 fn move_and_scale(v: Vector3<f32>, m: f32, s_x: f32, s_y: f32) -> Vector3<f32> {
     Vector3::new((v.x + m) * s_x, (v.y + m) * s_y, v.z)
+}
+
+fn render_model(model: &Vec<[Vector3<f32>; 3]>, width: usize, height: usize, mut canvas: &mut Canvas) {
+    let c = &Color {r: 255, g: 255, b: 255, a: 255 };
+    let c_lines = &Color {r: 0, g: 0, b: 255, a: 255 };
+    for t in model {
+        let half_width = width as f32 / 2.0;
+        let half_height = height as f32 / 2.0;
+        let p0 = move_and_scale(t[0], 1.0, half_width, half_height);
+        let p1 = move_and_scale(t[1], 1.0, half_width, half_height);
+        let p2 = move_and_scale(t[2], 1.0, half_width, half_height);
+
+        //draw_line(p0, p1, c_lines, &mut canvas);
+        //draw_line(p1, p2, c_lines, &mut canvas);
+        //draw_line(p2, p0, c_lines, &mut canvas);
+
+        let n: Vector3<f32> = nalgebra::Vector3::cross(&(t[2] - t[0]), &(t[1] - t[0]));
+        let n: Vector3<f32> = n.normalize();
+        let light_direction: Vector3<f32> = Vector3::new(0.0, 0.0, -1.0);
+        let intensity: f32 = n.dot(&light_direction);
+        if intensity > 0.0 {
+            let c_intensity = &Color { r: (c.r as f32 * intensity) as u8, g: (c.g as f32 * intensity) as u8, b: (c.b as f32 * intensity) as u8, a: c.a};
+            draw_triangle(p0, p1, p2, &c_intensity, &mut canvas);
+        }
+    }
 }
 
 fn main() -> Result<(), ObjError> {
@@ -52,10 +97,10 @@ fn main() -> Result<(), ObjError> {
     let mut canvas = Canvas::new(width, height, Color{r: 0, g:0, b: 0, a: 255});
     let window: Window = Window::new(&canvas);
 
-    let input = BufReader::new(File::open("african_head.obj")?);
+    let input = BufReader::new(File::open("/Users/bjornmartens/projects/tempfromgithub/tinyrenderer/obj/african_head/african_head.obj")?);
     let model: Obj = load_obj(input)?;
 
-    let mut vertex_data : Vec<[Vector3<f32>; 3]>= Vec::new();
+    let mut vertex_data : &mut Vec<[Vector3<f32>; 3]>= &mut Vec::new();
     for indices in model.indices.chunks(3) {
         let first = model.vertices[indices[0] as usize];
         let second = model.vertices[indices[1] as usize];
@@ -64,22 +109,11 @@ fn main() -> Result<(), ObjError> {
                                 Vector3::new(second.position[0], second.position[1], second.position[2]),
                                 Vector3::new(third.position[0], third.position[1], third.position[2])]);
     }
-
-    let c = &Color {r: 255, g: 255, b: 255, a: 255 };
-    for t in vertex_data {
-        let half_width = width as f32 / 2.0;
-        let half_height = height as f32 / 2.0;
-        let p0 = move_and_scale(t[0], 1.0, half_width, half_height);
-        let p1 = move_and_scale(t[1], 1.0, half_width, half_height);
-        let p2 = move_and_scale(t[2], 1.0, half_width, half_height);
-        draw_line(p0, p1, c, &mut canvas);
-        draw_line(p1, p2, c, &mut canvas);
-        draw_line(p2, p0, c, &mut canvas);
-
-        draw_triangle(p0, p1, p2, c, &mut canvas);
-    }
+    let now = Instant::now();
 
     while window.pump() {
+        render_model(&vertex_data, width, height, &mut canvas);
+        println!("{}", now.elapsed().as_secs());
         window.update();
     }
     Ok(())
