@@ -35,7 +35,6 @@ fn draw_line(v0: Vector3<f32>, v1: Vector3<f32>, color: &Color, canvas: &mut Can
     }
 }
 
-
 fn barycentric(v0: Vector2<f32>, v1: Vector2<f32>, v2: Vector2<f32>, p: Vector3<f32>) -> Vector3<f32> {
     let x_vec: Vector3<f32> = Vector3::new(v2.x - v0.x, v1.x - v0.x, v0.x - p.x);
     let y_vec: Vector3<f32> = Vector3::new(v2.y - v0.y, v1.y - v0.y, v0.y - p.y);
@@ -61,7 +60,6 @@ fn draw_triangle(v0: Vector3<f32>, v1: Vector3<f32>, v2: Vector3<f32>, color: &C
     }
 }
 
-
 fn move_and_scale(v: Vector3<f32>, m: f32, s_x: f32, s_y: f32) -> Vector3<f32> {
     Vector3::new((v.x + m) * s_x, (v.y + m) * s_y, v.z)
 }
@@ -69,12 +67,15 @@ fn move_and_scale(v: Vector3<f32>, m: f32, s_x: f32, s_y: f32) -> Vector3<f32> {
 fn render_model(model: &Vec<[Vector3<f32>; 3]>, width: usize, height: usize, mut canvas: &mut Canvas) {
     let c = &Color {r: 255, g: 255, b: 255, a: 255 };
     let c_lines = &Color {r: 0, g: 0, b: 255, a: 255 };
+    let mut triangle_count: i32 = 0;
+    let light_direction: Vector3<f32> = Vector3::new(0.0, 0.0, -1.0);
     for t in model {
         let half_width = width as f32 / 2.0;
         let half_height = height as f32 / 2.0;
         let p0 = move_and_scale(t[0], 1.0, half_width, half_height);
         let p1 = move_and_scale(t[1], 1.0, half_width, half_height);
         let p2 = move_and_scale(t[2], 1.0, half_width, half_height);
+        triangle_count = triangle_count + 1;
 
         //draw_line(p0, p1, c_lines, &mut canvas);
         //draw_line(p1, p2, c_lines, &mut canvas);
@@ -82,13 +83,14 @@ fn render_model(model: &Vec<[Vector3<f32>; 3]>, width: usize, height: usize, mut
 
         let n: Vector3<f32> = nalgebra::Vector3::cross(&(t[2] - t[0]), &(t[1] - t[0]));
         let n: Vector3<f32> = n.normalize();
-        let light_direction: Vector3<f32> = Vector3::new(0.0, 0.0, -1.0);
         let intensity: f32 = n.dot(&light_direction);
+
         if intensity > 0.0 {
             let c_intensity = &Color { r: (c.r as f32 * intensity) as u8, g: (c.g as f32 * intensity) as u8, b: (c.b as f32 * intensity) as u8, a: c.a};
             draw_triangle(p0, p1, p2, &c_intensity, &mut canvas);
         }
     }
+    println!("triangle_count: {}", triangle_count)
 }
 
 fn main() -> Result<(), ObjError> {
@@ -98,22 +100,25 @@ fn main() -> Result<(), ObjError> {
     let window: Window = Window::new(&canvas);
 
     let input = BufReader::new(File::open("/Users/bjornmartens/projects/tempfromgithub/tinyrenderer/obj/african_head/african_head.obj")?);
-    let model: Obj = load_obj(input)?;
+    let model_obj: Obj = load_obj(input)?;
 
-    let mut vertex_data : &mut Vec<[Vector3<f32>; 3]>= &mut Vec::new();
-    for indices in model.indices.chunks(3) {
-        let first = model.vertices[indices[0] as usize];
-        let second = model.vertices[indices[1] as usize];
-        let third = model.vertices[indices[2] as usize];
-        vertex_data.push([Vector3::new(first.position[0], first.position[1], first.position[2]),
+    let model : &mut Vec<[Vector3<f32>; 3]>= &mut Vec::new();
+    for indices in model_obj.indices.chunks(3) {
+        let first = model_obj.vertices[indices[0] as usize];
+        let second = model_obj.vertices[indices[1] as usize];
+        let third = model_obj.vertices[indices[2] as usize];
+        model.push([Vector3::new(first.position[0], first.position[1], first.position[2]),
                                 Vector3::new(second.position[0], second.position[1], second.position[2]),
                                 Vector3::new(third.position[0], third.position[1], third.position[2])]);
     }
     let now = Instant::now();
 
+    let mut previous_time = Instant::now();
     while window.pump() {
-        render_model(&vertex_data, width, height, &mut canvas);
-        println!("{}", now.elapsed().as_secs());
+        render_model(&model, width, height, &mut canvas);
+        let current_time = Instant::now();
+        println!("fps: {}", (current_time - previous_time).as_millis());
+        previous_time = current_time;
         window.update();
     }
     Ok(())
