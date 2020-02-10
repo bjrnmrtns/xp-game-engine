@@ -45,31 +45,33 @@ fn barycentric(v0: &Vector2<i32>, v1: &Vector2<i32>, v2: &Vector2<i32>, p: Vecto
     return Vector3::new(1.0 - (u.x as f32 + u.y as f32) / u.z as f32, u.y as f32 / u.z as f32, u.x as f32 / u.z as f32);
 }
 
-fn draw_triangle_2d(v0: Vector2<i32>, v1: Vector2<i32>, v2: Vector2<i32>, color: &Color, canvas: &mut Canvas, width: usize, height: usize) {
-    let x_min = std::cmp::max(0, std::cmp::min(v0.x, std::cmp::min(v1.x, v2.x)));
-    let x_max = std::cmp::min(width as i32, std::cmp::max(v0.x, std::cmp::max(v1.x, v2.x)));
-    let y_min = std::cmp::max(0, std::cmp::min(v0.y, std::cmp::min(v1.y, v2.y)));
-    let y_max = std::cmp::min(height as i32, std::cmp::max(v0.y, std::cmp::max(v1.y, v2.y)));
+fn draw_triangle(v0: Vector3<f32>, v1: Vector3<f32>, v2: Vector3<f32>, color: &Color, mut canvas: &mut Canvas, zbuffer: &mut Vec<i32>, width: usize, height: usize) {
+    let v0i: Vector2<i32> = Vector2::new(v0.x as i32, v0.y as i32);
+    let v1i: Vector2<i32> = Vector2::new(v1.x as i32, v1.y as i32);
+    let v2i: Vector2<i32> = Vector2::new(v2.x as i32, v2.y as i32);
+    let x_min = std::cmp::max(0, std::cmp::min(v0i.x, std::cmp::min(v1i.x, v2i.x)));
+    let x_max = std::cmp::min(width as i32, std::cmp::max(v0i.x, std::cmp::max(v1i.x, v2i.x)));
+    let y_min = std::cmp::max(0, std::cmp::min(v0i.y, std::cmp::min(v1i.y, v2i.y)));
+    let y_max = std::cmp::min(height as i32, std::cmp::max(v0i.y, std::cmp::max(v1i.y, v2i.y)));
     for x in x_min..x_max {
         for y in y_min..y_max {
-            let barycentric_screen = barycentric(&v0, &v1, &v2, Vector2::new(x, y));
+            let barycentric_screen = barycentric(&v0i, &v1i, &v2i, Vector2::new(x, y));
             if barycentric_screen.x >= 0.0 && barycentric_screen.y >= 0.0 && barycentric_screen.z >= 0.0 {
-                canvas.set(x as usize, y as usize, color);
+                let mut z: i32 = (barycentric_screen.x * v0.z + barycentric_screen.y * v1.z + barycentric_screen.z * v2.z) as i32;
+                if zbuffer[x as usize + width * y as usize] < z {
+                    zbuffer[x as usize + width * y as usize] = z;
+                    canvas.set(x as usize, y as usize, color);
+                }
             }
         }
     }
-}
-
-fn draw_triangle(v0: Vector3<f32>, v1: Vector3<f32>, v2: Vector3<f32>, color: &Color, mut canvas: &mut Canvas, width: usize, height: usize) {
-    draw_triangle_2d(Vector2::new(v0.x as i32, v0.y as i32), Vector2::new(v1.x as i32, v1.y as i32),
-                     Vector2::new(v2.x as i32, v2.y as i32), &color, &mut canvas, width, height);
 }
 
 fn move_and_scale(v: Vector3<f32>, m: f32, s_x: f32, s_y: f32) -> Vector3<f32> {
     Vector3::new((v.x + m) * s_x, (v.y + m) * s_y, v.z)
 }
 
-fn render_model(model: &Vec<[Vector3<f32>; 3]>, width: usize, height: usize, mut canvas: &mut Canvas) {
+fn render_model(model: &Vec<[Vector3<f32>; 3]>, width: usize, height: usize, mut canvas: &mut Canvas, mut zbuffer: &mut Vec<i32>) {
     let c = &Color {r: 255, g: 255, b: 255, a: 255 };
     let c_lines = &Color {r: 0, g: 0, b: 255, a: 255 };
     let mut triangle_count: i32 = 0;
@@ -92,7 +94,7 @@ fn render_model(model: &Vec<[Vector3<f32>; 3]>, width: usize, height: usize, mut
 
         if intensity > 0.0 {
             let c_intensity = &Color { r: (c.r as f32 * intensity) as u8, g: (c.g as f32 * intensity) as u8, b: (c.b as f32 * intensity) as u8, a: c.a};
-            draw_triangle(p0, p1, p2, &c_intensity, &mut canvas, width, height);
+            draw_triangle(p0, p1, p2, &c_intensity, &mut canvas, &mut zbuffer, width, height);
         }
     }
     println!("triangle_count: {}", triangle_count)
@@ -102,6 +104,7 @@ fn main() -> Result<(), ObjError> {
     let width: usize = 800;
     let height: usize = 800;
     let mut canvas = Canvas::new(width, height, Color{r: 0, g:0, b: 0, a: 255});
+    let mut zbuffer: Vec<i32> = vec![0; width * height];
     let window: Window = Window::new(&canvas);
 
     let input = BufReader::new(File::open("/Users/bjornmartens/projects/tempfromgithub/tinyrenderer/obj/african_head/african_head.obj")?);
@@ -120,7 +123,7 @@ fn main() -> Result<(), ObjError> {
 
     let mut previous_time = Instant::now();
     while window.pump() {
-        render_model(&model, width, height, &mut canvas);
+        render_model(&model, width, height, &mut canvas, &mut zbuffer);
         let current_time = Instant::now();
         println!("fps: {}", (current_time - previous_time).as_millis());
         previous_time = current_time;
