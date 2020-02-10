@@ -45,11 +45,11 @@ fn barycentric(v0: &Vector2<i32>, v1: &Vector2<i32>, v2: &Vector2<i32>, p: Vecto
     return Vector3::new(1.0 - (u.x as f32 + u.y as f32) / u.z as f32, u.y as f32 / u.z as f32, u.x as f32 / u.z as f32);
 }
 
-fn draw_triangle_2d(v0: Vector2<i32>, v1: Vector2<i32>, v2: Vector2<i32>, color: &Color, canvas: &mut Canvas) {
-    let x_min = std::cmp::min(v0.x, std::cmp::min(v1.x, v2.x));
-    let x_max = std::cmp::max(v0.x, std::cmp::max(v1.x, v2.x));
-    let y_min = std::cmp::min(v0.y, std::cmp::min(v1.y, v2.y));
-    let y_max = std::cmp::max(v0.y, std::cmp::max(v1.y, v2.y));
+fn draw_triangle_2d(v0: Vector2<i32>, v1: Vector2<i32>, v2: Vector2<i32>, color: &Color, canvas: &mut Canvas, width: usize, height: usize) {
+    let x_min = std::cmp::max(0, std::cmp::min(v0.x, std::cmp::min(v1.x, v2.x)));
+    let x_max = std::cmp::min(width as i32, std::cmp::max(v0.x, std::cmp::max(v1.x, v2.x)));
+    let y_min = std::cmp::max(0, std::cmp::min(v0.y, std::cmp::min(v1.y, v2.y)));
+    let y_max = std::cmp::min(height as i32, std::cmp::max(v0.y, std::cmp::max(v1.y, v2.y)));
     for x in x_min..x_max {
         for y in y_min..y_max {
             let barycentric_screen = barycentric(&v0, &v1, &v2, Vector2::new(x, y));
@@ -60,9 +60,9 @@ fn draw_triangle_2d(v0: Vector2<i32>, v1: Vector2<i32>, v2: Vector2<i32>, color:
     }
 }
 
-fn draw_triangle(v0: Vector3<f32>, v1: Vector3<f32>, v2: Vector3<f32>, color: &Color, mut canvas: &mut Canvas) {
+fn draw_triangle(v0: Vector3<f32>, v1: Vector3<f32>, v2: Vector3<f32>, color: &Color, mut canvas: &mut Canvas, width: usize, height: usize) {
     draw_triangle_2d(Vector2::new(v0.x as i32, v0.y as i32), Vector2::new(v1.x as i32, v1.y as i32),
-                     Vector2::new(v2.x as i32, v2.y as i32), &color, &mut canvas);
+                     Vector2::new(v2.x as i32, v2.y as i32), &color, &mut canvas, width, height);
 }
 
 fn move_and_scale(v: Vector3<f32>, m: f32, s_x: f32, s_y: f32) -> Vector3<f32> {
@@ -92,7 +92,7 @@ fn render_model(model: &Vec<[Vector3<f32>; 3]>, width: usize, height: usize, mut
 
         if intensity > 0.0 {
             let c_intensity = &Color { r: (c.r as f32 * intensity) as u8, g: (c.g as f32 * intensity) as u8, b: (c.b as f32 * intensity) as u8, a: c.a};
-            draw_triangle(p0, p1, p2, &c_intensity, &mut canvas);
+            draw_triangle(p0, p1, p2, &c_intensity, &mut canvas, width, height);
         }
     }
     println!("triangle_count: {}", triangle_count)
