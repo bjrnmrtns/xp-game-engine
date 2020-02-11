@@ -2,8 +2,33 @@ use software_renderer_rs::*;
 use std::fs::File;
 use std::io::BufReader;
 use obj::*;
-use nalgebra::{Vector2, Vector3};
+use nalgebra::{Vector2, Vector3, Vector4, Matrix, U1};
 use std::time::{Duration, Instant};
+
+struct Vertex {
+    pub v: Vector3<f32>,
+    pub n: Vector3<f32>,
+}
+
+fn move_and_scale(v: &Vector3<f32>, m: f32, s_x: f32, s_y: f32) -> Vector3<f32> {
+    Vector3::new((v.x + m) * s_x, (v.y + m) * s_y, v.z)
+}
+
+pub trait Shader {
+    fn vertex(&self, in_vertex: &Vector3<f32>) -> Vector3<f32>;
+    fn fragment(&self, in_fragment: &Vector2<f32>, in_color: &Color) -> Option<Color>;
+}
+
+struct BasicShader;
+
+impl Shader for BasicShader {
+    fn vertex(&self, in_vertex: &Vector3<f32>) -> Vector3<f32> {
+        move_and_scale(&in_vertex, 1.0, 400.0, 400.0)
+    }
+    fn fragment(&self, in_fragment: &Vector2<f32>, in_color: &Color) -> Option<Color> {
+        unimplemented!()
+    }
+}
 
 fn draw_line(v0: Vector3<f32>, v1: Vector3<f32>, color: &Color, canvas: &mut Canvas) {
     let mut steep = false;
@@ -67,27 +92,23 @@ fn draw_triangle(v0: Vector3<f32>, v1: Vector3<f32>, v2: Vector3<f32>, color: &C
     }
 }
 
-fn move_and_scale(v: Vector3<f32>, m: f32, s_x: f32, s_y: f32) -> Vector3<f32> {
-    Vector3::new((v.x + m) * s_x, (v.y + m) * s_y, v.z)
-}
-
-fn render_model(model: &Vec<[Vector3<f32>; 3]>, width: usize, height: usize, mut canvas: &mut Canvas, mut zbuffer: &mut Vec<f32>) {
+fn render_model(shader: &Shader, model: &Vec<[Vector3<f32>; 3]>, width: usize, height: usize, mut canvas: &mut Canvas, mut zbuffer: &mut Vec<f32>) {
     let c = &Color {r: 255, g: 255, b: 255, a: 255 };
     let c_lines = &Color {r: 0, g: 0, b: 255, a: 255 };
     let mut triangle_count: i32 = 0;
-    let light_direction: Vector3<f32> = Vector3::new(0.0, 0.0, -1.0);
     for t in model {
         let half_width = width as f32 / 2.0;
         let half_height = height as f32 / 2.0;
-        let p0 = move_and_scale(t[0], 1.0, half_width, half_height);
-        let p1 = move_and_scale(t[1], 1.0, half_width, half_height);
-        let p2 = move_and_scale(t[2], 1.0, half_width, half_height);
+        let p0 = shader.vertex(&t[0]);
+        let p1 = shader.vertex(&t[1]);
+        let p2 = shader.vertex(&t[2]);
         triangle_count = triangle_count + 1;
 
         //draw_line(p0, p1, c_lines, &mut canvas);
         //draw_line(p1, p2, c_lines, &mut canvas);
         //draw_line(p2, p0, c_lines, &mut canvas);
 
+        let light_direction: Vector3<f32> = Vector3::new(0.0, 0.0, -1.0);
         let n: Vector3<f32> = nalgebra::Vector3::cross(&(t[2] - t[0]), &(t[1] - t[0]));
         let n: Vector3<f32> = n.normalize();
         let intensity: f32 = n.dot(&light_direction);
@@ -106,6 +127,7 @@ fn main() -> Result<(), ObjError> {
     let mut canvas = Canvas::new(width, height, Color{r: 0, g:0, b: 0, a: 255});
     let mut zbuffer: Vec<f32> = vec![0.0; width * height];
     let window: Window = Window::new(&canvas);
+    let shader = BasicShader;
 
     let input = BufReader::new(File::open("/Users/bjornmartens/projects/tempfromgithub/tinyrenderer/obj/african_head/african_head.obj")?);
     let model_obj: Obj = load_obj(input)?;
@@ -123,7 +145,7 @@ fn main() -> Result<(), ObjError> {
 
     let mut previous_time = Instant::now();
     while window.pump() {
-        render_model(&model, width, height, &mut canvas, &mut zbuffer);
+        render_model(&shader, &model, width, height, &mut canvas, &mut zbuffer);
         let current_time = Instant::now();
         println!("fps: {}", (current_time - previous_time).as_millis());
         previous_time = current_time;
