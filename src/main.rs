@@ -5,7 +5,7 @@ use obj::*;
 use nalgebra::{Vector2, Vector3, Vector4, Matrix, U1};
 use std::time::{Duration, Instant};
 
-struct Vertex {
+pub struct Vertex {
     pub v: Vector3<f32>,
     pub n: Vector3<f32>,
 }
@@ -15,15 +15,15 @@ fn move_and_scale(v: &Vector3<f32>, m: f32, s_x: f32, s_y: f32) -> Vector3<f32> 
 }
 
 pub trait Shader {
-    fn vertex(&self, in_vertex: &Vector3<f32>) -> Vector3<f32>;
+    fn vertex(&self, in_vertex: &Vertex) -> Vector3<f32>;
     fn fragment(&self, in_fragment: &Vector2<f32>, in_color: &Color) -> Option<Color>;
 }
 
 struct BasicShader;
 
 impl Shader for BasicShader {
-    fn vertex(&self, in_vertex: &Vector3<f32>) -> Vector3<f32> {
-        move_and_scale(&in_vertex, 1.0, 400.0, 400.0)
+    fn vertex(&self, in_vertex: &Vertex) -> Vector3<f32> {
+        move_and_scale(&in_vertex.v, 1.0, 400.0, 400.0)
     }
     fn fragment(&self, in_fragment: &Vector2<f32>, in_color: &Color) -> Option<Color> {
         unimplemented!()
@@ -92,7 +92,7 @@ fn draw_triangle(v0: Vector3<f32>, v1: Vector3<f32>, v2: Vector3<f32>, color: &C
     }
 }
 
-fn render_model(shader: &Shader, model: &Vec<[Vector3<f32>; 3]>, width: usize, height: usize, mut canvas: &mut Canvas, mut zbuffer: &mut Vec<f32>) {
+fn render_model(shader: &Shader, model: &Vec<[Vertex; 3]>, width: usize, height: usize, mut canvas: &mut Canvas, mut zbuffer: &mut Vec<f32>) {
     let c = &Color {r: 255, g: 255, b: 255, a: 255 };
     let c_lines = &Color {r: 0, g: 0, b: 255, a: 255 };
     let mut triangle_count: i32 = 0;
@@ -109,7 +109,7 @@ fn render_model(shader: &Shader, model: &Vec<[Vector3<f32>; 3]>, width: usize, h
         //draw_line(p2, p0, c_lines, &mut canvas);
 
         let light_direction: Vector3<f32> = Vector3::new(0.0, 0.0, -1.0);
-        let n: Vector3<f32> = nalgebra::Vector3::cross(&(t[2] - t[0]), &(t[1] - t[0]));
+        let n: Vector3<f32> = nalgebra::Vector3::cross(&(t[2].v - t[0].v), &(t[1].v - t[0].v));
         let n: Vector3<f32> = n.normalize();
         let intensity: f32 = n.dot(&light_direction);
 
@@ -132,14 +132,14 @@ fn main() -> Result<(), ObjError> {
     let input = BufReader::new(File::open("/Users/bjornmartens/projects/tempfromgithub/tinyrenderer/obj/african_head/african_head.obj")?);
     let model_obj: Obj = load_obj(input)?;
 
-    let model : &mut Vec<[Vector3<f32>; 3]>= &mut Vec::new();
+    let model : &mut Vec<[Vertex; 3]>= &mut Vec::new();
     for indices in model_obj.indices.chunks(3) {
         let first = model_obj.vertices[indices[0] as usize];
         let second = model_obj.vertices[indices[1] as usize];
         let third = model_obj.vertices[indices[2] as usize];
-        model.push([Vector3::new(first.position[0], first.position[1], first.position[2]),
-                                Vector3::new(second.position[0], second.position[1], second.position[2]),
-                                Vector3::new(third.position[0], third.position[1], third.position[2])]);
+        model.push([ Vertex{ v: Vector3::new(first.position[0], first.position[1], first.position[2]), n:  Vector3::new(first.normal[0], first.normal[1], first.normal[2]) },
+                            Vertex{ v: Vector3::new(second.position[0], second.position[1], second.position[2]), n: Vector3::new(second.normal[0], second.normal[1], second.normal[2]) },
+                            Vertex{ v: Vector3::new(third.position[0], third.position[1], third.position[2]), n: Vector3::new(third.normal[0], third.normal[1], third.normal[2]) }]);
     }
     let now = Instant::now();
 
