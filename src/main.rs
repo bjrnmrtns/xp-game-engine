@@ -2,7 +2,7 @@ use software_renderer_rs::*;
 use std::fs::File;
 use std::io::BufReader;
 use obj::*;
-use nalgebra::{Vector2, Vector3, Vector4, Matrix, U1};
+use nalgebra::{Vector2, Vector3, Vector4, Matrix4};
 use std::time::{Duration, Instant};
 
 pub struct Vertex {
@@ -10,8 +10,12 @@ pub struct Vertex {
     pub n: Vector3<f32>,
 }
 
-fn move_and_scale(v: &Vector3<f32>, m: f32, s_x: f32, s_y: f32) -> Vector3<f32> {
-    Vector3::new((v.x + m) * s_x, (v.y + m) * s_y, v.z)
+fn viewport(x: i32, y: i32, width: i32, height: i32, depth: i32) -> Matrix4<f32> {
+    Matrix4::new(
+        width as f32 / 2.0, 0.0, 0.0, (x + width) as f32 / 2.0,
+        0.0, height as f32 / 2.0, 0.0, (y + height) as f32 / 2.0,
+        0.0, 0.0, depth as f32 / 2.0, depth as f32 / 2.0,
+        0.0, 0.0, 0.0, 1.0)
 }
 
 pub trait Shader {
@@ -23,7 +27,8 @@ struct BasicShader;
 
 impl Shader for BasicShader {
     fn vertex(&self, in_vertex: &Vertex) -> Vector3<f32> {
-        move_and_scale(&in_vertex.v, 1.0, 400.0, 400.0)
+        let r = viewport(0, 0, 800, 800, 255) * Vector4::new(in_vertex.v.x, in_vertex.v.y, in_vertex.v.z, 1.0);
+        Vector3::new(r.x / r.w, r.y / r.w, r.z / r.w)
     }
     fn fragment(&self, in_fragment: &Vector2<f32>, in_color: &Color) -> Option<Color> {
         unimplemented!()
