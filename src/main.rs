@@ -4,6 +4,7 @@ use std::io::BufReader;
 use obj::*;
 use nalgebra::{Vector2, Vector3, Vector4, Matrix4};
 use std::time::{Duration, Instant};
+mod vec;
 
 pub struct Vertex {
     pub v: Vector3<f32>,
