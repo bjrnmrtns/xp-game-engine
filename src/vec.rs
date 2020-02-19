@@ -10,6 +10,17 @@ pub struct Vec4<T> {
     pub w: T,
 }
 
+impl<T: Copy> Vec4<T> {
+    pub fn new(x: T, y: T, z: T, w: T) -> Vec4<T> {
+        Vec4 {
+            x: x,
+            y: y,
+            z: z,
+            w: w,
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Vec3<T> {
     pub x: T,
@@ -18,6 +29,13 @@ pub struct Vec3<T> {
 }
 
 impl<T: Copy> Vec3<T> {
+    pub fn new(x: T, y: T, z: T) -> Vec3<T> {
+        Vec3 {
+            x: x,
+            y: y,
+            z: z,
+        }
+    }
     pub fn xy(&self) -> Vec2<T> {
         Vec2 {
             x: self.x,
@@ -98,10 +116,33 @@ impl<T: Copy + Mul<Output = T> + Sub<Output = T>> Vec3<T> {
     }
 }
 
+impl Vec3<f32> {
+    pub fn length(self) -> f32 {
+        (self.x * self.x + self.y * self.y + self.z * self.z).sqrt()
+    }
+    pub fn normalize(self) -> Vec3<f32> {
+        let length = self.length();
+        Vec3 {
+            x: self.x / length,
+            y: self.y / length,
+            z: self.z / length,
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Vec2<T> {
     pub x: T,
     pub y: T,
+}
+
+impl<T: Copy> Vec2<T> {
+    pub fn new(x: T, y: T) -> Self {
+        Self {
+            x: x,
+            y: y,
+        }
+    }
 }
 
 impl<T: Add<Output = T>> Add for Vec2<T> {
