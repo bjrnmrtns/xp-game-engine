@@ -2,6 +2,7 @@ use std::cmp;
 use std::ops::{Add, Mul};
 use crate::vec::Vec4;
 
+#[derive (Copy, Clone)]
 pub struct Mat4<T>(pub T, pub T, pub T, pub T,
                    pub T, pub T, pub T, pub T,
                    pub T, pub T, pub T, pub T,

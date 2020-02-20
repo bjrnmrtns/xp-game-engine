@@ -8,6 +8,7 @@ mod vec;
 use vec::{Vec2, Vec3, Vec4};
 mod mat;
 use mat::{Mat4};
+use image::RgbImage;
 
 pub struct Vertex {
     pub v: Vec3<f32>,
@@ -21,28 +22,33 @@ pub struct VertexOut {
     pub t: Vec2<f32>,
 }
 
-fn viewport(x: i32, y: i32, width: i32, height: i32, depth: i32) -> Mat4<f32> {
+fn viewport(x: f32, y: f32, width: f32, height: f32, depth: f32) -> Mat4<f32> {
     Mat4(
-        width as f32 / 2.0, 0.0, 0.0, x as f32 + width as f32 / 2.0,
-        0.0, height as f32 / 2.0, 0.0, y as f32 + height as f32 / 2.0,
-        0.0, 0.0, depth as f32 / 2.0, depth as f32 / 2.0,
+        width / 2.0, 0.0, 0.0, x + width / 2.0,
+        0.0, height / 2.0, 0.0, y + height / 2.0,
+        0.0, 0.0, depth / 2.0, depth / 2.0,
         0.0, 0.0 , 0.0, 1.0)
 }
 
 pub trait Shader {
-    fn vertex(&self, in_vertex: &Vertex, projection: &Mat4<f32>) -> VertexOut;
-    fn fragment(&self, image: &image::RgbImage, in_fragment: &Vec2<f32>, in_texcoord: &Vec2<f32>, intensity: f32) -> Option<Color>;
+    fn vertex(&self, in_vertex: &Vertex) -> VertexOut;
+    fn fragment(&self, in_fragment: &Vec2<f32>, in_texcoord: &Vec2<f32>, intensity: f32) -> Option<Color>;
 }
 
-struct BasicShader;
+struct BasicShader<'a>
+{
+    mat: &'a Mat4<f32>,
+    tex: &'a RgbImage,
+    light_direction: Vec3<f32>,
+}
 
-impl Shader for BasicShader {
-    fn vertex(&self, in_vertex: &Vertex, projection: &Mat4<f32>) -> VertexOut {
-        let r = viewport(0, 0, 800, 800, 255) * Vec4::new(in_vertex.v.x, in_vertex.v.y, in_vertex.v.z, 1.0);
+impl<'a> Shader for BasicShader<'a> {
+    fn vertex(&self, in_vertex: &Vertex) -> VertexOut {
+        let r = *self.mat * Vec4::new(in_vertex.v.x, in_vertex.v.y, in_vertex.v.z, 1.0);
         VertexOut { v: r, n: in_vertex.n.clone(), t: in_vertex.t.clone()  }
     }
-    fn fragment(&self, image: &image::RgbImage, in_fragment: &Vec2<f32>, in_texcoord: &Vec2<f32>, intensity: f32) -> Option<Color> {
-        let pixel = image.get_pixel((in_texcoord.x * image.width() as f32) as u32, image.height() - 1 - (in_texcoord.y * image.height() as f32) as u32);
+    fn fragment(&self, in_fragment: &Vec2<f32>, in_texcoord: &Vec2<f32>, intensity: f32) -> Option<Color> {
+        let pixel = self.tex.get_pixel((in_texcoord.x * self.tex.width() as f32) as u32, self.tex.height() - 1 - (in_texcoord.y * self.tex.height() as f32) as u32);
         let r = pixel[0]; let g = pixel[1]; let b = pixel[2];
         let out_color = Color{ r: (r as f32 * intensity) as u8, g: (g as f32 * intensity) as u8, b: (b as f32 * intensity) as u8, a: 255 };
         Some(out_color)
@@ -89,7 +95,7 @@ fn barycentric(v0: &Vec2<i32>, v1: &Vec2<i32>, v2: &Vec2<i32>, p: Vec2<i32>) -> 
     return Vec3::new(1.0 - (u.x as f32 + u.y as f32) / u.z as f32, u.y as f32 / u.z as f32, u.x as f32 / u.z as f32);
 }
 
-fn draw_triangle(shader: &Shader, image: &image::RgbImage, v0: VertexOut, v1: VertexOut, v2: VertexOut, intensity: f32, canvas: &mut Canvas, zbuffer: &mut Vec<f32>, width: usize, height: usize) {
+fn draw_triangle(shader: &dyn Shader, v0: VertexOut, v1: VertexOut, v2: VertexOut, intensity: f32, canvas: &mut Canvas, width: usize, height: usize) {
     let v0i: Vec2<i32> = Vec2::new(v0.v.x as i32, v0.v.y as i32);
     let v1i: Vec2<i32> = Vec2::new(v1.v.x as i32, v1.v.y as i32);
     let v2i: Vec2<i32> = Vec2::new(v2.v.x as i32, v2.v.y as i32);
@@ -110,7 +116,7 @@ fn draw_triangle(shader: &Shader, image: &image::RgbImage, v0: VertexOut, v1: Ve
                 let v = bs.x * v0.t.y + bs.y * v1.t.y + bs.z * v2.t.y;
 
                 let depth: f32 = bs.x * v0.v.z + bs.y * v1.v.z + bs.z * v2.v.z;
-                match shader.fragment(image, &Vec2::new(x as f32, y as f32), &Vec2::new(u, v), intensity) {
+                match shader.fragment(&Vec2::new(x as f32, y as f32), &Vec2::new(u, v), intensity) {
                     Some(c) => canvas.set_with_depth(x as usize, y as usize, depth as isize, &c),
                     None => (),
                 }
@@ -145,7 +151,7 @@ fn load_model<R: std::io::BufRead>(r: R) -> Result<Vec<[Vertex; 3]>, ObjError> {
 	Ok(model)
 }
 
-fn render_model(shader: &Shader, image: &image::RgbImage, model: &[[Vertex; 3]], width: usize, height: usize, mut canvas: &mut Canvas, mut zbuffer: &mut Vec<f32>) {
+fn render_model(shader: &dyn Shader, model: &[[Vertex; 3]], width: usize, height: usize, mut canvas: &mut Canvas) {
     let c = &Color {r: 255, g: 255, b: 255, a: 255 };
     let c_lines = &Color {r: 0, g: 0, b: 255, a: 255 };
     let projection = Mat4(1.0, 0.0, 0.0, 0.0,
@@ -154,9 +160,9 @@ fn render_model(shader: &Shader, image: &image::RgbImage, model: &[[Vertex; 3]],
                           0.0, 0.0, -0.33, 1.0);
     let mut triangle_count: i32 = 0;
     for t in model {
-        let p0 = shader.vertex(&t[0], &projection);
-        let p1 = shader.vertex(&t[1], &projection);
-        let p2 = shader.vertex(&t[2], &projection);
+        let p0 = shader.vertex(&t[0]);
+        let p1 = shader.vertex(&t[1]);
+        let p2 = shader.vertex(&t[2]);
         triangle_count = triangle_count + 1;
 
         let light_direction: Vec3<f32> = Vec3::new(0.0, 0.0, -1.0);
@@ -165,7 +171,7 @@ fn render_model(shader: &Shader, image: &image::RgbImage, model: &[[Vertex; 3]],
         let intensity: f32 = n.dot(light_direction);
 
         if intensity > 0.0 {
-            draw_triangle(shader, image, p0, p1, p2, intensity, &mut canvas, &mut zbuffer, width, height);
+            draw_triangle(shader,p0, p1, p2, intensity, &mut canvas, width, height);
         }
     }
     println!("triangle_count: {}", triangle_count)
@@ -174,18 +180,23 @@ fn render_model(shader: &Shader, image: &image::RgbImage, model: &[[Vertex; 3]],
 fn main() -> Result<(), ObjError> {
     let width: usize = 800;
     let height: usize = 800;
-    let img = image::open("/Users/bjornmartens/projects/software-renderer-rs/obj/ah/african_head_diffuse.tga").unwrap().to_rgb(); // use try/? but convert to generic error to standard error and change result of main into that error.
+    let img: RgbImage = image::open("/Users/bjornmartens/projects/software-renderer-rs/obj/ah/african_head_diffuse.tga").unwrap().to_rgb(); // use try/? but convert to generic error to standard error and change result of main into that error.
+    let mat = viewport(0.0, 0.0, 800.0, 800.0, 255.0);
+    let shader = BasicShader {
+        mat: &mat,
+        tex: &img,
+        light_direction: Vec3::new(0.0, 0.0, -1.0),
+    };
     let mut canvas = Canvas::new(width, height, Color{r: 0, g:0, b: 0, a: 255});
-    let mut zbuffer: &mut Vec<f32> = &mut vec![0.0; width * height];
     let window: Window = Window::new(&canvas);
-    let shader = BasicShader;
+
 
     let input = &mut BufReader::new(File::open("/Users/bjornmartens/projects/software-renderer-rs/obj/ah/african_head.obj")?);
 	let model = load_model(input)?;
     //let model = load_triangle();
     let mut previous_time = Instant::now();
     while window.pump() {
-        render_model(&shader, &img, &model, width, height, &mut canvas, &mut zbuffer);
+        render_model(&shader, &model, width, height, &mut canvas);
         let current_time = Instant::now();
         println!("fps: {}", (current_time - previous_time).as_millis());
         previous_time = current_time;
