@@ -19,6 +19,12 @@ impl<T: Copy> Vec4<T> {
             w: w,
         }
     }
+    pub fn xy(&self) -> Vec2<T> {
+        Vec2 {
+            x: self.x,
+            y: self.y,
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -78,24 +84,26 @@ impl<T: Sub<Output = T>> Sub for Vec3<T> {
     }
 }
 
-impl<T: Mul<Output = T>> Mul for Vec3<T> {
-    type Output = Self;
-    fn mul(self, rhs: Self) -> Self::Output {
-        Self {
-            x: self.x * rhs.x,
-            y: self.y * rhs.y,
-            z: self.z * rhs.z,
+impl<T> Mul<T> for Vec3<T>
+    where T: Mul<T, Output = T> + Copy {
+    type Output = Vec3<T>;
+    fn mul(self, rhs: T) -> Vec3<T> {
+        Vec3 {
+            x: self.x * rhs,
+            y: self.y * rhs,
+            z: self.z * rhs,
         }
     }
 }
 
-impl<T: Div<Output = T>> Div for Vec3<T> {
-    type Output = Self;
-    fn div(self, rhs: Self) -> Self::Output {
-        Self {
-            x: self.x / rhs.x,
-            y: self.y / rhs.y,
-            z: self.z / rhs.z,
+impl<T> Div<T> for Vec3<T>
+    where T: Div<T, Output = T> + Copy {
+    type Output = Vec3<T>;
+    fn div(self, rhs: T) -> Vec3<T> {
+        Vec3 {
+            x: self.x / rhs,
+            y: self.y / rhs,
+            z: self.z / rhs,
         }
     }
 }
@@ -165,22 +173,24 @@ impl<T: Sub<Output = T>> Sub for Vec2<T> {
     }
 }
 
-impl<T: Mul<Output = T>> Mul for Vec2<T> {
-    type Output = Self;
-    fn mul(self, rhs: Self) -> Self::Output {
-        Self {
-            x: self.x * rhs.x,
-            y: self.y * rhs.y,
+impl<T> Mul<T> for Vec2<T>
+    where T: Mul<T, Output = T> + Copy {
+    type Output = Vec2<T>;
+    fn mul(self, rhs: T) -> Vec2<T> {
+        Vec2 {
+            x: self.x * rhs,
+            y: self.y * rhs,
         }
     }
 }
 
-impl<T: Div<Output = T>> Div for Vec2<T> {
-    type Output = Self;
-    fn div(self, rhs: Self) -> Self::Output {
-        Self {
-            x: self.x / rhs.x,
-            y: self.y / rhs.y,
+impl<T> Div<T> for Vec2<T>
+    where T: Div<T, Output = T> + Copy {
+    type Output = Vec2<T>;
+    fn div(self, rhs: T) -> Vec2<T> {
+        Vec2 {
+            x: self.x / rhs,
+            y: self.y / rhs,
         }
     }
 }
@@ -188,26 +198,5 @@ impl<T: Div<Output = T>> Div for Vec2<T> {
 impl<T: Copy + Mul<Output = T> + Add<Output = T>> Vec2<T> {
     pub fn dot(self, rhs: Self) -> T {
         self.x * rhs.x + self.y + rhs.y
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn add_vec2() {
-        assert_eq!(Vec2::<i32> { x: 1, y: 1 } + Vec2::<i32> { x: 2, y: 2 }, Vec2::<i32> { x: 3, y: 3 });
-    }
-    #[test]
-    fn sub_vec2() {
-        assert_eq!(Vec2::<i32> { x: 1, y: 1 } - Vec2::<i32> { x: 2, y: 2 }, Vec2::<i32> { x: -1, y: -1 });
-    }
-    #[test]
-    fn mul_vec2() {
-        assert_eq!(Vec2::<i32> { x: 1, y: 2 } * Vec2::<i32> { x: 2, y: 2 }, Vec2::<i32> { x: 2, y: 4 });
-    }
-    #[test]
-    fn div_vec2() {
-        assert_eq!(Vec2::<i32> { x: 4, y: 2 } / Vec2::<i32> { x: 2, y: 2 }, Vec2::<i32> { x: 2, y: 1 });
     }
 }

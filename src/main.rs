@@ -30,9 +30,28 @@ fn viewport(x: f32, y: f32, width: f32, height: f32, depth: f32) -> Mat4<f32> {
         0.0, 0.0 , 0.0, 1.0)
 }
 
-pub trait Shader {
-    fn vertex(&self, in_vertex: &Vertex) -> VertexOut;
-    fn fragment(&self, in_fragment: &Vec2<f32>, in_texcoord: &Vec2<f32>, intensity: f32) -> Option<Color>;
+pub trait Vary {
+    fn vary(var0: &Self, var1: &Self, var2: &Self, bc: &Vec3<f32>) -> Self;
+}
+
+#[derive(Copy, Clone)]
+struct Varyings {
+    n: Vec3<f32>,
+    t: Vec2<f32>,
+}
+
+impl Vary for Varyings {
+    fn vary(var0: &Self, var1: &Self, var2: &Self, bc: &Vec3<f32>) -> Self {
+        Varyings {
+            n: (var0.n * bc.x + var1.n * bc.y + var2.n * bc.z).normalize(),
+            t: (var0.t * bc.x + var1.t * bc.y + var2.t * bc.z),
+        }
+    }
+}
+
+pub trait Shader<V: Vary> {
+    fn vertex(&self, in_v: &Vec3<f32>, var: &V) -> (Vec4<f32>, V);
+    fn fragment(&self, in_f: &Vec2<f32>, var: V) -> Option<Color>;
 }
 
 struct BasicShader<'a>
@@ -42,15 +61,15 @@ struct BasicShader<'a>
     light_direction: Vec3<f32>,
 }
 
-impl<'a> Shader for BasicShader<'a> {
-    fn vertex(&self, in_vertex: &Vertex) -> VertexOut {
-        let r = *self.mat * Vec4::new(in_vertex.v.x, in_vertex.v.y, in_vertex.v.z, 1.0);
-        VertexOut { v: r, n: in_vertex.n.clone(), t: in_vertex.t.clone()  }
+impl<'a> Shader<Varyings> for BasicShader<'a> {
+    fn vertex(&self, in_v: &Vec3<f32>, var: &Varyings) -> (Vec4<f32>, Varyings) {
+        (*self.mat * Vec4::new(in_v.x, in_v.y, in_v.z, 1.0),
+         *var)
     }
-    fn fragment(&self, in_fragment: &Vec2<f32>, in_texcoord: &Vec2<f32>, intensity: f32) -> Option<Color> {
-        let pixel = self.tex.get_pixel((in_texcoord.x * self.tex.width() as f32) as u32, self.tex.height() - 1 - (in_texcoord.y * self.tex.height() as f32) as u32);
+    fn fragment(&self, in_f: &Vec2<f32>, var: Varyings) -> Option<Color> {
+        let pixel = self.tex.get_pixel((var.t.x * self.tex.width() as f32) as u32, self.tex.height() - 1 - (var.t.y * self.tex.height() as f32) as u32);
         let r = pixel[0]; let g = pixel[1]; let b = pixel[2];
-        let out_color = Color{ r: (r as f32 * intensity) as u8, g: (g as f32 * intensity) as u8, b: (b as f32 * intensity) as u8, a: 255 };
+        let out_color = Color{ r: (r as f32) as u8, g: (g as f32) as u8, b: (b as f32) as u8, a: 255 };
         Some(out_color)
     }
 }
@@ -95,10 +114,16 @@ fn barycentric(v0: &Vec2<i32>, v1: &Vec2<i32>, v2: &Vec2<i32>, p: Vec2<i32>) -> 
     return Vec3::new(1.0 - (u.x as f32 + u.y as f32) / u.z as f32, u.y as f32 / u.z as f32, u.x as f32 / u.z as f32);
 }
 
-fn draw_triangle(shader: &dyn Shader, v0: VertexOut, v1: VertexOut, v2: VertexOut, intensity: f32, canvas: &mut Canvas, width: usize, height: usize) {
-    let v0i: Vec2<i32> = Vec2::new(v0.v.x as i32, v0.v.y as i32);
-    let v1i: Vec2<i32> = Vec2::new(v1.v.x as i32, v1.v.y as i32);
-    let v2i: Vec2<i32> = Vec2::new(v2.v.x as i32, v2.v.y as i32);
+fn draw_triangle<V: Vary, S: Shader<V>>(shader: &S, v0: (Vec3<f32>, V), v1: (Vec3<f32>, V), v2: (Vec3<f32>, V), canvas: &mut Canvas, width: usize, height: usize) {
+    let p0 = shader.vertex(&v0.0, &v0.1);
+    let p1 = shader.vertex(&v1.0, &v1.1);
+    let p2 = shader.vertex(&v2.0, &v2.1);
+    let xy0 = p0.0.xy();
+    let xy1 = p1.0.xy();
+    let xy2 = p2.0.xy();
+    let v0i: Vec2<i32> = Vec2::new(xy0.x as i32, xy0.y as i32);
+    let v1i: Vec2<i32> = Vec2::new(xy1.x as i32, xy1.y as i32);
+    let v2i: Vec2<i32> = Vec2::new(xy2.x as i32, xy2.y as i32);
     let x_min = std::cmp::max(0, std::cmp::min(v0i.x, std::cmp::min(v1i.x, v2i.x)));
     let x_max = std::cmp::min(width as i32, std::cmp::max(v0i.x, std::cmp::max(v1i.x, v2i.x)));
     let y_min = std::cmp::max(0, std::cmp::min(v0i.y, std::cmp::min(v1i.y, v2i.y)));
@@ -112,12 +137,10 @@ fn draw_triangle(shader: &dyn Shader, v0: VertexOut, v1: VertexOut, v2: VertexOu
                 //v' = ( v0.t.v / v0.t.w ) * bs.x + ( v1.t.v / v1.t.w ) * bs.y + ( v2.t.v / v2.t.w ) * bs.z
                 //perspCorrU = u' / w'
                 //perspCorrV = v' / w'
-                let u = bs.x * v0.t.x + bs.y * v1.t.x + bs.z * v2.t.x;
-                let v = bs.x * v0.t.y + bs.y * v1.t.y + bs.z * v2.t.y;
 
-                let depth: f32 = bs.x * v0.v.z + bs.y * v1.v.z + bs.z * v2.v.z;
-                match shader.fragment(&Vec2::new(x as f32, y as f32), &Vec2::new(u, v), intensity) {
-                    Some(c) => canvas.set_with_depth(x as usize, y as usize, depth as isize, &c),
+                let depth: f32 = bs.x * v0.0.z + bs.y * v1.0.z + bs.z * v2.0.z;
+                match shader.fragment(&Vec2::new(x as f32, y as f32), V::vary(&v0.1, &v1.1, &v2.1, &bs)) {
+                    Some(c) => canvas.set_with_depth(x as usize, y as usize, depth, &c),
                     None => (),
                 }
             }
@@ -151,32 +174,6 @@ fn load_model<R: std::io::BufRead>(r: R) -> Result<Vec<[Vertex; 3]>, ObjError> {
 	Ok(model)
 }
 
-fn render_model(shader: &dyn Shader, model: &[[Vertex; 3]], width: usize, height: usize, mut canvas: &mut Canvas) {
-    let c = &Color {r: 255, g: 255, b: 255, a: 255 };
-    let c_lines = &Color {r: 0, g: 0, b: 255, a: 255 };
-    let projection = Mat4(1.0, 0.0, 0.0, 0.0,
-                          0.0, 1.0, 0.0, 0.0,
-                          0.0, 0.0, 1.0, 0.0,
-                          0.0, 0.0, -0.33, 1.0);
-    let mut triangle_count: i32 = 0;
-    for t in model {
-        let p0 = shader.vertex(&t[0]);
-        let p1 = shader.vertex(&t[1]);
-        let p2 = shader.vertex(&t[2]);
-        triangle_count = triangle_count + 1;
-
-        let light_direction: Vec3<f32> = Vec3::new(0.0, 0.0, -1.0);
-        let n: Vec3<f32> = (t[2].v - t[0].v).cross(t[1].v - t[0].v);
-        let n: Vec3<f32> = n.normalize();
-        let intensity: f32 = n.dot(light_direction);
-
-        if intensity > 0.0 {
-            draw_triangle(shader,p0, p1, p2, intensity, &mut canvas, width, height);
-        }
-    }
-    println!("triangle_count: {}", triangle_count)
-}
-
 fn main() -> Result<(), ObjError> {
     let width: usize = 800;
     let height: usize = 800;
@@ -196,11 +193,22 @@ fn main() -> Result<(), ObjError> {
     //let model = load_triangle();
     let mut previous_time = Instant::now();
     while window.pump() {
-        render_model(&shader, &model, width, height, &mut canvas);
+        let c = &Color {r: 255, g: 255, b: 255, a: 255 };
+        let c_lines = &Color {r: 0, g: 0, b: 255, a: 255 };
+        let mut triangle_count: i32 = 0;
+        for t in &model {
+            triangle_count = triangle_count + 1;
+            let var0 = Varyings { n: t[0].n, t: t[0].t };
+            let var1 = Varyings { n: t[1].n, t: t[1].t };
+            let var2 = Varyings { n: t[2].n, t: t[2].t };
+            draw_triangle(&shader,(t[0].v, var0), (t[1].v, var1), (t[2].v, var2), &mut canvas, width, height);
+        }
+        println!("triangle_count: {}", triangle_count);
         let current_time = Instant::now();
         println!("fps: {}", (current_time - previous_time).as_millis());
         previous_time = current_time;
         window.update();
+        //canvas.clear_zbuffer();
     }
     Ok(())
 }
