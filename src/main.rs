@@ -23,10 +23,10 @@ pub struct VertexOut {
 
 fn viewport(x: i32, y: i32, width: i32, height: i32, depth: i32) -> Mat4<f32> {
     Mat4(
-        width as f32 / 2.0, 0.0, 0.0, 0.0,
-        0.0, height as f32 / 2.0, 0.0, 0.0,
-        0.0, 0.0, depth as f32 / 2.0, 0.0,
-        x as f32 + width as f32 / 2.0, y as f32 + height as f32 / 2.0 , depth as f32 / 2.0, 1.0)
+        width as f32 / 2.0, 0.0, 0.0, x as f32 + width as f32 / 2.0,
+        0.0, height as f32 / 2.0, 0.0, y as f32 + height as f32 / 2.0,
+        0.0, 0.0, depth as f32 / 2.0, depth as f32 / 2.0,
+        0.0, 0.0 , 0.0, 1.0)
 }
 
 pub trait Shader {
@@ -159,8 +159,6 @@ fn render_model(shader: &Shader, image: &image::RgbImage, model: &[[Vertex; 3]],
                           0.0, 0.0, -0.33, 1.0);
     let mut triangle_count: i32 = 0;
     for t in model {
-        let half_width = width as f32 / 2.0;
-        let half_height = height as f32 / 2.0;
         let p0 = shader.vertex(&t[0], &projection);
         let p1 = shader.vertex(&t[1], &projection);
         let p2 = shader.vertex(&t[2], &projection);
@@ -188,8 +186,8 @@ fn main() -> Result<(), ObjError> {
     let shader = BasicShader;
 
     let input = &mut BufReader::new(File::open("/Users/bjornmartens/projects/software-renderer-rs/obj/ah/african_head.obj")?);
-	let model2 = load_model(input)?;
-    let model = load_triangle();
+	let model = load_model(input)?;
+    //let model = load_triangle();
     let mut previous_time = Instant::now();
     while window.pump() {
         render_model(&shader, &img, &model, width, height, &mut canvas, &mut zbuffer);
