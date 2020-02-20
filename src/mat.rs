@@ -2,12 +2,13 @@ use std::cmp;
 use std::ops::{Add, Mul};
 use crate::vec::Vec4;
 
-pub struct Mat4x4<T>(T, T, T, T,
-                        T, T, T, T,
-                        T, T, T, T,
-                        T, T, T, T);
+pub struct Mat4<T>(pub T, pub T, pub T, pub T,
+                   pub T, pub T, pub T, pub T,
+                   pub T, pub T, pub T, pub T,
+                   pub T, pub T, pub T, pub T);
 
-/*impl<T: Mul<Output = T> + Add<Output=T> + Copy> Mul for Mat4x4<T> {
+impl<T> Mul<Vec4<T>> for Mat4<T>
+    where T: Mul<T, Output=T> + Add<T, Output=T> + Copy {
     type Output = Vec4<T>;
     fn mul(self, rhs: Vec4<T>) -> Vec4<T> {
         Vec4 {
@@ -17,4 +18,4 @@ pub struct Mat4x4<T>(T, T, T, T,
             w: self.12 * rhs.x + self.13 * rhs.y + self.14 * rhs.z + self.15 * rhs.w,
         }
     }
-}*/
+}

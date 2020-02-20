@@ -109,7 +109,7 @@ impl<T: Copy + Mul<Output = T> + Add<Output = T>> Vec3<T> {
 impl<T: Copy + Mul<Output = T> + Sub<Output = T>> Vec3<T> {
     pub fn cross(self, rhs: Self) -> Self {
         Self {
-            x: self.y * rhs.x - self.z * rhs.y,
+            x: self.y * rhs.z - self.z * rhs.y,
             y: self.z * rhs.x - self.x * rhs.z,
             z: self.x * rhs.y - self.y * rhs.x,
         }

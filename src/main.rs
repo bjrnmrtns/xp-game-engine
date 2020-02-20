@@ -7,7 +7,7 @@ use std::time::{Duration, Instant};
 mod vec;
 use vec::{Vec2, Vec3, Vec4};
 mod mat;
-use mat::{Mat4x4};
+use mat::{Mat4};
 
 pub struct Vertex {
     pub v: Vec3<f32>,
@@ -15,25 +15,31 @@ pub struct Vertex {
     pub t: Vec2<f32>,
 }
 
-/*fn viewport(x: i32, y: i32, width: i32, height: i32, depth: i32) -> Mat4x4<f32> {
-    Mat4x4(
+pub struct VertexOut {
+    pub v: Vec4<f32>,
+    pub n: Vec3<f32>,
+    pub t: Vec2<f32>,
+}
+
+fn viewport(x: i32, y: i32, width: i32, height: i32, depth: i32) -> Mat4<f32> {
+    Mat4(
         width as f32 / 2.0, 0.0, 0.0, 0.0,
         0.0, height as f32 / 2.0, 0.0, 0.0,
         0.0, 0.0, depth as f32 / 2.0, 0.0,
-        0.0, 0.0, 0.0, 1.0)
-}*/
+        x as f32 + width as f32 / 2.0, y as f32 + height as f32 / 2.0 , depth as f32 / 2.0, 1.0)
+}
 
 pub trait Shader {
-    fn vertex(&self, in_vertex: &Vertex, projection: &Mat4x4<f32>) -> Vertex;
+    fn vertex(&self, in_vertex: &Vertex, projection: &Mat4<f32>) -> VertexOut;
     fn fragment(&self, image: &image::RgbImage, in_fragment: &Vec2<f32>, in_texcoord: &Vec2<f32>, intensity: f32) -> Option<Color>;
 }
 
 struct BasicShader;
 
 impl Shader for BasicShader {
-    fn vertex(&self, in_vertex: &Vertex, projection: &Mat4x4<f32>) -> Vertex {
-        let r = /*viewport(0, 0, 800, 800, 255) **/ Vec4::new(in_vertex.v.x, in_vertex.v.y, in_vertex.v.z, 1.0);
-        Vertex { v: Vec3::new(r.x / r.w, r.y / r.w, r.z / r.w), n: in_vertex.n.clone(), t: in_vertex.t.clone()  }
+    fn vertex(&self, in_vertex: &Vertex, projection: &Mat4<f32>) -> VertexOut {
+        let r = viewport(0, 0, 800, 800, 255) * Vec4::new(in_vertex.v.x, in_vertex.v.y, in_vertex.v.z, 1.0);
+        VertexOut { v: r, n: in_vertex.n.clone(), t: in_vertex.t.clone()  }
     }
     fn fragment(&self, image: &image::RgbImage, in_fragment: &Vec2<f32>, in_texcoord: &Vec2<f32>, intensity: f32) -> Option<Color> {
         let pixel = image.get_pixel((in_texcoord.x * image.width() as f32) as u32, image.height() - 1 - (in_texcoord.y * image.height() as f32) as u32);
@@ -83,7 +89,7 @@ fn barycentric(v0: &Vec2<i32>, v1: &Vec2<i32>, v2: &Vec2<i32>, p: Vec2<i32>) -> 
     return Vec3::new(1.0 - (u.x as f32 + u.y as f32) / u.z as f32, u.y as f32 / u.z as f32, u.x as f32 / u.z as f32);
 }
 
-fn draw_triangle(shader: &Shader, image: &image::RgbImage, v0: Vertex, v1: Vertex, v2: Vertex, intensity: f32, canvas: &mut Canvas, zbuffer: &mut Vec<f32>, width: usize, height: usize) {
+fn draw_triangle(shader: &Shader, image: &image::RgbImage, v0: VertexOut, v1: VertexOut, v2: VertexOut, intensity: f32, canvas: &mut Canvas, zbuffer: &mut Vec<f32>, width: usize, height: usize) {
     let v0i: Vec2<i32> = Vec2::new(v0.v.x as i32, v0.v.y as i32);
     let v1i: Vec2<i32> = Vec2::new(v1.v.x as i32, v1.v.y as i32);
     let v2i: Vec2<i32> = Vec2::new(v2.v.x as i32, v2.v.y as i32);
@@ -99,7 +105,6 @@ fn draw_triangle(shader: &Shader, image: &image::RgbImage, v0: Vertex, v1: Verte
 
                 if zbuffer[x as usize + width * y as usize] < z {
                     zbuffer[x as usize + width * y as usize] = z;
-
                     //w' = ( 1 / v0.v.w ) * bs.x + ( 1 / v1.v.w ) * bs.y + ( 1 / v2.v.w ) * bs.z
                     //u' = ( v0.t.u / v0.t.w ) * bs.x + ( v1.t.u / v1.t.w ) * bs.y + ( v2.t.u / v2.t.w ) * bs.z
                     //v' = ( v0.t.v / v0.t.w ) * bs.x + ( v1.t.v / v1.t.w ) * bs.y + ( v2.t.v / v2.t.w ) * bs.z
@@ -148,10 +153,10 @@ fn load_model<R: std::io::BufRead>(r: R) -> Result<Vec<[Vertex; 3]>, ObjError> {
 fn render_model(shader: &Shader, image: &image::RgbImage, model: &[[Vertex; 3]], width: usize, height: usize, mut canvas: &mut Canvas, mut zbuffer: &mut Vec<f32>) {
     let c = &Color {r: 255, g: 255, b: 255, a: 255 };
     let c_lines = &Color {r: 0, g: 0, b: 255, a: 255 };
-    let projection = Mat4x4::new(1.0, 0.0, 0.0, 0.0,
-                                  0.0, 1.0, 0.0, 0.0,
-                                  0.0, 0.0, 1.0, 0.0,
-                                  0.0, 0.0, -0.33, 1.0);
+    let projection = Mat4(1.0, 0.0, 0.0, 0.0,
+                          0.0, 1.0, 0.0, 0.0,
+                          0.0, 0.0, 1.0, 0.0,
+                          0.0, 0.0, -0.33, 1.0);
     let mut triangle_count: i32 = 0;
     for t in model {
         let half_width = width as f32 / 2.0;
@@ -176,15 +181,15 @@ fn render_model(shader: &Shader, image: &image::RgbImage, model: &[[Vertex; 3]],
 fn main() -> Result<(), ObjError> {
     let width: usize = 800;
     let height: usize = 800;
-    let img = image::open("/Users/bjornmartens/projects/tempfromgithub/tinyrenderer/obj/african_head/african_head_diffuse.tga").unwrap().to_rgb(); // use try/? but convert to generic error to standard error and change result of main into that error.
+    let img = image::open("/Users/bjornmartens/projects/software-renderer-rs/obj/ah/african_head_diffuse.tga").unwrap().to_rgb(); // use try/? but convert to generic error to standard error and change result of main into that error.
     let mut canvas = Canvas::new(width, height, Color{r: 0, g:0, b: 0, a: 255});
     let mut zbuffer: &mut Vec<f32> = &mut vec![0.0; width * height];
     let window: Window = Window::new(&canvas);
     let shader = BasicShader;
 
-    let input = &mut BufReader::new(File::open("/Users/bjornmartens/projects/tempfromgithub/tinyrenderer/obj/african_head/african_head.obj")?);
-	let model = load_model(input)?;
-    //let model= load_triangle();
+    let input = &mut BufReader::new(File::open("/Users/bjornmartens/projects/software-renderer-rs/obj/ah/african_head.obj")?);
+	let model2 = load_model(input)?;
+    let model = load_triangle();
     let mut previous_time = Instant::now();
     while window.pump() {
         render_model(&shader, &img, &model, width, height, &mut canvas, &mut zbuffer);
