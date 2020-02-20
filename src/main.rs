@@ -101,22 +101,18 @@ fn draw_triangle(shader: &Shader, image: &image::RgbImage, v0: VertexOut, v1: Ve
         for y in y_min..y_max {
             let bs = barycentric(&v0i, &v1i, &v2i, Vec2::new(x, y));
             if bs.x >= 0.0 && bs.y >= 0.0 && bs.z >= 0.0 {
-                let z: f32 = bs.x * v0.v.z + bs.y * v1.v.z + bs.z * v2.v.z;
+                //w' = ( 1 / v0.v.w ) * bs.x + ( 1 / v1.v.w ) * bs.y + ( 1 / v2.v.w ) * bs.z
+                //u' = ( v0.t.u / v0.t.w ) * bs.x + ( v1.t.u / v1.t.w ) * bs.y + ( v2.t.u / v2.t.w ) * bs.z
+                //v' = ( v0.t.v / v0.t.w ) * bs.x + ( v1.t.v / v1.t.w ) * bs.y + ( v2.t.v / v2.t.w ) * bs.z
+                //perspCorrU = u' / w'
+                //perspCorrV = v' / w'
+                let u = bs.x * v0.t.x + bs.y * v1.t.x + bs.z * v2.t.x;
+                let v = bs.x * v0.t.y + bs.y * v1.t.y + bs.z * v2.t.y;
 
-                if zbuffer[x as usize + width * y as usize] < z {
-                    zbuffer[x as usize + width * y as usize] = z;
-                    //w' = ( 1 / v0.v.w ) * bs.x + ( 1 / v1.v.w ) * bs.y + ( 1 / v2.v.w ) * bs.z
-                    //u' = ( v0.t.u / v0.t.w ) * bs.x + ( v1.t.u / v1.t.w ) * bs.y + ( v2.t.u / v2.t.w ) * bs.z
-                    //v' = ( v0.t.v / v0.t.w ) * bs.x + ( v1.t.v / v1.t.w ) * bs.y + ( v2.t.v / v2.t.w ) * bs.z
-                    //perspCorrU = u' / w'
-                    //perspCorrV = v' / w'
-                    let u = bs.x * v0.t.x + bs.y * v1.t.x + bs.z * v2.t.x;
-                    let v = bs.x * v0.t.y + bs.y * v1.t.y + bs.z * v2.t.y;
-
-                    match shader.fragment(image, &Vec2::new(x as f32, y as f32), &Vec2::new(u, v), intensity) {
-                        Some(c) => canvas.set(x as usize, y as usize, &c),
-                        None => (),
-                    }
+                let depth: f32 = bs.x * v0.v.z + bs.y * v1.v.z + bs.z * v2.v.z;
+                match shader.fragment(image, &Vec2::new(x as f32, y as f32), &Vec2::new(u, v), intensity) {
+                    Some(c) => canvas.set_with_depth(x as usize, y as usize, depth as isize, &c),
+                    None => (),
                 }
             }
         }
@@ -142,7 +138,6 @@ fn load_model<R: std::io::BufRead>(r: R) -> Result<Vec<[Vertex; 3]>, ObjError> {
         let first = model_obj.vertices[indices[0] as usize];
         let second = model_obj.vertices[indices[1] as usize];
         let third = model_obj.vertices[indices[2] as usize];
-        let bla = third.texture[0];
         model.push([ Vertex{ v: Vec3::new(first.position[0], first.position[1], first.position[2]), n:  Vec3::new(first.normal[0], first.normal[1], first.normal[2]), t: Vec2::new(first.texture[0], first.texture[1]) },
                             Vertex{ v: Vec3::new(second.position[0], second.position[1], second.position[2]), n: Vec3::new(second.normal[0], second.normal[1], second.normal[2]), t: Vec2::new(second.texture[0], second.texture[1]) },
                             Vertex{ v: Vec3::new(third.position[0], third.position[1], third.position[2]), n: Vec3::new(third.normal[0], third.normal[1], third.normal[2]), t: Vec2::new(third.texture[0], third.texture[1]) }]);

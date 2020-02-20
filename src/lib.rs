@@ -25,6 +25,7 @@ pub struct Canvas {
     pub width: usize,
     pub height: usize,
     pub buffer: Vec<Color>,
+    pub zbuffer: Vec<isize>,
 }
 
 impl Canvas
@@ -33,13 +34,26 @@ impl Canvas
         Canvas {
             width,
             height,
-            buffer: vec![color; width * height]
+            buffer: vec![color; width * height],
+            zbuffer: vec![std::isize::MIN; width * height]
+        }
+    }
+    pub fn set_with_depth(&mut self, x: usize, y: usize, depth: isize, color: &Color) {
+        if x < self.width && y < self.height {
+            let index = x + (self.height - 1 - y) * self.width;
+            if self.zbuffer[index] < depth {
+                self.zbuffer[index] = depth;
+                self.buffer[index] = *color;
+            }
         }
     }
     pub fn set(&mut self, x: usize, y: usize, color: &Color) {
         if x < self.width && y < self.height {
             self.buffer[x + (self.height - 1 - y) * self.width] = *color;
         }
+    }
+    pub fn clear_zbuffer(&mut self) {
+        self.zbuffer = vec![std::isize::MIN; self.width * self.height];
     }
 }
 
