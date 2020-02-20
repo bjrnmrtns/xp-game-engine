@@ -67,10 +67,17 @@ impl<'a> Shader<Varyings> for BasicShader<'a> {
          *var)
     }
     fn fragment(&self, in_f: &Vec2<f32>, var: Varyings) -> Option<Color> {
-        let pixel = self.tex.get_pixel((var.t.x * self.tex.width() as f32) as u32, self.tex.height() - 1 - (var.t.y * self.tex.height() as f32) as u32);
-        let r = pixel[0]; let g = pixel[1]; let b = pixel[2];
-        let out_color = Color{ r: (r as f32) as u8, g: (g as f32) as u8, b: (b as f32) as u8, a: 255 };
-        Some(out_color)
+        let intensity = var.n.dot(self.light_direction);
+        if intensity > 0.0 {
+            let pixel = self.tex.get_pixel((var.t.x * self.tex.width() as f32) as u32, self.tex.height() - 1 - (var.t.y * self.tex.height() as f32) as u32);
+            let r = pixel[0] as f32 * intensity;
+            let g = pixel[1] as f32 * intensity;
+            let b = pixel[2] as f32 * intensity;
+            let out_color = Color { r: r as u8, g: g as u8, b: b as u8, a: 255 };
+            Some(out_color)
+        } else {
+            None
+        }
     }
 }
 
@@ -118,9 +125,9 @@ fn draw_triangle<V: Vary, S: Shader<V>>(shader: &S, v0: (Vec3<f32>, V), v1: (Vec
     let p0 = shader.vertex(&v0.0, &v0.1);
     let p1 = shader.vertex(&v1.0, &v1.1);
     let p2 = shader.vertex(&v2.0, &v2.1);
-    let xy0 = p0.0.xy();
-    let xy1 = p1.0.xy();
-    let xy2 = p2.0.xy();
+    let xy0 = p0.0.xy() / p0.0.w;
+    let xy1 = p1.0.xy() / p1.0.w;
+    let xy2 = p2.0.xy() / p2.0.w;
     let v0i: Vec2<i32> = Vec2::new(xy0.x as i32, xy0.y as i32);
     let v1i: Vec2<i32> = Vec2::new(xy1.x as i32, xy1.y as i32);
     let v2i: Vec2<i32> = Vec2::new(xy2.x as i32, xy2.y as i32);
@@ -182,11 +189,10 @@ fn main() -> Result<(), ObjError> {
     let shader = BasicShader {
         mat: &mat,
         tex: &img,
-        light_direction: Vec3::new(0.0, 0.0, -1.0),
+        light_direction: Vec3::new(0.0, 0.0, 1.0),
     };
     let mut canvas = Canvas::new(width, height, Color{r: 0, g:0, b: 0, a: 255});
     let window: Window = Window::new(&canvas);
-
 
     let input = &mut BufReader::new(File::open("/Users/bjornmartens/projects/software-renderer-rs/obj/ah/african_head.obj")?);
 	let model = load_model(input)?;
