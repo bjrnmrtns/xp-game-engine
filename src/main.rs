@@ -1,7 +1,6 @@
 use software_renderer_rs::*;
 use std::fs::File;
 use std::io::BufReader;
-use obj::*;
 use std::time::{Duration, Instant};
 
 mod vec;
@@ -12,12 +11,6 @@ use image::RgbImage;
 
 pub struct Vertex {
     pub v: Vec3<f32>,
-    pub n: Vec3<f32>,
-    pub t: Vec2<f32>,
-}
-
-pub struct VertexOut {
-    pub v: Vec4<f32>,
     pub n: Vec3<f32>,
     pub t: Vec2<f32>,
 }
@@ -167,21 +160,17 @@ fn load_triangle() -> Vec<[Vertex; 3]> {
     triangle
 }
 
-fn load_model<R: std::io::BufRead>(r: R) -> Result<Vec<[Vertex; 3]>, ObjError> {
-    let model_obj: Obj<TexturedVertex> = load_obj(r)?;
-    let mut model : Vec<[Vertex; 3]>= Vec::new();
-    for indices in model_obj.indices.chunks(3) {
-        let first = model_obj.vertices[indices[0] as usize];
-        let second = model_obj.vertices[indices[1] as usize];
-        let third = model_obj.vertices[indices[2] as usize];
-        model.push([ Vertex{ v: Vec3::new(first.position[0], first.position[1], first.position[2]), n:  Vec3::new(first.normal[0], first.normal[1], first.normal[2]), t: Vec2::new(first.texture[0], first.texture[1]) },
-                            Vertex{ v: Vec3::new(second.position[0], second.position[1], second.position[2]), n: Vec3::new(second.normal[0], second.normal[1], second.normal[2]), t: Vec2::new(second.texture[0], second.texture[1]) },
-                            Vertex{ v: Vec3::new(third.position[0], third.position[1], third.position[2]), n: Vec3::new(third.normal[0], third.normal[1], third.normal[2]), t: Vec2::new(third.texture[0], third.texture[1]) }]);
+mod obj {
+    use crate::vec::{Vec2, Vec3};
+    pub fn parse<R, C>(reader: R, converter: C) -> Vec<(Vec3<f32>, Vec3<f32>, Vec2<f32>)>
+        where R: std::io::BufRead, C: FnMut(&str, &[&str]) {
+        let mut vertices = Vec::new();
+        vertices.push((Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 0.0), Vec2::new(0.0, 0.0)));
+        vertices
     }
-	Ok(model)
 }
 
-fn main() -> Result<(), ObjError> {
+fn main() {
     let width: usize = 800;
     let height: usize = 800;
     let img: RgbImage = image::open("/Users/bjornmartens/projects/software-renderer-rs/obj/ah/african_head_diffuse.tga").unwrap().to_rgb(); // use try/? but convert to generic error to standard error and change result of main into that error.
@@ -194,9 +183,9 @@ fn main() -> Result<(), ObjError> {
     let mut canvas = Canvas::new(width, height, Color{r: 0, g:0, b: 0, a: 255});
     let window: Window = Window::new(&canvas);
 
-    let input = &mut BufReader::new(File::open("/Users/bjornmartens/projects/software-renderer-rs/obj/ah/african_head.obj")?);
-	let model = load_model(input)?;
-    //let model = load_triangle();
+    //let input = &mut BufReader::new(File::open("/Users/bjornmartens/projects/software-renderer-rs/obj/ah/african_head.obj")?);
+	//let model = load_model(input)?;
+    let model = load_triangle();
     let mut previous_time = Instant::now();
     while window.pump() {
         let c = &Color {r: 255, g: 255, b: 255, a: 255 };
@@ -216,7 +205,7 @@ fn main() -> Result<(), ObjError> {
         window.update();
         //canvas.clear_zbuffer();
     }
-    Ok(())
+    ()
 }
 
 

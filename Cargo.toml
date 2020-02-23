@@ -7,8 +7,6 @@ build="build.rs"
 
 [dependencies]
 libc = "0.2.0"
-obj-rs = "0.5.0"
-nalgebra = "0.19.0"
 image = "0.23.0"
 num = "0.2.1"
 
