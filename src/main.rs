@@ -8,6 +8,7 @@ use vec::{Vec2, Vec3, Vec4};
 mod mat;
 use mat::{Mat4};
 use image::RgbImage;
+mod obj;
 
 pub struct Vertex {
     pub v: Vec3<f32>,
@@ -158,16 +159,6 @@ fn load_triangle() -> Vec<[Vertex; 3]> {
                           Vertex{v: second, n: n, t: Vec2::new(0.5, 1.0)},
                           Vertex{v: third, n: n, t: Vec2::new(0.0, 0.0)}]);
     triangle
-}
-
-mod obj {
-    use crate::vec::{Vec2, Vec3};
-    pub fn parse<R, C>(reader: R, converter: C) -> Vec<(Vec3<f32>, Vec3<f32>, Vec2<f32>)>
-        where R: std::io::BufRead, C: FnMut(&str, &[&str]) {
-        let mut vertices = Vec::new();
-        vertices.push((Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 0.0), Vec2::new(0.0, 0.0)));
-        vertices
-    }
 }
 
 fn main() {
