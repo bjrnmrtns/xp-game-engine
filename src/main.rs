@@ -161,7 +161,7 @@ fn load_triangle() -> Vec<[Vertex; 3]> {
     triangle
 }
 
-fn main() {
+fn main() -> std::result::Result<(), obj::ObjError> {
     let width: usize = 800;
     let height: usize = 800;
     let img: RgbImage = image::open("/Users/bjornmartens/projects/software-renderer-rs/obj/ah/african_head_diffuse.tga").unwrap().to_rgb(); // use try/? but convert to generic error to standard error and change result of main into that error.
@@ -174,7 +174,8 @@ fn main() {
     let mut canvas = Canvas::new(width, height, Color{r: 0, g:0, b: 0, a: 255});
     let window: Window = Window::new(&canvas);
 
-    //let input = &mut BufReader::new(File::open("/Users/bjornmartens/projects/software-renderer-rs/obj/ah/african_head.obj")?);
+    let input = &mut BufReader::new(File::open("/Users/bjornmartens/projects/software-renderer-rs/obj/ah/african_head.obj")?);
+    let output = obj::parse_obj(input);
 	//let model = load_model(input)?;
     let model = load_triangle();
     let mut previous_time = Instant::now();
@@ -196,7 +197,7 @@ fn main() {
         window.update();
         //canvas.clear_zbuffer();
     }
-    ()
+    Ok(())
 }
 
 
