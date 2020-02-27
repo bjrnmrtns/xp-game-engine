@@ -1,4 +1,4 @@
-type ObjResult<T> = std::result::Result<T, ObjError>;
+pub type ObjResult<T> = std::result::Result<T, ObjError>;
 
 macro_rules! str_args_to_f32 {
     ($args:expr) => (
@@ -89,27 +89,33 @@ pub fn parse<R, C>(reader: R, mut converter: C) -> ObjResult<()>
     Ok(())
 }
 
-fn parse_face(face: &str) -> ObjResult<(i32, i32, i32)> {
+struct Face {
+    v_index: usize,
+    t_index: usize,
+    n_index: usize,
+}
+
+fn parse_face(face: &str) -> ObjResult<Face> {
     let mut indices = face.split("/");
     let first = indices.next().unwrap_or("");
     let second = indices.next().unwrap_or("");
     let third = indices.next().unwrap_or("");
 
-    let first = first.parse()?;
-    let second = if second == "" {
-        0
+    let first: i32 = first.parse()?;
+    let second: i32 = if second == "" {
+        1
     } else {
         second.parse()?
     };
-    let third = if third == "" {
-        0
+    let third: i32 = if third == "" {
+        1
     } else {
         third.parse()?
     };
-    Ok((first, second, third))
+    Ok(Face { v_index: (first - 1) as usize, t_index: (second - 1) as usize, n_index: (third - 1) as usize })
 }
 
-pub fn parse_obj<R>(reader: R) -> ObjResult<Vec<(Vec3<f32>, Vec3<f32>, Vec3<f32>)>>
+pub fn parse_obj<R>(reader: R) -> ObjResult<Vec<[(Vec3<f32>, (Vec3<f32>, Vec2<f32>)); 3]>>
     where R: std::io::BufRead {
     let mut vertices = Vec::new();
     vertices.push((Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 0.0), Vec2::new(0.0, 0.0)));
@@ -122,24 +128,24 @@ pub fn parse_obj<R>(reader: R) -> ObjResult<Vec<(Vec3<f32>, Vec3<f32>, Vec3<f32>
             "v" => {
                 let args = str_args_to_f32!(args);
                 positions.push(match args.len() {
-                    3 => (args[0], args[1], args[2], 1.0),
-                    4 => (args[0], args[1], args[2], args[3]),
+                    3 => Vec3::new(args[0], args[1], args[2]),
+                    4 => Vec3::new(args[0] / args[3], args[1] / args[3], args[2] / args[3]),
                     _ => return Err(ObjError::WrongNumberOfArguments),
                 });
             }
             "vt" => {
                 let args = str_args_to_f32!(args);
                 tex_coords.push(match args.len() {
-                    1 => (args[0], 0.0, 0.0),
-                    2 => (args[0], args[1], 0.0),
-                    3 => (args[0], args[1], args[2]),
+                    1 => Vec2::new(args[0], 0.0),
+                    2 => Vec2::new(args[0], args[1]),
+                    3 => Vec2::new(args[0], args[1]),
                     _ => return Err(ObjError::WrongNumberOfArguments),
                 });
             }
             "vn" => {
                 let args = str_args_to_f32!(args);
                 normals.push(match args.len() {
-                    3 => (args[0], args[1], args[2]),
+                    3 => Vec3::new(args[0], args[1], args[2]),
                     _ => return Err(ObjError::WrongNumberOfArguments),
                 });
             }
@@ -149,18 +155,24 @@ pub fn parse_obj<R>(reader: R) -> ObjResult<Vec<(Vec3<f32>, Vec3<f32>, Vec3<f32>
                 }
                 let facev0 = parse_face(args[0])?;
                 let facev1 = parse_face(args[1])?;
-                let facev2 = parse_face(args[1])?;
+                let facev2 = parse_face(args[2])?;
                 faces.push((facev0, facev1, facev2));
             }
             _ => ()
         }
         Ok(())
     })?;
-    let mut vertices: Vec<(Vec3<f32>, Vec3<f32>, Vec3<f32>)> = Vec::new();
+    let mut vertices = Vec::new();
     for face in faces {
-        vertices.push((Vec3::new(positions[(face.0).0 as usize], positions[(face.1).0 as usize], positions[(face.2).0 as usize]),
-                      Vec3::new(tex_coords[(face.0).1 as usize], tex_coords[(face.1).1 as usize], tex_coords[(face.2).1 as usize]),
-                      Vec3::new(normals[(face.0).2 as usize], normals[(face.1).2 as usize], normals[(face.2).2 as usize])));
+        let vertex0 = (positions[face.0.v_index],
+                                        (normals[face.0.n_index], tex_coords[face.0.t_index]));
+        let vertex1 = (positions[face.1.v_index],
+                                        (normals[face.1.n_index], tex_coords[face.1.t_index]));
+
+        let vertex2 = (positions[face.2.v_index],
+                                        (normals[face.2.n_index], tex_coords[face.2.t_index]));
+
+        vertices.push([vertex0, vertex1, vertex2] )
     }
     Ok(vertices)
 }

@@ -29,7 +29,7 @@ pub trait Vary {
 }
 
 #[derive(Copy, Clone)]
-struct Varyings {
+pub struct Varyings {
     n: Vec3<f32>,
     t: Vec2<f32>,
 }
@@ -161,6 +161,19 @@ fn load_triangle() -> Vec<[Vertex; 3]> {
     triangle
 }
 
+pub fn load_mesh<R>(reader: R) -> obj::ObjResult<Vec<[(Vec3<f32>, Varyings); 3]>>
+    where R: std::io::BufRead {
+    let vertices = obj::parse_obj(reader)?;
+    let mut result = Vec::new();
+    for v in vertices {
+        result.push([(v[0].0, Varyings { n: (v[0].1).0, t: (v[0].1).1} ),
+                            (v[1].0, Varyings { n: (v[1].1).0, t: (v[1].1).1} ),
+                            (v[2].0, Varyings { n: (v[2].1).0, t: (v[2].1).1 })]);
+    }
+    Ok(result)
+}
+
+
 fn main() -> std::result::Result<(), obj::ObjError> {
     let width: usize = 800;
     let height: usize = 800;
@@ -175,9 +188,8 @@ fn main() -> std::result::Result<(), obj::ObjError> {
     let window: Window = Window::new(&canvas);
 
     let input = &mut BufReader::new(File::open("/Users/bjornmartens/projects/software-renderer-rs/obj/ah/african_head.obj")?);
-    let output = obj::parse_obj(input);
-	//let model = load_model(input)?;
-    let model = load_triangle();
+    let model = load_mesh(input)?;
+    //let model = load_triangle();
     let mut previous_time = Instant::now();
     while window.pump() {
         let c = &Color {r: 255, g: 255, b: 255, a: 255 };
@@ -185,10 +197,7 @@ fn main() -> std::result::Result<(), obj::ObjError> {
         let mut triangle_count: i32 = 0;
         for t in &model {
             triangle_count = triangle_count + 1;
-            let var0 = Varyings { n: t[0].n, t: t[0].t };
-            let var1 = Varyings { n: t[1].n, t: t[1].t };
-            let var2 = Varyings { n: t[2].n, t: t[2].t };
-            draw_triangle(&shader,(t[0].v, var0), (t[1].v, var1), (t[2].v, var2), &mut canvas, width, height);
+            draw_triangle(&shader,t[0], t[1], t[2], &mut canvas, width, height);
         }
         println!("triangle_count: {}", triangle_count);
         let current_time = Instant::now();
