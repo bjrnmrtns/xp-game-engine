@@ -182,6 +182,15 @@ impl<T> Div<T> for Vec2<T>
     }
 }
 
+impl From<Vec2<f32>> for Vec2<i32> {
+    fn from(rhs: Vec2<f32>) -> Self {
+        Vec2::new(
+            rhs.x as i32,
+            rhs.y as i32
+        )
+    }
+}
+
 impl<T: Copy + Mul<Output = T> + Add<Output = T>> Vec2<T> {
     pub fn dot(self, rhs: Self) -> T {
         self.x * rhs.x + self.y + rhs.y

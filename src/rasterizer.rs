@@ -10,7 +10,7 @@ pub trait Shader<V: Vary> {
     fn fragment(&self, in_f: &Vec2<f32>, var: V) -> Option<Color>;
 }
 
-fn barycentric(v0: &Vec2<i32>, v1: &Vec2<i32>, v2: &Vec2<i32>, p: Vec2<i32>) -> Vec3<f32> {
+fn barycentric(v0: Vec2<i32>, v1: Vec2<i32>, v2: Vec2<i32>, p: Vec2<i32>) -> Vec3<f32> {
     let x_vec: Vec3<i32> = Vec3::new(v2.x - v0.x, v1.x - v0.x, v0.x - p.x);
     let y_vec: Vec3<i32> = Vec3::new(v2.y - v0.y, v1.y - v0.y, v0.y - p.y);
     let u: Vec3<i32> = x_vec.cross(y_vec);
@@ -39,13 +39,10 @@ pub(crate) fn draw_triangle<V: Vary, S: Shader<V>>(v0: (Vec3<f32>, V), v1: (Vec3
     let xy0 = p0.0.xy() / p0.0.w;
     let xy1 = p1.0.xy() / p1.0.w;
     let xy2 = p2.0.xy() / p2.0.w;
-    let v0i: Vec2<i32> = Vec2::new(xy0.x as i32, xy0.y as i32);
-    let v1i: Vec2<i32> = Vec2::new(xy1.x as i32, xy1.y as i32);
-    let v2i: Vec2<i32> = Vec2::new(xy2.x as i32, xy2.y as i32);
-    let (min, max) = bounding_box(&[v0i, v1i, v2i]);
+    let (min, max) = bounding_box(&[Vec2::from(xy0), Vec2::from(xy1), Vec2::from(xy2)]);
     for x in min.x..max.x {
         for y in min.y..max.y {
-            let bs = barycentric(&v0i, &v1i, &v2i, Vec2::new(x, y));
+            let bs = barycentric(Vec2::from(xy0), Vec2::from(xy1), Vec2::from(xy2), Vec2::new(x, y));
             if bs.x >= 0.0 && bs.y >= 0.0 && bs.z >= 0.0 {
                 //w' = ( 1 / v0.v.w ) * bs.x + ( 1 / v1.v.w ) * bs.y + ( 1 / v2.v.w ) * bs.z
                 //u' = ( v0.t.u / v0.t.w ) * bs.x + ( v1.t.u / v1.t.w ) * bs.y + ( v2.t.u / v2.t.w ) * bs.z
