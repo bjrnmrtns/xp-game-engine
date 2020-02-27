@@ -1,3 +1,5 @@
+use crate::vec::{Vec2, Vec3};
+
 pub type ObjResult<T> = std::result::Result<T, ObjError>;
 
 macro_rules! str_args_to_f32 {
@@ -62,8 +64,6 @@ impl From<std::num::ParseIntError> for ObjError {
     }
 }
 
-use crate::vec::{Vec2, Vec3};
-
 pub fn parse<R, C>(reader: R, mut converter: C) -> ObjResult<()>
     where R: std::io::BufRead, C: FnMut(&str, &Vec<&str>) -> ObjResult<()> {
     let mut line = String::new();
@@ -117,8 +117,6 @@ fn parse_face(face: &str) -> ObjResult<Face> {
 
 pub fn parse_obj<R>(reader: R) -> ObjResult<Vec<[(Vec3<f32>, (Vec3<f32>, Vec2<f32>)); 3]>>
     where R: std::io::BufRead {
-    let mut vertices = Vec::new();
-    vertices.push((Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 0.0), Vec2::new(0.0, 0.0)));
     let mut positions = Vec::new();
     let mut tex_coords = Vec::new();
     let mut normals = Vec::new();
