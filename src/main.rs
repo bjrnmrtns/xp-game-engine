@@ -93,7 +93,7 @@ pub fn load_mesh<R>(reader: R) -> obj::ObjResult<Vec<[(Vec3<f32>, Varyings); 3]>
 fn main() -> std::result::Result<(), obj::ObjError> {
     let width: usize = 800;
     let height: usize = 800;
-    let img: RgbImage = image::open("/Users/bjornmartens/projects/software-renderer-rs/obj/ah/african_head_diffuse.tga").unwrap().to_rgb(); // use try/? but convert to generic error to standard error and change result of main into that error.
+    let img: RgbImage = image::open("obj/ah/african_head_diffuse.tga").unwrap().to_rgb(); // use try/? but convert to generic error to standard error and change result of main into that error.
     let mat = viewport(0.0, 0.0, 800.0, 800.0, 255.0);
     let shader = BasicShader {
         mat: &mat,
@@ -103,7 +103,7 @@ fn main() -> std::result::Result<(), obj::ObjError> {
     let mut canvas = Canvas::new(width, height, Color{r: 0, g:0, b: 0, a: 255});
     let window: Window = Window::new(&canvas);
 
-    let input = &mut BufReader::new(File::open("/Users/bjornmartens/projects/software-renderer-rs/obj/ah/african_head.obj")?);
+    let input = &mut BufReader::new(File::open("obj/ah/african_head.obj")?);
     let model = load_mesh(input)?;
     let mut previous_time = Instant::now();
     while window.pump() {
