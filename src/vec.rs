@@ -183,10 +183,19 @@ impl<T> Div<T> for Vec2<T>
 }
 
 impl From<Vec2<f32>> for Vec2<i32> {
-    fn from(rhs: Vec2<f32>) -> Self {
+    fn from(from: Vec2<f32>) -> Self {
         Vec2::new(
-            rhs.x as i32,
-            rhs.y as i32
+            from.x as i32,
+            from.y as i32
+        )
+    }
+}
+
+impl From<Vec2<i32>> for Vec2<f32> {
+    fn from(from: Vec2<i32>) -> Self {
+        Vec2::new(
+            from.x as f32,
+            from.y as f32
         )
     }
 }

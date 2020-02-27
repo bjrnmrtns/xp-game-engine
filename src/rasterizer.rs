@@ -7,7 +7,7 @@ pub trait Vary {
 
 pub trait Shader<V: Vary> {
     fn vertex(&self, in_v: &Vec3<f32>, var: &V) -> (Vec4<f32>, V);
-    fn fragment(&self, in_f: &Vec2<f32>, var: V) -> Option<Color>;
+    fn fragment(&self, in_f: Vec2<f32>, var: V) -> Option<Color>;
 }
 
 fn barycentric(v0: Vec2<i32>, v1: Vec2<i32>, v2: Vec2<i32>, p: Vec2<i32>) -> Vec3<f32> {
@@ -51,7 +51,7 @@ pub(crate) fn draw_triangle<V: Vary, S: Shader<V>>(v0: (Vec3<f32>, V), v1: (Vec3
                 //perspCorrV = v' / w'
 
                 let depth: f32 = bs.x * v0.0.z + bs.y * v1.0.z + bs.z * v2.0.z;
-                match shader.fragment(&Vec2::new(x as f32, y as f32), V::vary(&v0.1, &v1.1, &v2.1, &bs)) {
+                match shader.fragment(Vec2::from(Vec2::new(x, y)), V::vary(&v0.1, &v1.1, &v2.1, &bs)) {
                     Some(c) => canvas.set_with_depth(x as usize, y as usize, depth, &c),
                     None => (),
                 }
