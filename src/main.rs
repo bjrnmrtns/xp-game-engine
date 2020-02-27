@@ -204,7 +204,7 @@ fn main() -> std::result::Result<(), obj::ObjError> {
         println!("fps: {}", (current_time - previous_time).as_millis());
         previous_time = current_time;
         window.update();
-        //canvas.clear_zbuffer();
+        canvas.clear_zbuffer();
     }
     Ok(())
 }
