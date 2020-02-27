@@ -1,4 +1,3 @@
-use std::cmp;
 use std::ops::{Add, Mul};
 use crate::vec::Vec4;
 

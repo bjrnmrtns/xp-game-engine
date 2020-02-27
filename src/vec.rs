@@ -1,4 +1,3 @@
-use std::cmp;
 use std::ops::{Sub, Add, Mul, Div};
 use num::traits::{One};
 
@@ -12,12 +11,7 @@ pub struct Vec4<T> {
 
 impl<T: Copy> Vec4<T> {
     pub fn new(x: T, y: T, z: T, w: T) -> Vec4<T> {
-        Vec4 {
-            x: x,
-            y: y,
-            z: z,
-            w: w,
-        }
+        Vec4 { x, y, z, w, }
     }
     pub fn xy(&self) -> Vec2<T> {
         Vec2 {
@@ -36,11 +30,7 @@ pub struct Vec3<T> {
 
 impl<T: Copy> Vec3<T> {
     pub fn new(x: T, y: T, z: T) -> Vec3<T> {
-        Vec3 {
-            x: x,
-            y: y,
-            z: z,
-        }
+        Vec3 { x, y, z, }
     }
     pub fn xy(&self) -> Vec2<T> {
         Vec2 {
@@ -146,10 +136,7 @@ pub struct Vec2<T> {
 
 impl<T: Copy> Vec2<T> {
     pub fn new(x: T, y: T) -> Self {
-        Self {
-            x: x,
-            y: y,
-        }
+        Self { x, y, }
     }
 }
 

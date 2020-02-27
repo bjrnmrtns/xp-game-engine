@@ -1,7 +1,7 @@
 use software_renderer_rs::*;
 use std::fs::File;
 use std::io::BufReader;
-use std::time::{Duration, Instant};
+use std::time::{Instant};
 
 mod vec;
 use vec::{Vec2, Vec3, Vec4};
@@ -60,7 +60,7 @@ impl<'a> Shader<Varyings> for BasicShader<'a> {
         (*self.mat * Vec4::new(in_v.x, in_v.y, in_v.z, 1.0),
          *var)
     }
-    fn fragment(&self, in_f: &Vec2<f32>, var: Varyings) -> Option<Color> {
+    fn fragment(&self, _: &Vec2<f32>, var: Varyings) -> Option<Color> {
         let intensity = var.n.dot(self.light_direction);
         if intensity > 0.0 {
             let pixel = self.tex.get_pixel((var.t.x * self.tex.width() as f32) as u32, self.tex.height() - 1 - (var.t.y * self.tex.height() as f32) as u32);
@@ -71,36 +71,6 @@ impl<'a> Shader<Varyings> for BasicShader<'a> {
             Some(out_color)
         } else {
             None
-        }
-    }
-}
-
-fn draw_line(v0: Vec3<f32>, v1: Vec3<f32>, color: Color, canvas: &mut Canvas) {
-    let mut steep = false;
-    let mut x0 = v0.x;
-    let mut y0 = v0.y;
-    let mut x1 = v1.x;
-    let mut y1 = v1.y;
-    if (v1.x - v0.x).abs() < (v0.y - v1.y).abs() {
-        std::mem::swap(&mut x0, &mut y0);
-        std::mem::swap(&mut x1, &mut y1);
-        steep = true;
-    }
-    if x0 > x1 {
-        std::mem::swap(&mut x0, &mut x1);
-        std::mem::swap(&mut y0, &mut y1);
-    }
-    if steep {
-        for x in x0 as i32..x1 as i32 + 1 {
-            let t: f32 = (x as f32 - x0) / (x1 - x0);
-            let y = y0 * (1.0 - t) + y1 * t;
-            canvas.set(y as usize, x as usize, &color);
-        }
-    } else {
-        for x in x0 as i32..x1 as i32 + 1 {
-            let t: f32 = (x as f32 - x0) / (x1 - x0);
-            let y = y0 * (1.0 - t) + y1 * t;
-            canvas.set(x as usize, y as usize, &color);
         }
     }
 }
@@ -148,17 +118,16 @@ fn draw_triangle<V: Vary, S: Shader<V>>(shader: &S, v0: (Vec3<f32>, V), v1: (Vec
         }
     }
 }
-fn load_triangle() -> Vec<[Vertex; 3]> {
+fn _load_triangle() -> obj::ObjResult<Vec<[(Vec3<f32>, Varyings); 3]>> {
     let first: Vec3<f32> = Vec3::new(1.0, 0.0, 0.0);
     let second: Vec3<f32> = Vec3::new(0.0, 1.0, 1.0);
     let third: Vec3<f32> = Vec3::new(-1.0, 0.0, 0.0);
     let n: Vec3<f32> = (third - first).cross(second - first);
-    let t: Vec2<f32> = Vec2::new(0.0, 0.0);
-    let mut triangle : Vec<[Vertex; 3]>= Vec::new();
-    triangle.push([ Vertex {v: first, n: n, t: Vec2::new(1.0, 0.0)},
-                          Vertex{v: second, n: n, t: Vec2::new(0.5, 1.0)},
-                          Vertex{v: third, n: n, t: Vec2::new(0.0, 0.0)}]);
-    triangle
+    let mut triangle = Vec::new();
+    triangle.push([ (first, Varyings { n, t: Vec2::new(1.0, 0.0)}),
+                           (second, Varyings { n, t: Vec2::new(0.5, 1.0)}),
+                          (third, Varyings{ n, t: Vec2::new(0.0, 0.0)})]);
+    Ok(triangle)
 }
 
 pub fn load_mesh<R>(reader: R) -> obj::ObjResult<Vec<[(Vec3<f32>, Varyings); 3]>>
@@ -189,11 +158,8 @@ fn main() -> std::result::Result<(), obj::ObjError> {
 
     let input = &mut BufReader::new(File::open("/Users/bjornmartens/projects/software-renderer-rs/obj/ah/african_head.obj")?);
     let model = load_mesh(input)?;
-    //let model = load_triangle();
     let mut previous_time = Instant::now();
     while window.pump() {
-        let c = &Color {r: 255, g: 255, b: 255, a: 255 };
-        let c_lines = &Color {r: 0, g: 0, b: 255, a: 255 };
         let mut triangle_count: i32 = 0;
         for t in &model {
             triangle_count = triangle_count + 1;
