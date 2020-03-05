@@ -12,7 +12,7 @@ pub struct Color
 extern "C" {
     fn window_create(width: libc::size_t, height: libc::size_t, buffer: *const Color, size: libc::size_t) -> *const libc::c_void;
     fn window_destroy(handle: *const libc::c_void);
-    fn window_pump(handle: *const libc::c_void) -> bool;
+    fn window_poll_event(handle: *const libc::c_void) -> libc::c_int;
     fn window_update(handle: *const libc::c_void);
 }
 
@@ -71,9 +71,9 @@ impl Window
             window_update(self.handle);
         }
     }
-    pub fn pump(&self) -> bool {
+    pub fn poll_event(&self) -> i32 {
         unsafe {
-            window_pump(self.handle)
+            window_poll_event(self.handle)
         }
     }
 }

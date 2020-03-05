@@ -91,22 +91,38 @@ pub fn load_mesh<R>(reader: R) -> obj::ObjResult<Vec<[(Vec3<f32>, Varyings); 3]>
 
 
 fn main() -> std::result::Result<(), obj::ObjError> {
+    //configuration
     let width: usize = 800;
     let height: usize = 800;
+    //create_window
+    let mut canvas = Canvas::new(width, height, Color{r: 0, g:0, b: 0, a: 255});
+    let window: Window = Window::new(&canvas);
+    //load_resources
     let img: RgbImage = image::open("obj/ah/african_head_diffuse.tga").unwrap().to_rgb(); // use try/? but convert to generic error to standard error and change result of main into that error.
+    let input = &mut BufReader::new(File::open("obj/ah/african_head.obj")?);
+    let model = load_mesh(input)?;
+    //handle_input
+    //update_physics
+
+    //send_physics_state_to_renderer
+
+    //render
     let mat = viewport(0.0, 0.0, 800.0, 800.0, 255.0);
     let shader = BasicShader {
         mat: &mat,
         tex: &img,
         light_direction: Vec3::new(0.0, 0.0, 1.0),
     };
-    let mut canvas = Canvas::new(width, height, Color{r: 0, g:0, b: 0, a: 255});
-    let window: Window = Window::new(&canvas);
 
-    let input = &mut BufReader::new(File::open("obj/ah/african_head.obj")?);
-    let model = load_mesh(input)?;
     let mut previous_time = Instant::now();
-    while window.pump() {
+    let mut quit = false;
+    while !quit {
+        let mut quit_polling = false;
+        while !quit_polling && !quit {
+            let event = window.poll_event();
+            quit_polling = event == 2;
+            quit = event == 0;
+        }
         let mut triangle_count: i32 = 0;
         for t in &model {
             triangle_count = triangle_count + 1;

@@ -9,6 +9,12 @@ struct color_t {
     unsigned char r, g, b, a;
 };
 
+enum class window_event_t : int {
+    quit,
+    not_implemented,
+    none,
+};
+
 struct context_t {
     SDL_Window* window;
     SDL_Surface* framebuffer;
@@ -30,16 +36,19 @@ void window_update(const void* self)
     SDL_UpdateWindowSurface(context->window);
 }
 
-bool window_pump(const void* self)
+window_event_t window_poll_event(const void* self)
 {
     const context_t* context = static_cast<const context_t*>(self);
     SDL_Event e;
-    while(SDL_PollEvent(&e)) {
-        if(e.type == SDL_QUIT) {
-            return false;
+    if(SDL_PollEvent(&e))
+    {
+        switch(e.type) {
+            case SDL_QUIT: return window_event_t::quit;
+            default: return window_event_t::not_implemented;
         }
+
     }
-    return true;
+    return window_event_t::none;
 }
 
 void window_destroy(const void* self)
