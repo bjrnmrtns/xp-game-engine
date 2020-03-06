@@ -119,9 +119,11 @@ fn main() -> std::result::Result<(), obj::ObjError> {
     while !quit {
         let mut quit_polling = false;
         while !quit_polling && !quit {
-            let event = window.poll_event();
-            quit_polling = event == 2;
-            quit = event == 0;
+            match window.poll_event() {
+                Some(InputEvent::Quit) => quit = true,
+                None => quit_polling = true,
+                _ => (),
+            }
         }
         let mut triangle_count: i32 = 0;
         for t in &model {

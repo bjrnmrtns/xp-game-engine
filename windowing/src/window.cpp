@@ -9,10 +9,10 @@ struct color_t {
     unsigned char r, g, b, a;
 };
 
-enum class window_event_t : int {
-    quit,
-    not_implemented,
-    none,
+enum window_event_t {
+    EvInputQuit,
+    EvInputNotImplemented,
+    EvInputNone,
 };
 
 struct context_t {
@@ -43,12 +43,12 @@ window_event_t window_poll_event(const void* self)
     if(SDL_PollEvent(&e))
     {
         switch(e.type) {
-            case SDL_QUIT: return window_event_t::quit;
-            default: return window_event_t::not_implemented;
+            case SDL_QUIT: return EvInputQuit;
+            default: return EvInputNotImplemented;
         }
 
     }
-    return window_event_t::none;
+    return EvInputNone;
 }
 
 void window_destroy(const void* self)

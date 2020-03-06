@@ -9,10 +9,22 @@ pub struct Color
     pub a: u8,
 }
 
+#[repr(C)]
+enum InternalWindowEvent {
+    EvInputQuit,
+    EvInputNotImplemented,
+    EvInputNone,
+}
+
+pub enum InputEvent {
+    Quit,
+    NotImplemented,
+}
+
 extern "C" {
     fn window_create(width: libc::size_t, height: libc::size_t, buffer: *const Color, size: libc::size_t) -> *const libc::c_void;
     fn window_destroy(handle: *const libc::c_void);
-    fn window_poll_event(handle: *const libc::c_void) -> libc::c_int;
+    fn window_poll_event(handle: *const libc::c_void) -> InternalWindowEvent;
     fn window_update(handle: *const libc::c_void);
 }
 
@@ -71,9 +83,13 @@ impl Window
             window_update(self.handle);
         }
     }
-    pub fn poll_event(&self) -> i32 {
+    pub fn poll_event(&self) -> Option<InputEvent> {
         unsafe {
-            window_poll_event(self.handle)
+            match window_poll_event(self.handle) {
+                InternalWindowEvent::EvInputQuit => Some(InputEvent::Quit),
+                InternalWindowEvent::EvInputNotImplemented => Some(InputEvent::NotImplemented),
+                InternalWindowEvent::EvInputNone => None,
+            }
         }
     }
 }
