@@ -9,6 +9,7 @@ build="build.rs"
 libc = "0.2.0"
 image = "0.23.0"
 num = "0.2.1"
+nalgebra-glm = "0.7.0"
 
 [build-dependencies]
 cmake = "0.1.42"

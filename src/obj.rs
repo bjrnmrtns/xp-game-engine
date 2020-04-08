@@ -1,4 +1,4 @@
-use crate::vec::{Vec2, Vec3};
+use nalgebra_glm::*;
 
 pub type ObjResult<T> = std::result::Result<T, ObjError>;
 
@@ -115,7 +115,7 @@ fn parse_face(face: &str) -> ObjResult<Face> {
     Ok(Face { v_index: (first - 1) as usize, t_index: (second - 1) as usize, n_index: (third - 1) as usize })
 }
 
-pub fn parse_obj<R>(reader: R) -> ObjResult<Vec<[(Vec3<f32>, (Vec3<f32>, Vec2<f32>)); 3]>>
+pub fn parse_obj<R>(reader: R) -> ObjResult<Vec<[(Vec3, (Vec3, Vec2)); 3]>>
     where R: std::io::BufRead {
     let mut positions = Vec::new();
     let mut tex_coords = Vec::new();
