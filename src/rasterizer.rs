@@ -1,5 +1,5 @@
 use crate::vec::{Vec3, Vec4, Vec2};
-use software_renderer_rs::{Color, Canvas};
+use crate::windowing::{Color, Canvas};
 
 pub trait Vary {
     fn vary(var0: &Self, var1: &Self, var2: &Self, bc: &Vec3<f32>) -> Self;

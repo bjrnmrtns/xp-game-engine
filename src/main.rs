@@ -1,4 +1,3 @@
-use software_renderer_rs::*;
 use std::fs::File;
 use std::io::BufReader;
 use std::time::{Instant};
@@ -10,10 +9,11 @@ use mat::{Mat4};
 use image::RgbImage;
 
 mod obj;
-
 mod rasterizer;
 use rasterizer::{Vary, Shader};
 
+mod windowing;
+use windowing::*;
 
 #[derive(Copy, Clone)]
 pub struct Varyings {
@@ -89,7 +89,6 @@ pub fn load_mesh<R>(reader: R) -> obj::ObjResult<Vec<[(Vec3<f32>, Varyings); 3]>
     Ok(result)
 }
 
-
 fn main() -> std::result::Result<(), obj::ObjError> {
     //configuration
     let width: usize = 800;
@@ -101,10 +100,6 @@ fn main() -> std::result::Result<(), obj::ObjError> {
     let img: RgbImage = image::open("obj/ah/african_head_diffuse.tga").unwrap().to_rgb(); // use try/? but convert to generic error to standard error and change result of main into that error.
     let input = &mut BufReader::new(File::open("obj/ah/african_head.obj")?);
     let model = load_mesh(input)?;
-    //handle_input
-    //update_physics
-
-    //send_physics_state_to_renderer
 
     //render
     let mat = viewport(0.0, 0.0, 800.0, 800.0, 255.0);
