@@ -41,13 +41,16 @@ pub struct Canvas {
 
 impl Canvas
 {
-    pub fn new(width: usize, height: usize, color: Color) -> Canvas {
+    pub fn new(width: usize, height: usize, color: &Color) -> Canvas {
         Canvas {
             width,
             height,
-            buffer: vec![color; width * height],
+            buffer: vec![*color; width * height],
             zbuffer: vec![std::f32::MIN; width * height]
         }
+    }
+    pub fn clear(&mut self, color: &Color) {
+        for elem in self.buffer.iter_mut() { *elem = *color; }
     }
     pub fn set_with_depth(&mut self, x: usize, y: usize, depth: f32, color: &Color) {
         if x < self.width && y < self.height {

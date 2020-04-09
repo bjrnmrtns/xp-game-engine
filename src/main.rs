@@ -31,14 +31,14 @@ struct BasicShader<'a>
 {
     viewport: &'a Vec4,
     projection: &'a Mat4,
-    modelview: &'a Mat4,
+    modelview: Mat4,
     tex: &'a RgbImage,
     light_direction: Vec3,
 }
 
 impl<'a> Shader<Varyings> for BasicShader<'a> {
     fn vertex(&self, in_v: &Vec3, var: &Varyings) -> (Vec4, Varyings) {
-       let projected = project(in_v, self.modelview, self.projection, *self.viewport);
+       let projected = project(in_v, &self.modelview, self.projection, *self.viewport);
         (vec4(projected.x, projected.y, projected.z, 1.0), *var)
     }
     fn fragment(&self, _: Vec2, var: Varyings) -> Option<Color> {
@@ -85,9 +85,11 @@ fn _example_viewport_projection_view_model() -> std::result::Result<(), obj::Obj
     let projection = perspective(800.0 / 800.0, 45.0, 1.0, 1000.0);
     let viewport = vec4(0.0, 0.0, 800.0, 800.0);
     let modelview = look_at(&vec3(0.0, 0.0, -4.0, ), &vec3(0.0, 0.0, 0.0), &vec3(0.0, 1.0, 0.0));
-    let projected = project(&original, &modelview, &projection, viewport);
+    let projected = project(&original, &modelview, &projection, viewport.clone());
+    let unprojected = unproject(&projected, &modelview, &projection, viewport.clone());
     println!("original: {}", original);
     println!("projected: {}", projected);
+    println!("unrprojected: {}", unprojected);
     Ok(())
 }
 
@@ -96,28 +98,30 @@ fn game() -> std::result::Result<(), obj::ObjError> {
     let width: usize = 800;
     let height: usize = 800;
     //create_window
-    let mut canvas = Canvas::new(width, height, Color{r: 0, g:0, b: 0, a: 255});
+    let mut canvas = Canvas::new(width, height, &Color{r: 0, g:0, b: 0, a: 255});
     let window: Window = Window::new(&canvas);
     //load_resources
     let img: RgbImage = image::open("obj/ah/african_head_diffuse.tga").unwrap().to_rgb(); // use try/? but convert to generic error to standard error and change result of main into that error.
     let input = &mut BufReader::new(File::open("obj/ah/african_head.obj")?);
-    let model = load_mesh(input)?;
+    let mesh = load_mesh(input)?;
 
     //render
     let viewport = vec4(0.0, 0.0, 800.0, 800.0);
     let projection = perspective(800.0 / 800.0, 45.0, 1.0, 1000.0);
-    let view = look_at(&vec3(0.0, 0.0, 4.0, ), &vec3(0.0, 0.0, 0.0), &vec3(0.0, 1.0, 0.0));
+    let view = look_at(&vec3(0.0, 0.0, 2.0, ), &vec3(0.0, 0.0, 0.0), &vec3(0.0, 1.0, 0.0));
 
-    let shader = BasicShader {
+
+    let mut shader = BasicShader {
         viewport: &viewport,
         projection: &projection,
-        modelview: &view,
+        modelview: view,
         tex: &img,
         light_direction: vec3(0.0, 0.0, 1.0),
     };
 
     let mut previous_time = Instant::now();
     let mut quit = false;
+    let mut rot: f32 = 0.0;
     while !quit {
         let mut quit_polling = false;
         while !quit_polling && !quit {
@@ -127,16 +131,22 @@ fn game() -> std::result::Result<(), obj::ObjError> {
                 _ => (),
             }
         }
+        rot = rot + 0.01;
+        let model : Mat4 = rotate(&identity(), rot, &vec3(0.0, 1.0, 0.0));
+        shader.modelview = view * model;
+
         let mut triangle_count: i32 = 0;
-        for t in &model {
+        for t in &mesh {
             triangle_count = triangle_count + 1;
             rasterizer::draw_triangle(t[0], t[1], t[2], &shader, &mut canvas);
         }
+
         println!("triangle_count: {}", triangle_count);
         let current_time = Instant::now();
         println!("fps: {}", (current_time - previous_time).as_millis());
         previous_time = current_time;
         window.update();
+        canvas.clear(&Color{r: 0, g:0, b: 0, a: 255});
         canvas.clear_zbuffer();
     }
     Ok(())
@@ -144,5 +154,4 @@ fn game() -> std::result::Result<(), obj::ObjError> {
 
 fn main() -> std::result::Result<(), obj::ObjError> {
     game()
-    //example_viewport_projection_view_model()
 }
