@@ -1,6 +1,5 @@
 #[repr(C)]
-#[derive(Copy)]
-#[derive(Clone)]
+#[derive(Copy, Clone)]
 pub struct Color
 {
     pub r: u8,

@@ -1,17 +1,16 @@
+mod obj;
+mod rasterizer;
+mod windowing;
+
+use rasterizer::{Vary, Shader};
+use windowing::*;
+
+use image::RgbImage;
+use nalgebra_glm::*;
+
 use std::fs::File;
 use std::io::BufReader;
 use std::time::{Instant};
-
-use image::RgbImage;
-
-mod obj;
-mod rasterizer;
-use rasterizer::{Vary, Shader};
-
-mod windowing;
-use windowing::*;
-
-use nalgebra_glm::*;
 
 #[derive(Copy, Clone)]
 pub struct Varyings {
