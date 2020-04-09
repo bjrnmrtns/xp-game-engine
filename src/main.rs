@@ -31,20 +31,21 @@ struct BasicShader<'a>
 {
     viewport: &'a Vec4,
     projection: &'a Mat4,
-    modelview: Mat4,
+    view: Mat4,
+    model: Mat4,
     tex: &'a RgbImage,
     light_direction: Vec3,
 }
 
 impl<'a> Shader<Varyings> for BasicShader<'a> {
     fn vertex(&self, in_v: &Vec3, var: &Varyings) -> (Vec4, Varyings) {
-       let projected = project(in_v, &self.modelview, self.projection, *self.viewport);
-        let n = inverse_transpose(self.modelview) *  vec3_to_vec4(&var.n);
+        let modelview = self.view * self.model;
+        let projected = project(in_v, &modelview, self.projection, *self.viewport);
+        let n = inverse_transpose(modelview) *  vec3_to_vec4(&var.n);
         let out_var = Varyings { n: vec4_to_vec3(&n), t: var.t };
         (vec4(projected.x, projected.y, projected.z, 1.0), out_var)
     }
     fn fragment(&self, _: Vec2, var: Varyings) -> Option<Color> {
-        //let light_direction = vec4_to_vec3(inverse_transpose(self.modelview)  * vec3_to_vec4(&self.light_direction));
         let intensity = dot(&var.n, &self.light_direction);
         if intensity > 0.0 {
             let pixel = self.tex.get_pixel((var.t.x * self.tex.width() as f32) as u32, self.tex.height() - 1 - (var.t.y * self.tex.height() as f32) as u32);
@@ -112,12 +113,13 @@ fn game() -> std::result::Result<(), obj::ObjError> {
     let viewport = vec4(0.0, 0.0, 800.0, 800.0);
     let projection = perspective(800.0 / 800.0, 45.0, 1.0, 1000.0);
     let view = look_at(&vec3(0.0, 0.0, 2.0, ), &vec3(0.0, 0.0, 0.0), &vec3(0.0, 1.0, 0.0));
-
+    let model: Mat4 = identity();
 
     let mut shader = BasicShader {
         viewport: &viewport,
         projection: &projection,
-        modelview: view,
+        view: view,
+        model: model,
         tex: &img,
         light_direction: vec3(0.0, 0.0, 1.0),
     };
@@ -135,8 +137,7 @@ fn game() -> std::result::Result<(), obj::ObjError> {
             }
         }
         rot = rot + 0.01;
-        let model : Mat4 = rotate(&identity(), rot, &vec3(0.0, 1.0, 0.0));
-        shader.modelview = view * model;
+        shader.model = rotate(&identity(), rot, &vec3(0.0, 1.0, 0.0));
 
         let mut triangle_count: i32 = 0;
         for t in &mesh {
