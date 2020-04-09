@@ -18,14 +18,6 @@ pub struct Varyings {
     t: Vec2,
 }
 
-fn viewport(x: f32, y: f32, width: f32, height: f32, depth: f32) -> Mat4 {
-    mat4(
-        width / 2.0, 0.0, 0.0, x + width / 2.0,
-        0.0, height / 2.0, 0.0, y + height / 2.0,
-        0.0, 0.0, depth / 2.0, depth / 2.0,
-        0.0, 0.0 , 0.0, 1.0)
-}
-
 impl Vary for Varyings {
     fn vary(var0: &Self, var1: &Self, var2: &Self, bc: &Vec3) -> Self {
         Varyings {
@@ -37,15 +29,17 @@ impl Vary for Varyings {
 
 struct BasicShader<'a>
 {
-    mat: &'a Mat4,
+    viewport: &'a Vec4,
+    projection: &'a Mat4,
+    modelview: &'a Mat4,
     tex: &'a RgbImage,
     light_direction: Vec3,
 }
 
 impl<'a> Shader<Varyings> for BasicShader<'a> {
     fn vertex(&self, in_v: &Vec3, var: &Varyings) -> (Vec4, Varyings) {
-        (*self.mat * vec4(in_v.x, in_v.y, in_v.z, 1.0),
-         *var)
+       let projected = project(in_v, self.modelview, self.projection, *self.viewport);
+        (vec4(projected.x, projected.y, projected.z, 1.0), *var)
     }
     fn fragment(&self, _: Vec2, var: Varyings) -> Option<Color> {
         let intensity = dot(&var.n, &self.light_direction);
@@ -62,7 +56,7 @@ impl<'a> Shader<Varyings> for BasicShader<'a> {
     }
 }
 
-fn _load_triangle() -> obj::ObjResult<Vec<[(Vec3, Varyings); 3]>> {
+fn load_triangle() -> obj::ObjResult<Vec<[(Vec3, Varyings); 3]>> {
     let first = vec3(1.0, 0.0, 0.0);
     let second = vec3(0.0, 1.0, 1.0);
     let third = vec3(-1.0, 0.0, 0.0);
@@ -86,7 +80,18 @@ pub fn load_mesh<R>(reader: R) -> obj::ObjResult<Vec<[(Vec3, Varyings); 3]>>
     Ok(result)
 }
 
-fn main() -> std::result::Result<(), obj::ObjError> {
+fn _example_viewport_projection_view_model() -> std::result::Result<(), obj::ObjError> {
+    let original = vec3(1.0, 1.0, -10.0);
+    let projection = perspective(800.0 / 800.0, 45.0, 1.0, 1000.0);
+    let viewport = vec4(0.0, 0.0, 800.0, 800.0);
+    let modelview = look_at(&vec3(0.0, 0.0, -4.0, ), &vec3(0.0, 0.0, 0.0), &vec3(0.0, 1.0, 0.0));
+    let projected = project(&original, &modelview, &projection, viewport);
+    println!("original: {}", original);
+    println!("projected: {}", projected);
+    Ok(())
+}
+
+fn game() -> std::result::Result<(), obj::ObjError> {
     //configuration
     let width: usize = 800;
     let height: usize = 800;
@@ -99,10 +104,14 @@ fn main() -> std::result::Result<(), obj::ObjError> {
     let model = load_mesh(input)?;
 
     //render
-    let view = look_at(&vec3(0.5, 0.5, 0.0), &vec3(0.0, 0.0, -2.0), &vec3(0.0, 1.0, 0.0));
-    let viewport = viewport(0.0, 0.0, 800.0, 800.0, 255.0);
+    let viewport = vec4(0.0, 0.0, 800.0, 800.0);
+    let projection = perspective(800.0 / 800.0, 45.0, 1.0, 1000.0);
+    let view = look_at(&vec3(0.0, 0.0, 4.0, ), &vec3(0.0, 0.0, 0.0), &vec3(0.0, 1.0, 0.0));
+
     let shader = BasicShader {
-        mat: &(viewport * view),
+        viewport: &viewport,
+        projection: &projection,
+        modelview: &view,
         tex: &img,
         light_direction: vec3(0.0, 0.0, 1.0),
     };
@@ -133,4 +142,7 @@ fn main() -> std::result::Result<(), obj::ObjError> {
     Ok(())
 }
 
-
+fn main() -> std::result::Result<(), obj::ObjError> {
+    game()
+    //example_viewport_projection_view_model()
+}
