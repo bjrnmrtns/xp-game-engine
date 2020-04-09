@@ -39,7 +39,9 @@ struct BasicShader<'a>
 impl<'a> Shader<Varyings> for BasicShader<'a> {
     fn vertex(&self, in_v: &Vec3, var: &Varyings) -> (Vec4, Varyings) {
        let projected = project(in_v, &self.modelview, self.projection, *self.viewport);
-        (vec4(projected.x, projected.y, projected.z, 1.0), *var)
+        let n = inverse_transpose(self.modelview) *  vec3_to_vec4(&var.n);
+        let out_var = Varyings {n: vec4_to_vec3(&n), t: var.t };
+        (vec4(projected.x, projected.y, projected.z, 1.0), out_var)
     }
     fn fragment(&self, _: Vec2, var: Varyings) -> Option<Color> {
         let intensity = dot(&var.n, &self.light_direction);

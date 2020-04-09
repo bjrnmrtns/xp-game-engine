@@ -52,9 +52,9 @@ pub(crate) fn draw_triangle<V: Vary, S: Shader<V>>(v0: (Vec3, V), v1: (Vec3, V),
                 //perspCorrV = v' / w'
 
                 let depth: f32 = bs.x * v0.0.z + bs.y * v1.0.z + bs.z * v2.0.z;
-                match shader.fragment(vec2(x as f32, y as f32), V::vary(&v0.1, &v1.1, &v2.1, &bs)) {
+                match shader.fragment(vec2(x as f32, y as f32), V::vary(&p0.1, &p1.1, &p2.1, &bs)) {
                     Some(c) => canvas.set_with_depth(x as usize, y as usize, depth, &c),
-                    None => (),
+                    None => canvas.set_with_depth(x as usize, y as usize, depth, &Color {r: 0, g:0, b:0, a:255}),
                 }
             }
         }
