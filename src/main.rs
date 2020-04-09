@@ -99,9 +99,10 @@ fn main() -> std::result::Result<(), obj::ObjError> {
     let model = load_mesh(input)?;
 
     //render
-    let mat = viewport(0.0, 0.0, 800.0, 800.0, 255.0);
+    let view = look_at(&vec3(0.5, 0.5, 0.0), &vec3(0.0, 0.0, -2.0), &vec3(0.0, 1.0, 0.0));
+    let viewport = viewport(0.0, 0.0, 800.0, 800.0, 255.0);
     let shader = BasicShader {
-        mat: &mat,
+        mat: &(viewport * view),
         tex: &img,
         light_direction: vec3(0.0, 0.0, 1.0),
     };
