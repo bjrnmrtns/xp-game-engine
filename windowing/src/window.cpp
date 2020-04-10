@@ -67,27 +67,18 @@ InputEvent window_poll_event(const void* self)
     {
         switch(e.type) {
             case SDL_QUIT: {
-                InputEvent event;
-                event.tag = InputEventTag::Quit;
-                return event;
+                return { .tag = InputEventTag::Quit };
             }
             case SDL_MOUSEMOTION: {
-                InputEvent event;
-                event.tag = InputEventTag::MouseMotion;
-                event.val.mouse_motion.xrel = e.motion.xrel;
-                event.val.mouse_motion.yrel = e.motion.yrel;
-                return event;
+                return { .tag = InputEventTag::MouseMotion, .val = { .mouse_motion.xrel = e.motion.xrel,
+                                                                     .mouse_motion.yrel = e.motion.yrel } };
             }
             default: {
-                InputEvent event;
-                event.tag = InputEventTag::NotImplemented;
-                return event;
+                return { .tag = InputEventTag::NotImplemented };
             }
         }
     }
-    InputEvent event;
-    event.tag = InputEventTag::NoEvent;
-    return event;
+    return { .tag = InputEventTag::NoEvent };
 }
 
 void window_destroy(const void* self)
