@@ -9,9 +9,36 @@ pub struct Color
 }
 
 #[repr(u32)]
-pub enum InputEvent {
+#[derive(Copy, Clone)]
+enum InputEventTag {
     Quit,
     MouseMotion,
+    NotImplemented,
+    NoEvent,
+}
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+struct MouseMotionType { x_rel: i32, y_rel: i32 }
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+union InputEventUnion {
+    Quit: (),
+    MouseMotion: MouseMotionType,
+    NotImplemented: (),
+    NoEvent: (),
+}
+
+#[repr(C)]
+struct InputEventData {
+    tag: InputEventTag,
+    val: InputEventUnion,
+}
+
+pub enum InputEvent {
+    Quit,
+    MouseMotion { x_rel: i32, y_rel: i32 },
     NotImplemented,
     NoEvent,
 }
@@ -19,7 +46,7 @@ pub enum InputEvent {
 extern "C" {
     fn window_create(width: libc::size_t, height: libc::size_t, buffer: *const Color, size: libc::size_t) -> *const libc::c_void;
     fn window_destroy(handle: *const libc::c_void);
-    fn window_poll_event(handle: *const libc::c_void) -> InputEvent;
+    fn window_poll_event(handle: *const libc::c_void) -> InputEventData;
     fn window_update(handle: *const libc::c_void);
 }
 
@@ -83,7 +110,12 @@ impl Window
     }
     pub fn poll_event(&self) -> InputEvent {
         unsafe {
-            window_poll_event(self.handle)
+            match window_poll_event(self.handle) {
+                InputEventData { tag: InputEventTag::Quit, val: Quit } => InputEvent::Quit,
+                InputEventData { tag: InputEventTag::MouseMotion, val: InputEventUnion { MouseMotion: motion} } => InputEvent::MouseMotion { x_rel: motion.x_rel, y_rel: motion.y_rel },
+                InputEventData { tag: InputEventTag::NotImplemented, val: NotImplemented } => InputEvent::NotImplemented,
+                InputEventData { tag: InputEventTag::NoEvent, val: NoEvent } => InputEvent::NoEvent,
+            }
         }
     }
 }

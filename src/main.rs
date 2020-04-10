@@ -133,7 +133,7 @@ fn game() -> std::result::Result<(), obj::ObjError> {
             match window.poll_event() {
                 InputEvent::Quit => quit = true,
                 InputEvent::NoEvent => quit_polling = true,
-                InputEvent::MouseMotion => println!("mouse-move"),
+                InputEvent::MouseMotion { x_rel, y_rel} => println!("mouse-move {} {}", x_rel, y_rel),
                 _ => (),
             }
         }
@@ -146,9 +146,9 @@ fn game() -> std::result::Result<(), obj::ObjError> {
             rasterizer::draw_triangle(t[0], t[1], t[2], &shader, &mut canvas);
         }
 
-        println!("triangle_count: {}", triangle_count);
+        //println!("triangle_count: {}", triangle_count);
         let current_time = Instant::now();
-        println!("fps: {}", (current_time - previous_time).as_millis());
+        //println!("fps: {}", (current_time - previous_time).as_millis());
         previous_time = current_time;
         window.update();
         canvas.clear(&Color{r: 0, g:0, b: 0, a: 255});

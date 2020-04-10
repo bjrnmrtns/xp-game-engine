@@ -16,18 +16,28 @@ enum class InputEventTag : uint32_t {
     NoEvent,
 };
 
-struct InputEventQuit { InputEventTag tag; };
-struct InputEventMouseMotion { InputEventTag tag; };
-struct InputEventNotImplemented { InputEventTag tag; };
-struct InputEventNoEvent { InputEventTag tag; };
+struct InputEventQuit {};
+struct InputEventMouseMotion { int32_t xrel; int32_t yrel; };
+struct InputEventNotImplemented {};
+struct InputEventNoEvent {};
 
-union InputEventEnum {
+union InputEventUnion {
     InputEventQuit quit;
     InputEventMouseMotion mouse_motion;
     InputEventNotImplemented not_implemented;
     InputEventNoEvent no_event;
 };
 
+struct InputEvent {
+    InputEventTag tag;
+    InputEventUnion val;
+};
+
+struct InputEventData {
+    InputEventTag tag;
+    int32_t xrel;
+    int32_t yrel;
+};
 struct context_t {
     SDL_Window* window;
     SDL_Surface* framebuffer;
@@ -49,7 +59,7 @@ void window_update(const void* self)
     SDL_UpdateWindowSurface(context->window);
 }
 
-InputEventEnum window_poll_event(const void* self)
+InputEvent window_poll_event(const void* self)
 {
     const context_t* context = static_cast<const context_t*>(self);
     SDL_Event e;
@@ -57,25 +67,26 @@ InputEventEnum window_poll_event(const void* self)
     {
         switch(e.type) {
             case SDL_QUIT: {
-                InputEventEnum event;
-                event.quit.tag = InputEventTag::Quit;
+                InputEvent event;
+                event.tag = InputEventTag::Quit;
                 return event;
             }
             case SDL_MOUSEMOTION: {
-                InputEventEnum event;
-                event.mouse_motion.tag = InputEventTag::MouseMotion;
+                InputEvent event;
+                event.tag = InputEventTag::MouseMotion;
+                event.val.mouse_motion.xrel = e.motion.xrel;
+                event.val.mouse_motion.yrel = e.motion.yrel;
                 return event;
             }
             default: {
-                InputEventEnum event;
-                event.not_implemented.tag = InputEventTag::NotImplemented;
+                InputEvent event;
+                event.tag = InputEventTag::NotImplemented;
                 return event;
             }
         }
-
     }
-    InputEventEnum event;
-    event.no_event.tag = InputEventTag::NoEvent;
+    InputEvent event;
+    event.tag = InputEventTag::NoEvent;
     return event;
 }
 
