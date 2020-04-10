@@ -9,10 +9,23 @@ struct color_t {
     unsigned char r, g, b, a;
 };
 
-enum window_event_t {
-    EvInputQuit,
-    EvInputNotImplemented,
-    EvInputNone,
+enum class InputEventTag : uint32_t {
+    Quit,
+    MouseMotion,
+    NotImplemented,
+    NoEvent,
+};
+
+struct InputEventQuit { InputEventTag tag; };
+struct InputEventMouseMotion { InputEventTag tag; };
+struct InputEventNotImplemented { InputEventTag tag; };
+struct InputEventNoEvent { InputEventTag tag; };
+
+union InputEventEnum {
+    InputEventQuit quit;
+    InputEventMouseMotion mouse_motion;
+    InputEventNotImplemented not_implemented;
+    InputEventNoEvent no_event;
 };
 
 struct context_t {
@@ -36,19 +49,34 @@ void window_update(const void* self)
     SDL_UpdateWindowSurface(context->window);
 }
 
-window_event_t window_poll_event(const void* self)
+InputEventEnum window_poll_event(const void* self)
 {
     const context_t* context = static_cast<const context_t*>(self);
     SDL_Event e;
     if(SDL_PollEvent(&e))
     {
         switch(e.type) {
-            case SDL_QUIT: return EvInputQuit;
-            default: return EvInputNotImplemented;
+            case SDL_QUIT: {
+                InputEventEnum event;
+                event.quit.tag = InputEventTag::Quit;
+                return event;
+            }
+            case SDL_MOUSEMOTION: {
+                InputEventEnum event;
+                event.mouse_motion.tag = InputEventTag::MouseMotion;
+                return event;
+            }
+            default: {
+                InputEventEnum event;
+                event.not_implemented.tag = InputEventTag::NotImplemented;
+                return event;
+            }
         }
 
     }
-    return EvInputNone;
+    InputEventEnum event;
+    event.no_event.tag = InputEventTag::NoEvent;
+    return event;
 }
 
 void window_destroy(const void* self)

@@ -60,7 +60,7 @@ impl<'a> Shader<Varyings> for BasicShader<'a> {
     }
 }
 
-fn load_triangle() -> obj::ObjResult<Vec<[(Vec3, Varyings); 3]>> {
+fn _load_triangle() -> obj::ObjResult<Vec<[(Vec3, Varyings); 3]>> {
     let first = vec3(1.0, 0.0, 0.0);
     let second = vec3(0.0, 1.0, 1.0);
     let third = vec3(-1.0, 0.0, 0.0);
@@ -131,8 +131,9 @@ fn game() -> std::result::Result<(), obj::ObjError> {
         let mut quit_polling = false;
         while !quit_polling && !quit {
             match window.poll_event() {
-                Some(InputEvent::Quit) => quit = true,
-                None => quit_polling = true,
+                InputEvent::Quit => quit = true,
+                InputEvent::NoEvent => quit_polling = true,
+                InputEvent::MouseMotion => println!("mouse-move"),
                 _ => (),
             }
         }
