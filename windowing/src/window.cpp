@@ -12,18 +12,29 @@ struct color_t {
 enum class InputEventTag : uint32_t {
     Quit,
     MouseMotion,
+    Key,
     NotImplemented,
     NoEvent,
 };
 
+enum class Key : int32_t {
+    key_w,
+    key_a,
+    key_s,
+    key_d,
+    not_mapped,
+};
+
 struct InputEventQuit {};
 struct InputEventMouseMotion { int32_t xrel; int32_t yrel; };
+struct InputEventKey { Key key ; bool down; };
 struct InputEventNotImplemented {};
 struct InputEventNoEvent {};
 
 union InputEventUnion {
     InputEventQuit quit;
     InputEventMouseMotion mouse_motion;
+    InputEventKey key_event;
     InputEventNotImplemented not_implemented;
     InputEventNoEvent no_event;
 };
@@ -33,11 +44,6 @@ struct InputEvent {
     InputEventUnion val;
 };
 
-struct InputEventData {
-    InputEventTag tag;
-    int32_t xrel;
-    int32_t yrel;
-};
 struct context_t {
     SDL_Window* window;
     SDL_Surface* framebuffer;
@@ -59,6 +65,32 @@ void window_update(const void* self)
     SDL_UpdateWindowSurface(context->window);
 }
 
+static Key translate_key(const SDL_Keysym& keysym) {
+    Key key;
+    switch(keysym.sym) {
+        case SDLK_w: {
+            key = Key::key_w;
+            break;
+        }
+        case SDLK_a: {
+            key = Key::key_a;
+            break;
+        }
+        case SDLK_s: {
+            key = Key::key_s;
+            break;
+        }
+        case SDLK_d: {
+            key = Key::key_d;
+            break;
+        }
+        default: {
+            key = Key::not_mapped;
+        }
+    }
+    return key;
+}
+
 InputEvent window_poll_event(const void* self)
 {
     const context_t* context = static_cast<const context_t*>(self);
@@ -68,6 +100,14 @@ InputEvent window_poll_event(const void* self)
         switch(e.type) {
             case SDL_QUIT: {
                 return { .tag = InputEventTag::Quit };
+            }
+            case SDL_KEYDOWN: {
+                return { .tag = InputEventTag::Key, { .key_event.key = translate_key(e.key.keysym),
+                                                      .key_event.down = true } };
+            }
+            case SDL_KEYUP: {
+                return { .tag = InputEventTag::Key, { .key_event.key = translate_key(e.key.keysym),
+                                                      .key_event.down = false } };
             }
             case SDL_MOUSEMOTION: {
                 return { .tag = InputEventTag::MouseMotion, .val = { .mouse_motion.xrel = e.motion.xrel,

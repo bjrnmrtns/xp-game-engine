@@ -13,8 +13,19 @@ pub struct Color
 enum InputEventTag {
     Quit,
     MouseMotion,
+    KeyEvent,
     NotImplemented,
     NoEvent,
+}
+
+#[repr(i32)]
+#[derive(Copy, Clone)]
+pub enum  Key {
+    key_w,
+    key_a,
+    key_s,
+    key_d,
+    not_mapped,
 }
 
 #[repr(C)]
@@ -23,9 +34,14 @@ struct MouseMotionType { x_rel: i32, y_rel: i32 }
 
 #[repr(C)]
 #[derive(Copy, Clone)]
+struct KeyEventType { key: Key, down: bool }
+
+#[repr(C)]
+#[derive(Copy, Clone)]
 union InputEventUnion {
     Quit: (),
     MouseMotion: MouseMotionType,
+    KeyEvent: KeyEventType,
     NotImplemented: (),
     NoEvent: (),
 }
@@ -39,6 +55,7 @@ struct InputEventData {
 pub enum InputEvent {
     Quit,
     MouseMotion { x_rel: i32, y_rel: i32 },
+    KeyEvent { key: Key, down: bool },
     NotImplemented,
     NoEvent,
 }
@@ -113,6 +130,7 @@ impl Window
             match window_poll_event(self.handle) {
                 InputEventData { tag: InputEventTag::Quit, val: Quit } => InputEvent::Quit,
                 InputEventData { tag: InputEventTag::MouseMotion, val: InputEventUnion { MouseMotion: motion} } => InputEvent::MouseMotion { x_rel: motion.x_rel, y_rel: motion.y_rel },
+                InputEventData { tag: InputEventTag::KeyEvent, val: InputEventUnion { KeyEvent: keyinfo} } => InputEvent::KeyEvent { key: keyinfo.key, down: keyinfo.down },
                 InputEventData { tag: InputEventTag::NotImplemented, val: NotImplemented } => InputEvent::NotImplemented,
                 InputEventData { tag: InputEventTag::NoEvent, val: NoEvent } => InputEvent::NoEvent,
             }

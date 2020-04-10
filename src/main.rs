@@ -134,6 +134,7 @@ fn game() -> std::result::Result<(), obj::ObjError> {
                 InputEvent::Quit => quit = true,
                 InputEvent::NoEvent => quit_polling = true,
                 InputEvent::MouseMotion { x_rel, y_rel} => println!("mouse-move {} {}", x_rel, y_rel),
+                InputEvent::KeyEvent { key: Key::key_w, down} => println!("w key-pressed"),
                 _ => (),
             }
         }
