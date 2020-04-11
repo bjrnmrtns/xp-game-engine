@@ -1,4 +1,4 @@
-use crate::sdlwindow::{Color, Canvas};
+use crate::canvas::{Canvas, Color};
 use nalgebra_glm::*;
 
 pub trait Vary {

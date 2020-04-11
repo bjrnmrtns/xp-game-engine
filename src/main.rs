@@ -1,11 +1,13 @@
 mod obj;
 mod rasterizer;
+mod canvas;
 mod sdlwindow;
 mod input;
 
 use rasterizer::{Vary, Shader};
 use sdlwindow::*;
 use input::*;
+use canvas::{Canvas, Color};
 
 use image::RgbImage;
 use nalgebra_glm::*;
