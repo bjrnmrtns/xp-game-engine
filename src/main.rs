@@ -3,6 +3,7 @@ mod rasterizer;
 mod canvas;
 mod sdlwindow;
 mod window;
+mod eventqueue;
 
 use rasterizer::{Vary, Shader};
 use sdlwindow::*;
@@ -131,15 +132,13 @@ fn game() -> std::result::Result<(), obj::ObjError> {
     let mut previous_time = Instant::now();
     let mut quit = false;
     let mut rot: f32 = 0.0;
-    while !quit {
-        let mut quit_polling = false;
-        while !quit_polling && !quit {
-            match window.poll_input() {
-                Some(Event::Quit) => quit = true,
-                Some(Event::MouseMotion { x_rel, y_rel}) => println!("mouse-move {} {}", x_rel, y_rel),
-                Some(Event::KeyEvent { key: Key::KeyW, down: _}) => println!("w key-pressed"),
-                None => quit_polling = true,
-                _ => println!("key unknown"),
+
+    let mut event_queue = eventqueue::EventQueue::new();
+    while event_queue.pump(&(*window)) {
+        while let Some(event) = event_queue.event() {
+            match event {
+                Event::MouseMotion { x_rel, y_rel} => println!("x_rel: {} y_rel: {}", x_rel, y_rel),
+                _ => (),
             }
         }
         rot = rot + 0.01;
