@@ -1,4 +1,4 @@
-use crate::input::*;
+use crate::window::*;
 use crate::canvas::{Canvas, Color};
 
 #[repr(u32)]

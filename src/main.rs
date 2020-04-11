@@ -2,11 +2,11 @@ mod obj;
 mod rasterizer;
 mod canvas;
 mod sdlwindow;
-mod input;
+mod window;
 
 use rasterizer::{Vary, Shader};
 use sdlwindow::*;
-use input::*;
+use window::*;
 use canvas::{Canvas, Color};
 
 use image::RgbImage;
