@@ -1,5 +1,6 @@
 #include <SDL.h>
 #include <cstdint>
+#include <optional>
 
 #ifdef __cplusplus
 extern "C" {
@@ -13,7 +14,6 @@ enum class InputEventTag : uint32_t {
     Quit,
     MouseMotion,
     Key,
-    NotImplemented,
     NoEvent,
 };
 
@@ -22,20 +22,17 @@ enum class Key : int32_t {
     key_a,
     key_s,
     key_d,
-    not_mapped,
 };
 
 struct InputEventQuit {};
 struct InputEventMouseMotion { int32_t xrel; int32_t yrel; };
 struct InputEventKey { Key key ; bool down; };
-struct InputEventNotImplemented {};
 struct InputEventNoEvent {};
 
 union InputEventUnion {
     InputEventQuit quit;
     InputEventMouseMotion mouse_motion;
     InputEventKey key_event;
-    InputEventNotImplemented not_implemented;
     InputEventNoEvent no_event;
 };
 
@@ -65,8 +62,8 @@ void window_update(const void* self)
     SDL_UpdateWindowSurface(context->window);
 }
 
-static Key translate_key(const SDL_Keysym& keysym) {
-    Key key;
+static std::optional<Key> translate_key(const SDL_Keysym& keysym) {
+    std::optional<Key> key;
     switch(keysym.sym) {
         case SDLK_w: {
             key = Key::key_w;
@@ -85,7 +82,7 @@ static Key translate_key(const SDL_Keysym& keysym) {
             break;
         }
         default: {
-            key = Key::not_mapped;
+            break;
         }
     }
     return key;
@@ -95,30 +92,37 @@ InputEvent window_poll_event(const void* self)
 {
     const context_t* context = static_cast<const context_t*>(self);
     SDL_Event e;
-    if(SDL_PollEvent(&e))
-    {
-        switch(e.type) {
+    while (SDL_PollEvent(&e)) {
+        switch (e.type) {
             case SDL_QUIT: {
-                return { .tag = InputEventTag::Quit };
+                return {.tag = InputEventTag::Quit};
             }
             case SDL_KEYDOWN: {
-                return { .tag = InputEventTag::Key, { .key_event.key = translate_key(e.key.keysym),
-                                                      .key_event.down = true } };
+                const auto key = translate_key(e.key.keysym);
+                if (key) {
+                    return {.tag = InputEventTag::Key, {.key_event.key = key.value(),
+                                                               .key_event.down = true}};
+                }
+                break;
             }
             case SDL_KEYUP: {
-                return { .tag = InputEventTag::Key, { .key_event.key = translate_key(e.key.keysym),
-                                                      .key_event.down = false } };
+                const auto key = translate_key(e.key.keysym);
+                if (key) {
+                    return {.tag = InputEventTag::Key, {.key_event.key = key.value(),
+                                                               .key_event.down = false}};
+                }
+                break;
             }
             case SDL_MOUSEMOTION: {
-                return { .tag = InputEventTag::MouseMotion, .val = { .mouse_motion.xrel = e.motion.xrel,
-                                                                     .mouse_motion.yrel = e.motion.yrel } };
+                return {.tag = InputEventTag::MouseMotion, .val = {.mouse_motion.xrel = e.motion.xrel,
+                        .mouse_motion.yrel = e.motion.yrel}};
             }
             default: {
-                return { .tag = InputEventTag::NotImplemented };
+                break;
             }
         }
     }
-    return { .tag = InputEventTag::NoEvent };
+    return {.tag = InputEventTag::NoEvent};
 }
 
 void window_destroy(const void* self)

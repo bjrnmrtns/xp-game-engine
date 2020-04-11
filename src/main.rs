@@ -1,9 +1,11 @@
 mod obj;
 mod rasterizer;
-mod windowing;
+mod sdlwindow;
+mod input;
 
 use rasterizer::{Vary, Shader};
-use windowing::*;
+use sdlwindow::*;
+use input::*;
 
 use image::RgbImage;
 use nalgebra_glm::*;
@@ -103,7 +105,7 @@ fn game() -> std::result::Result<(), obj::ObjError> {
     let height: usize = 800;
     //create_window
     let mut canvas = Canvas::new(width, height, &Color{r: 0, g:0, b: 0, a: 255});
-    let window: Window = Window::new(&canvas);
+    let window = SDLWindow::new(&canvas);
     //load_resources
     let img: RgbImage = image::open("obj/ah/african_head_diffuse.tga").unwrap().to_rgb(); // use try/? but convert to generic error to standard error and change result of main into that error.
     let input = &mut BufReader::new(File::open("obj/ah/african_head.obj")?);
@@ -130,12 +132,12 @@ fn game() -> std::result::Result<(), obj::ObjError> {
     while !quit {
         let mut quit_polling = false;
         while !quit_polling && !quit {
-            match window.poll_event() {
-                InputEvent::Quit => quit = true,
-                InputEvent::NoEvent => quit_polling = true,
-                InputEvent::MouseMotion { x_rel, y_rel} => println!("mouse-move {} {}", x_rel, y_rel),
-                InputEvent::KeyEvent { key: Key::key_w, down} => println!("w key-pressed"),
-                _ => (),
+            match window.poll_input() {
+                Some(Event::Quit) => quit = true,
+                Some(Event::MouseMotion { x_rel, y_rel}) => println!("mouse-move {} {}", x_rel, y_rel),
+                Some(Event::KeyEvent { key: Key::KeyW, down: _}) => println!("w key-pressed"),
+                None => quit_polling = true,
+                _ => println!("key unknown"),
             }
         }
         rot = rot + 0.01;
@@ -147,9 +149,9 @@ fn game() -> std::result::Result<(), obj::ObjError> {
             rasterizer::draw_triangle(t[0], t[1], t[2], &shader, &mut canvas);
         }
 
-        //println!("triangle_count: {}", triangle_count);
+        println!("triangle_count: {}", triangle_count);
         let current_time = Instant::now();
-        //println!("fps: {}", (current_time - previous_time).as_millis());
+        println!("fps: {}", (current_time - previous_time).as_millis());
         previous_time = current_time;
         window.update();
         canvas.clear(&Color{r: 0, g:0, b: 0, a: 255});
