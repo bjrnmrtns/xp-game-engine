@@ -4,11 +4,13 @@ mod canvas;
 mod sdlwindow;
 mod window;
 mod eventqueue;
+mod camera;
 
 use rasterizer::{Vary, Shader};
 use sdlwindow::*;
 use window::*;
 use canvas::{Canvas, Color};
+use camera::Camera;
 
 use image::RgbImage;
 use nalgebra_glm::*;
@@ -117,20 +119,19 @@ fn game() -> std::result::Result<(), obj::ObjError> {
     //render
     let viewport = vec4(0.0, 0.0, 800.0, 800.0);
     let projection = perspective(800.0 / 800.0, 45.0, 1.0, 1000.0);
-    let view = look_at(&vec3(0.0, 0.0, 2.0, ), &vec3(0.0, 0.0, 0.0), &vec3(0.0, 1.0, 0.0));
+    //let view = look_at(&vec3(0.0, 0.0, 2.0, ), &vec3(0.0, 0.0, 0.0), &vec3(0.0, 1.0, 0.0));
     let model: Mat4 = identity();
-
+    let mut camera = Camera::new();
     let mut shader = BasicShader {
         viewport: &viewport,
         projection: &projection,
-        view: view,
+        view: camera.get_view(),
         model: model,
         tex: &img,
         light_direction: vec3(0.0, 0.0, 1.0),
     };
 
     let mut previous_time = Instant::now();
-    let mut quit = false;
     let mut rot: f32 = 0.0;
 
     let mut event_queue = eventqueue::EventQueue::new();
@@ -143,6 +144,7 @@ fn game() -> std::result::Result<(), obj::ObjError> {
         }
         rot = rot + 0.01;
         shader.model = rotate(&identity(), rot, &vec3(0.0, 1.0, 0.0));
+        shader.view = camera.get_view();
 
         let mut triangle_count: i32 = 0;
         for t in &mesh {
