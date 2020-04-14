@@ -52,7 +52,7 @@ impl<'a> Shader<Varyings> for BasicShader<'a> {
         let out_var = Varyings { n: vec4_to_vec3(&n), t: var.t };
         (vec4(projected.x, projected.y, projected.z, 1.0), out_var)
     }
-    fn fragment(&self, _: Vec2, var: Varyings) -> Option<Color> {
+    fn fragment(&self, _: &I32Vec2, var: &Varyings) -> Option<Color> {
         let intensity = dot(&var.n, &self.light_direction);
         if intensity > 0.0 {
             let pixel = self.tex.get_pixel((var.t.x * self.tex.width() as f32) as u32, self.tex.height() - 1 - (var.t.y * self.tex.height() as f32) as u32);
