@@ -48,32 +48,38 @@ impl Camera {
             orientation: quat_identity(),
         }
     }
+    fn up(&self) -> Vec3 {
+        quat_rotate_vec3(&self.orientation, &self.initial_up)
+    }
+
+    fn direction(&self) -> Vec3 {
+        quat_rotate_vec3(&self.orientation, &self.initial_direction)
+    }
+
+    fn right(&self) -> Vec3 {
+        cross(&self.up(), &self.direction())
+    }
 
     // rotate around right vector (cross product between up and direction
     pub fn pitch(&mut self, val: f32) {
-        // calculate up and direction see below
-        // calculate right by cross product of up and direction
-        // use quat_angle_axis
-        // store new orientation by doing orientation * rot
+        let pitch_q = quat_angle_axis(val, &self.right());
+        self.orientation = &self.orientation * pitch_q;
     }
 
     // rotate around up vector
     pub fn yaw(&mut self, val: f32) {
-        // calculate up via orientation, intitial_up
-        // use quat_angle_axis()
-        // store new orientation by doing orientation * rot
+        let yaw_q = quat_angle_axis(val, &self.up());
+        self.orientation = &self.orientation * yaw_q;
     }
 
     // rotate around direction vector
     pub fn roll(&mut self, val: f32) {
-        // calculate direction via orientation, intitial_direction
-        // use quat_angle_axis()
-        // store new orientation by doing orientation * rot
+        let roll_q = quat_angle_axis(val, &self.direction());
+        self.orientation = &self.orientation * roll_q;
     }
 
     pub fn get_view(&self) -> Mat4 {
-        let up = quat_rotate_vec3(&self.orientation, &self.initial_up);
-        let direction = quat_rotate_vec3(&self.orientation, &self.initial_direction);
-        look_at(&self.position, &(&self.position + &direction), &up)
+        //println!("{} {}", &self.up(), &self.direction());
+        look_at(&self.position, &(&self.position + self.direction()), &self.up())
     }
 }
