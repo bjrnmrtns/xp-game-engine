@@ -32,7 +32,7 @@ fn bounding_box(points: &[I32Vec2]) -> (I32Vec2, I32Vec2) {
     (min, max)
 }
 
-pub(crate) fn draw_triangle<V: Vary, S: Shader<V>>(v0: (Vec3, V), v1: (Vec3, V), v2: (Vec3, V), shader: &S, canvas: &mut Canvas) {
+pub fn draw_triangle<V: Vary, S: Shader<V>>(v0: (Vec3, V), v1: (Vec3, V), v2: (Vec3, V), shader: &S, canvas: &mut Canvas) {
     let p0 = shader.vertex(&v0.0, &v0.1);
     let p1 = shader.vertex(&v1.0, &v1.1);
     let p2 = shader.vertex(&v2.0, &v2.1);
@@ -41,8 +41,8 @@ pub(crate) fn draw_triangle<V: Vary, S: Shader<V>>(v0: (Vec3, V), v1: (Vec3, V),
     let xy1: I32Vec2  = vec2((p1.0.x / p1.0.w) as i32, (p1.0.y / p1.0.w) as i32);
     let xy2: I32Vec2  = vec2((p2.0.x / p2.0.w) as i32, (p2.0.y / p2.0.w) as i32);
     let (min, max) = bounding_box(&[xy0, xy1, xy2]);
-    for x in min.x..max.x {
-        for y in min.y..max.y {
+    for x in std::cmp::max(0, min.x)..std::cmp::min(800, max.x) {
+        for y in std::cmp::max(0, min.y)..std::cmp::min(800, max.y) {
             let bs = barycentric(&xy0, &xy1, &xy2, vec2(x, y));
             if bs.x >= 0.0 && bs.y >= 0.0 && bs.z >= 0.0 {
                 //w' = ( 1 / v0.v.w ) * bs.x + ( 1 / v1.v.w ) * bs.y + ( 1 / v2.v.w ) * bs.z
