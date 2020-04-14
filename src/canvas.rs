@@ -31,7 +31,7 @@ impl Canvas
     pub fn set_with_depth(&mut self, x: usize, y: usize, depth: f32, color: &Color) {
         if x < self.width && y < self.height {
             let index = x + (self.height - 1 - y) * self.width;
-            if self.zbuffer[index] < depth {
+            if depth < self.zbuffer[index]  {
                 self.zbuffer[index] = depth;
                 self.buffer[index] = *color;
             }
@@ -43,6 +43,6 @@ impl Canvas
         }
     }
     pub fn clear_zbuffer(&mut self) {
-        self.zbuffer = vec![std::f32::MIN; self.width * self.height];
+        self.zbuffer = vec![std::f32::MAX; self.width * self.height];
     }
 }

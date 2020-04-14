@@ -136,9 +136,14 @@ fn game() -> std::result::Result<(), obj::ObjError> {
 
     let mut event_queue = eventqueue::EventQueue::new();
     while event_queue.pump(&(*window)) {
+        canvas.clear(&Color{r: 0, g:0, b: 0, a: 255});
+        canvas.clear_zbuffer();
         while let Some(event) = event_queue.event() {
             match event {
-                Event::MouseMotion { x_rel, y_rel} => println!("x_rel: {} y_rel: {}", x_rel, y_rel),
+                Event::MouseMotion { x_rel, y_rel} => {
+                    camera.pitch(y_rel as f32 / 100.0);
+                    camera.yaw(x_rel as f32 / 100.0);
+                },
                 _ => (),
             }
         }
@@ -157,8 +162,6 @@ fn game() -> std::result::Result<(), obj::ObjError> {
         println!("fps: {}", (current_time - previous_time).as_millis());
         previous_time = current_time;
         window.update();
-        canvas.clear(&Color{r: 0, g:0, b: 0, a: 255});
-        canvas.clear_zbuffer();
     }
     Ok(())
 }
