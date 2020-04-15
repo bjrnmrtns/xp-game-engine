@@ -78,6 +78,11 @@ impl Camera {
         self.orientation = &self.orientation * roll_q;
     }
 
+    pub fn movement(&mut self, forward: f32, strafe: f32) {
+        self.position = &self.position + (self.direction() * forward);
+        self.position = &self.position + (self.right() * strafe);
+    }
+
     pub fn get_view(&self) -> Mat4 {
         //println!("{} {}", &self.up(), &self.direction());
         look_at(&self.position, &(&self.position + self.direction()), &self.up())

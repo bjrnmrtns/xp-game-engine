@@ -143,9 +143,13 @@ fn game() -> std::result::Result<(), obj::ObjError> {
             match event {
                 Event::MouseMotion { x_rel, y_rel} => {
                     camera.pitch(y_rel as f32 / 100.0);
-                    camera.yaw(x_rel as f32 / 100.0);
+                    camera.yaw(-x_rel as f32 / 100.0);
                 },
                 Event::KeyEvent { key: Key::KeyEscape, down: true } => { quit = true },
+                Event::KeyEvent { key: Key::KeyW, down: true } => { camera.movement(0.1, 0.0); },
+                Event::KeyEvent { key: Key::KeyS, down: true } => { camera.movement(-0.1, 0.0); },
+                Event::KeyEvent { key: Key::KeyA, down: true } => { camera.movement(0.0, 0.1); },
+                Event::KeyEvent { key: Key::KeyD, down: true } => { camera.movement(0.0, -0.1); },
                 _ => (),
             }
         }
