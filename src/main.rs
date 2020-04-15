@@ -135,7 +135,8 @@ fn game() -> std::result::Result<(), obj::ObjError> {
     let mut rot: f32 = 0.0;
 
     let mut event_queue = eventqueue::EventQueue::new();
-    while event_queue.pump(&(*window)) {
+    let mut quit: bool = false;
+    while !quit && event_queue.pump(&(*window)) {
         canvas.clear(&Color{r: 0, g:0, b: 0, a: 255});
         canvas.clear_zbuffer();
         while let Some(event) = event_queue.event() {
@@ -144,6 +145,7 @@ fn game() -> std::result::Result<(), obj::ObjError> {
                     camera.pitch(y_rel as f32 / 100.0);
                     camera.yaw(x_rel as f32 / 100.0);
                 },
+                Event::KeyEvent { key: Key::KeyEscape, down: true } => { quit = true },
                 _ => (),
             }
         }

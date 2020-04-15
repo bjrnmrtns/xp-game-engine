@@ -12,6 +12,7 @@ pub enum  Key {
     KeyA,
     KeyS,
     KeyD,
+    KeyEscape,
 }
 
 pub trait Window {

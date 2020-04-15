@@ -22,6 +22,7 @@ enum class Key : int32_t {
     key_a,
     key_s,
     key_d,
+    key_escape,
 };
 
 struct InputEventQuit {};
@@ -79,6 +80,10 @@ static std::optional<Key> translate_key(const SDL_Keysym& keysym) {
         }
         case SDLK_d: {
             key = Key::key_d;
+            break;
+        }
+        case SDLK_ESCAPE: {
+            key = Key::key_escape;
             break;
         }
         default: {
