@@ -142,19 +142,18 @@ fn game() -> std::result::Result<(), obj::ObjError> {
         while let Some(event) = event_queue.event() {
             match event {
                 Event::MouseMotion { x_rel, y_rel} => {
-                    camera.pitch(y_rel as f32 / 100.0);
-                    camera.yaw(-x_rel as f32 / 100.0);
+                    camera.rotation(-y_rel as f32 / 100.0, -x_rel as f32 / 100.0);
                 },
                 Event::KeyEvent { key: Key::KeyEscape, down: true } => { quit = true },
                 Event::KeyEvent { key: Key::KeyW, down: true } => { camera.movement(0.1, 0.0); },
                 Event::KeyEvent { key: Key::KeyS, down: true } => { camera.movement(-0.1, 0.0); },
-                Event::KeyEvent { key: Key::KeyA, down: true } => { camera.movement(0.0, 0.1); },
-                Event::KeyEvent { key: Key::KeyD, down: true } => { camera.movement(0.0, -0.1); },
+                Event::KeyEvent { key: Key::KeyA, down: true } => { camera.movement(0.0, -0.1); },
+                Event::KeyEvent { key: Key::KeyD, down: true } => { camera.movement(0.0, 0.1); },
                 _ => (),
             }
         }
         rot = rot + 0.01;
-        shader.model = rotate(&identity(), rot, &vec3(0.0, 1.0, 0.0));
+        //shader.model = rotate(&identity(), rot, &vec3(0.0, 1.0, 0.0));
         shader.view = camera.get_view();
 
         let mut triangle_count: i32 = 0;
@@ -163,9 +162,9 @@ fn game() -> std::result::Result<(), obj::ObjError> {
             rasterizer::draw_triangle(t[0], t[1], t[2], &shader, &mut canvas);
         }
 
-        println!("triangle_count: {}", triangle_count);
+        //println!("triangle_count: {}", triangle_count);
         let current_time = Instant::now();
-        println!("fps: {}", (current_time - previous_time).as_millis());
+        //println!("fps: {}", (current_time - previous_time).as_millis());
         previous_time = current_time;
         window.update();
     }

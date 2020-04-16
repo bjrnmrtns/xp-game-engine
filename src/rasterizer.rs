@@ -46,9 +46,11 @@ pub fn draw_triangle<V: Vary, S: Shader<V>>(v0: (Vec3, V), v1: (Vec3, V), v2: (V
             let bs = barycentric(&xy0, &xy1, &xy2, vec2(x, y));
             if bs.x >= 0.0 && bs.y >= 0.0 && bs.z >= 0.0 {
                 let depth: f32 = bs.x * ss0.0.z + bs.y * ss1.0.z + bs.z * ss2.0.z;
-                match shader.fragment(&vec2(x, y), &V::vary(&ss0.1, &ss1.1, &ss2.1, &bs)) {
-                    Some(c) => canvas.set_with_depth(x as usize, y as usize, depth, &c),
-                    None => (),
+                if depth < 1.0 && depth > -1.0 { // near far plane clipping
+                    match shader.fragment(&vec2(x, y), &V::vary(&ss0.1, &ss1.1, &ss2.1, &bs)) {
+                        Some(c) => canvas.set_with_depth(x as usize, y as usize, depth, &c),
+                        None => (),
+                    }
                 }
             }
         }
