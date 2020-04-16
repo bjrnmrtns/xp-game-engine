@@ -3,7 +3,7 @@ mod rasterizer;
 mod canvas;
 mod sdlwindow;
 mod window;
-mod eventqueue;
+mod inputqueue;
 mod camera;
 
 use rasterizer::{Vary, Shader};
@@ -119,7 +119,6 @@ fn game() -> std::result::Result<(), obj::ObjError> {
     //render
     let viewport = vec4(0.0, 0.0, 800.0, 800.0);
     let projection = perspective(800.0 / 800.0, 45.0, 1.0, 1000.0);
-    //let view = look_at(&vec3(0.0, 0.0, 2.0, ), &vec3(0.0, 0.0, 0.0), &vec3(0.0, 1.0, 0.0));
     let model: Mat4 = identity();
     let mut camera = Camera::new();
     let mut shader = BasicShader {
@@ -134,12 +133,12 @@ fn game() -> std::result::Result<(), obj::ObjError> {
     let mut previous_time = Instant::now();
     let mut rot: f32 = 0.0;
 
-    let mut event_queue = eventqueue::EventQueue::new();
+    let mut input_queue = inputqueue::InputQueue::new();
     let mut quit: bool = false;
-    while !quit && event_queue.pump(&(*window)) {
+    while !quit && input_queue.pump(&(*window)) {
         canvas.clear(&Color{r: 0, g:0, b: 0, a: 255});
         canvas.clear_zbuffer();
-        while let Some(event) = event_queue.event() {
+        while let Some(event) = input_queue.event() {
             match event {
                 Event::MouseMotion { x_rel, y_rel} => {
                     camera.rotation(-y_rel as f32 / 100.0, -x_rel as f32 / 100.0);

@@ -1,13 +1,13 @@
 use crate::window::{Window, Event};
 use std::collections::VecDeque;
 
-pub struct EventQueue {
+pub struct InputQueue {
     queue: VecDeque<Event>,
 }
 
-impl EventQueue {
-    pub fn new() -> EventQueue {
-        EventQueue { queue: VecDeque::new() }
+impl InputQueue {
+    pub fn new() -> InputQueue {
+        InputQueue { queue: VecDeque::new() }
     }
     pub fn pump(&mut self, window: &Window) -> bool {
         while let Some(input) = window.poll_input() {
