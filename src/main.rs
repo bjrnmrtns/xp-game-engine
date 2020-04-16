@@ -3,7 +3,6 @@ mod rasterizer;
 mod canvas;
 mod sdlwindow;
 mod window;
-mod inputhandler;
 mod camera;
 
 use rasterizer::{Vary, Shader};
@@ -134,13 +133,10 @@ fn game() -> std::result::Result<(), obj::ObjError> {
     let mut rot: f32 = 0.0;
 
     let mut input_queue = window::InputQueue::new();
-    let mut input_handler = inputhandler::InputHandler::new();
     let mut quit: bool = false;
     while !quit && input_queue.pump(&(*window)) {
         canvas.clear(&Color{r: 0, g:0, b: 0, a: 255});
         canvas.clear_zbuffer();
-
-        input_handler.handle_input(&mut input_queue);
 
         while let Some(event) = input_queue.event() {
             match event {
@@ -148,12 +144,21 @@ fn game() -> std::result::Result<(), obj::ObjError> {
                     camera.rotation(-y_rel as f32 / 100.0, -x_rel as f32 / 100.0);
                 },
                 Event::KeyEvent { key: Key::KeyEscape, down: true } => { quit = true },
-                Event::KeyEvent { key: Key::KeyW, down: true } => { camera.movement(0.1, 0.0); },
-                Event::KeyEvent { key: Key::KeyS, down: true } => { camera.movement(-0.1, 0.0); },
-                Event::KeyEvent { key: Key::KeyA, down: true } => { camera.movement(0.0, -0.1); },
-                Event::KeyEvent { key: Key::KeyD, down: true } => { camera.movement(0.0, 0.1); },
                 _ => (),
             }
+        }
+
+        if input_queue.is_key_down(Key::KeyW) {
+            camera.movement(0.1, 0.0);
+        }
+        if input_queue.is_key_down(Key::KeyS) {
+            camera.movement(-0.1, 0.0);
+        }
+        if input_queue.is_key_down(Key::KeyA) {
+            camera.movement(0.0, -0.1);
+        }
+        if input_queue.is_key_down(Key::KeyD) {
+            camera.movement(0.0, 0.1);
         }
         rot = rot + 0.01;
         shader.model = rotate(&identity(), rot, &vec3(0.0, 1.0, 0.0));

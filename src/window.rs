@@ -36,6 +36,10 @@ impl InputQueue {
         InputQueue { queue: VecDeque::new(), keyboard_state: vec![false; convert(&Key::KeyEscape) + 1], }
     }
 
+    pub fn is_key_down(&self, key: Key) -> bool {
+        self.keyboard_state[convert(&key)]
+    }
+
     pub fn pump(&mut self, window: &Window) -> bool {
         while let Some(input) = window.poll_input() {
             match input {
