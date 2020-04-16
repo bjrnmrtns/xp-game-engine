@@ -23,6 +23,7 @@ impl Camera {
 
     pub fn rotation(&mut self, updown: f32, around: f32) {
         self.direction = rotate_vec3(&self.direction, around, &vec3(0.0, 1.0, 0.0)).normalize();
+        self.direction = rotate_vec3(&self.direction, updown, &self.right()).normalize();
     }
 
     pub fn get_view(&self) -> Mat4 {

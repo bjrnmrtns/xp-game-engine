@@ -153,7 +153,7 @@ fn game() -> std::result::Result<(), obj::ObjError> {
             }
         }
         rot = rot + 0.01;
-        //shader.model = rotate(&identity(), rot, &vec3(0.0, 1.0, 0.0));
+        shader.model = rotate(&identity(), rot, &vec3(0.0, 1.0, 0.0));
         shader.view = camera.get_view();
 
         let mut triangle_count: i32 = 0;
