@@ -3,7 +3,7 @@ mod rasterizer;
 mod canvas;
 mod sdlwindow;
 mod window;
-mod inputqueue;
+mod inputhandler;
 mod camera;
 
 use rasterizer::{Vary, Shader};
@@ -133,11 +133,15 @@ fn game() -> std::result::Result<(), obj::ObjError> {
     let mut previous_time = Instant::now();
     let mut rot: f32 = 0.0;
 
-    let mut input_queue = inputqueue::InputQueue::new();
+    let mut input_queue = window::InputQueue::new();
+    let mut input_handler = inputhandler::InputHandler::new();
     let mut quit: bool = false;
     while !quit && input_queue.pump(&(*window)) {
         canvas.clear(&Color{r: 0, g:0, b: 0, a: 255});
         canvas.clear_zbuffer();
+
+        input_handler.handle_input(&mut input_queue);
+
         while let Some(event) = input_queue.event() {
             match event {
                 Event::MouseMotion { x_rel, y_rel} => {
