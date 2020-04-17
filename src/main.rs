@@ -18,6 +18,7 @@ use std::io::BufReader;
 use std::time::{Instant};
 use image::flat::NormalForm::ColumnMajorPacked;
 use std::collections::VecDeque;
+use crate::commandqueue::CommandFQueue;
 
 #[derive(Copy, Clone)]
 pub struct Varyings {
@@ -104,100 +105,113 @@ fn _example_viewport_projection_view_model() -> std::result::Result<(), obj::Obj
     Ok(())
 }
 
-pub struct CommandCameraMove {
-    forward: bool,
-    back: bool,
-    left: bool,
-    right: bool,
-}
+mod commandqueue {
+    use std::collections::VecDeque;
+    use crate::window;
+    use crate::window::{Key, Event};
 
-pub struct CommandCameraRotation {
-    around_local_x: f32,
-    around_global_y: f32,
-}
-
-pub enum Command {
-    camera_move(CommandCameraMove),
-    camera_rotate(CommandCameraRotation)
-}
-
-pub struct CommandF {
-    frame: u32,
-    command: Command,
-}
-
-impl CommandF {
-    pub fn new(frame: u32, command: Command) -> CommandF {
-        CommandF { frame: frame, command: command}
+    pub struct CommandCameraMove {
+        pub forward: bool,
+        pub back: bool,
+        pub left: bool,
+        pub right: bool,
     }
-}
 
-pub struct CommandFQueue {
-    commands: VecDeque<CommandF>,
-}
+    pub struct CommandCameraRotation {
+        pub around_local_x: f32,
+        pub around_global_y: f32,
+    }
 
-impl CommandFQueue {
-    pub fn new() -> CommandFQueue {
-        CommandFQueue {
-            commands: VecDeque::new()
+    pub enum Command {
+        camera_move(CommandCameraMove),
+        camera_rotate(CommandCameraRotation),
+    }
+
+    pub struct CommandF {
+        pub frame: u32,
+        pub command: Command,
+    }
+
+    impl CommandF {
+        pub fn new(frame: u32, command: Command) -> CommandF {
+            CommandF { frame: frame, command: command }
         }
     }
 
-    fn add(&mut self, command: Command) {
-        self.commands.push_back(CommandF::new(0, command))
+    pub struct CommandFQueue {
+        commands: VecDeque<CommandF>,
     }
 
-    pub fn command(&mut self) -> Option<CommandF> {
-        self.commands.pop_front()
-    }
+    impl CommandFQueue {
+        pub fn new() -> CommandFQueue {
+            CommandFQueue {
+                commands: VecDeque::new()
+            }
+        }
 
-    pub fn handle_input(&mut self, inputs: &mut window::InputQueue) {
-        self.add(Command::camera_move(CommandCameraMove {
-            forward: inputs.is_key_down(Key::KeyW),
-            back: inputs.is_key_down(Key::KeyS),
-            left: inputs.is_key_down(Key::KeyA),
-            right: inputs.is_key_down(Key::KeyD),
-        }));
-        while let Some(event) = inputs.event() {
-            match event {
-                Event::MouseMotion { x_rel, y_rel} => { self.add(Command::camera_rotate(
-                    CommandCameraRotation { around_local_x: -y_rel as f32 / 100.0, around_global_y: -x_rel as f32 / 100.0,}
-                ))
-                },
-                _ => (),
+        fn add(&mut self, command: Command) {
+            self.commands.push_back(CommandF::new(0, command))
+        }
+
+        pub fn command(&mut self) -> Option<CommandF> {
+            self.commands.pop_front()
+        }
+
+        pub fn handle_input(&mut self, inputs: &mut window::InputQueue) {
+            self.add(Command::camera_move(CommandCameraMove {
+                forward: inputs.is_key_down(Key::KeyW),
+                back: inputs.is_key_down(Key::KeyS),
+                left: inputs.is_key_down(Key::KeyA),
+                right: inputs.is_key_down(Key::KeyD),
+            }));
+            while let Some(event) = inputs.event() {
+                match event {
+                    Event::MouseMotion { x_rel, y_rel } => {
+                        self.add(Command::camera_rotate(
+                            CommandCameraRotation { around_local_x: -y_rel as f32 / 100.0, around_global_y: -x_rel as f32 / 100.0, }
+                        ))
+                    },
+                    _ => (),
+                }
             }
         }
     }
 }
 
-pub struct PhysicsState {
-    camera_position: Vec3,
-    camera_direction: Vec3,
-}
+mod physics {
+    use nalgebra_glm::*;
+    use crate::camera;
+    use crate::commandqueue::*;
 
-impl PhysicsState {
-    pub fn new() -> PhysicsState {
-        PhysicsState { camera_position: vec3(0.0, 0.0, 2.0), camera_direction: vec3(0.0, 0.0, -1.0),}
+    pub struct State {
+        pub camera_position: Vec3,
+        pub camera_direction: Vec3,
     }
 
-    fn camera_move(&mut self, forward: i32, right: i32) {
-        self.camera_position = camera::move_(forward as f32 / 10.0, right as f32 / 10.0, &self.camera_position, &self.camera_direction);
-    }
+    impl State {
+        pub fn new() -> State {
+            State { camera_position: vec3(0.0, 0.0, 2.0), camera_direction: vec3(0.0, 0.0, -1.0), }
+        }
 
-    fn camera_rotate(&mut self, around_local_x: f32, around_global_y: f32) {
-        self.camera_direction = camera::rotate(around_local_x, around_global_y, &self.camera_direction);
-    }
+        fn camera_move(&mut self, forward: i32, right: i32) {
+            self.camera_position = camera::move_(forward as f32 / 10.0, right as f32 / 10.0, &self.camera_position, &self.camera_direction);
+        }
 
-    pub fn apply_commands(&mut self, commands: &mut CommandFQueue) {
-        while let Some(command) = commands.command() {
-            match command {
-                CommandF { frame: _, command: Command::camera_move(move_) } => {
-                    let forward: i32 = move_.forward as i32 - move_.back as i32;
-                    let right: i32 = move_.right as i32 - move_.left as i32;
-                    self.camera_move(forward, right);
-                },
-                CommandF {frame: _, command: Command::camera_rotate(rotate)} => {
-                    self.camera_rotate(rotate.around_local_x, rotate.around_global_y);
+        fn camera_rotate(&mut self, around_local_x: f32, around_global_y: f32) {
+            self.camera_direction = camera::rotate(around_local_x, around_global_y, &self.camera_direction);
+        }
+
+        pub fn apply_commands(&mut self, commands: &mut CommandFQueue) {
+            while let Some(command) = commands.command() {
+                match command {
+                    CommandF { frame: _, command: Command::camera_move(move_) } => {
+                        let forward: i32 = move_.forward as i32 - move_.back as i32;
+                        let right: i32 = move_.right as i32 - move_.left as i32;
+                        self.camera_move(forward, right);
+                    },
+                    CommandF { frame: _, command: Command::camera_rotate(rotate) } => {
+                        self.camera_rotate(rotate.around_local_x, rotate.around_global_y);
+                    }
                 }
             }
         }
@@ -226,7 +240,7 @@ fn game() -> std::result::Result<(), obj::ObjError> {
 
     let mut inputs = window::InputQueue::new();
     let mut commands = CommandFQueue::new();
-    let mut physics = PhysicsState::new();
+    let mut physics = physics::State::new();
     let mut shader = BasicShader {
         viewport: &viewport,
         projection: &projection,
