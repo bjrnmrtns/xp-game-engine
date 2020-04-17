@@ -104,17 +104,57 @@ fn _example_viewport_projection_view_model() -> std::result::Result<(), obj::Obj
     Ok(())
 }
 
-pub struct CommandQueue {
+pub struct CommandMove {
+    forward: bool,
+    back: bool,
+    left: bool,
+    right: bool,
 }
 
-impl CommandQueue {
-    pub fn new() -> CommandQueue {
-        CommandQueue {
+pub enum Command {
+    move_(CommandMove),
+}
 
+struct CommandF {
+    frame: u32,
+    command: Command,
+}
+
+impl CommandF {
+    pub fn new(frame: u32, command: Command) -> CommandF {
+        CommandF { frame: frame, command: command}
+    }
+}
+
+pub struct CommandFQueue {
+    commands: Vec<CommandF>,
+}
+
+impl CommandFQueue {
+    pub fn new() -> CommandFQueue {
+        CommandFQueue {
+            commands: Vec::new()
         }
     }
-    pub fn handle(&mut self, input_queue: &mut window::InputQueue) {
 
+    fn add(&mut self, command: Command) {
+        self.commands.push(CommandF::new(0, command))
+    }
+
+    pub fn handle_input(&mut self, inputs: &mut window::InputQueue) {
+        self.add(Command::move_(CommandMove {
+            forward: inputs.is_key_down(Key::KeyW),
+            back: inputs.is_key_down(Key::KeyS),
+            left: inputs.is_key_down(Key::KeyA),
+            right: inputs.is_key_down(Key::KeyD),
+        }));
+        while let Some(event) = inputs.event() {
+            match event {
+                Event::MouseMotion { x_rel, y_rel} => {
+                },
+                _ => (),
+            }
+        }
     }
 }
 
@@ -127,7 +167,7 @@ impl PhysicsState {
         PhysicsState {}
     }
 
-    pub fn handle(&mut self, command_queue: &mut CommandQueue) {
+    pub fn apply_commands(&mut self, commands: &mut CommandFQueue) {
     }
 }
 
@@ -161,38 +201,28 @@ fn game() -> std::result::Result<(), obj::ObjError> {
     let mut rot: f32 = 0.0;
 
     let mut inputs = window::InputQueue::new();
-    let mut commands = CommandQueue::new();
+    let mut commands = CommandFQueue::new();
     let mut physics = PhysicsState::new();
     let mut quit: bool = false;
     while !quit && inputs.pump(&(*window)) {
         canvas.clear(&Color{r: 0, g:0, b: 0, a: 255});
         canvas.clear_zbuffer();
 
-        commands.handle(&mut inputs);
-        physics.handle(&mut commands);
+        commands.handle_input(&mut inputs);
+        physics.apply_commands(&mut commands);
 
-        while let Some(event) = inputs.event() {
-            match event {
-                Event::MouseMotion { x_rel, y_rel} => {
-                    camera.rotation(-y_rel as f32 / 100.0, -x_rel as f32 / 100.0);
-                },
-                Event::KeyEvent { key: Key::KeyEscape, down: true } => { quit = true },
-                _ => (),
-            }
-        }
-
-        if inputs.is_key_down(Key::KeyW) {
-            camera.movement(0.1, 0.0);
-        }
-        if inputs.is_key_down(Key::KeyS) {
-            camera.movement(-0.1, 0.0);
-        }
-        if inputs.is_key_down(Key::KeyA) {
-            camera.movement(0.0, -0.1);
-        }
-        if inputs.is_key_down(Key::KeyD) {
-            camera.movement(0.0, 0.1);
-        }
+        // if inputs.is_key_down(Key::KeyW) {
+        //     camera.movement(0.1, 0.0);
+        // }
+        // if inputs.is_key_down(Key::KeyS) {
+        //     camera.movement(-0.1, 0.0);
+        // }
+        // if inputs.is_key_down(Key::KeyA) {
+        //     camera.movement(0.0, -0.1);
+        // }
+        // if inputs.is_key_down(Key::KeyD) {
+        //     camera.movement(0.0, 0.1);
+        // }
         rot = rot + 0.01;
         shader.model = rotate(&identity(), rot, &vec3(0.0, 1.0, 0.0));
         shader.view = camera.get_view();
