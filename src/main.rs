@@ -9,7 +9,6 @@ use rasterizer::{Vary, Shader};
 use sdlwindow::*;
 use window::*;
 use canvas::{Canvas, Color};
-use camera::Camera;
 
 use image::RgbImage;
 use nalgebra_glm::*;
@@ -18,6 +17,7 @@ use std::fs::File;
 use std::io::BufReader;
 use std::time::{Instant};
 use image::flat::NormalForm::ColumnMajorPacked;
+use std::collections::VecDeque;
 
 #[derive(Copy, Clone)]
 pub struct Varyings {
@@ -115,7 +115,7 @@ pub enum Command {
     move_(CommandMove),
 }
 
-struct CommandF {
+pub struct CommandF {
     frame: u32,
     command: Command,
 }
@@ -127,18 +127,22 @@ impl CommandF {
 }
 
 pub struct CommandFQueue {
-    commands: Vec<CommandF>,
+    commands: VecDeque<CommandF>,
 }
 
 impl CommandFQueue {
     pub fn new() -> CommandFQueue {
         CommandFQueue {
-            commands: Vec::new()
+            commands: VecDeque::new()
         }
     }
 
     fn add(&mut self, command: Command) {
-        self.commands.push(CommandF::new(0, command))
+        self.commands.push_back(CommandF::new(0, command))
+    }
+
+    pub fn command(&mut self) -> Option<CommandF> {
+        self.commands.pop_front()
     }
 
     pub fn handle_input(&mut self, inputs: &mut window::InputQueue) {
@@ -159,15 +163,29 @@ impl CommandFQueue {
 }
 
 pub struct PhysicsState {
-
+    camera_position: Vec3,
+    camera_direction: Vec3,
 }
 
 impl PhysicsState {
     pub fn new() -> PhysicsState {
-        PhysicsState {}
+        PhysicsState { camera_position: vec3(0.0, 0.0, 2.0), camera_direction: vec3(0.0, 0.0, -1.0),}
+    }
+
+    fn camera_movement(&mut self, forward: i32, right: i32) {
+        self.camera_position = camera::movement(forward as f32 / 100.0, right as f32 / 100.0, &self.camera_position, &self.camera_direction);
     }
 
     pub fn apply_commands(&mut self, commands: &mut CommandFQueue) {
+        while let Some(command) = commands.command() {
+            match command {
+                CommandF { frame: _, command: Command::move_(move_) } => {
+                    let forward: i32 = move_.forward as i32 - move_.back as i32;
+                    let right: i32 = move_.right as i32 - move_.left as i32;
+                    self.camera_movement(forward, right);
+                }
+            }
+        }
     }
 }
 
@@ -187,15 +205,6 @@ fn game() -> std::result::Result<(), obj::ObjError> {
     let viewport = vec4(0.0, 0.0, 800.0, 800.0);
     let projection = perspective(800.0 / 800.0, 45.0, 1.0, 1000.0);
     let model: Mat4 = identity();
-    let mut camera = Camera::new();
-    let mut shader = BasicShader {
-        viewport: &viewport,
-        projection: &projection,
-        view: camera.get_view(),
-        model: model,
-        tex: &img,
-        light_direction: vec3(0.0, 0.0, 1.0),
-    };
 
     let mut previous_time = Instant::now();
     let mut rot: f32 = 0.0;
@@ -203,6 +212,15 @@ fn game() -> std::result::Result<(), obj::ObjError> {
     let mut inputs = window::InputQueue::new();
     let mut commands = CommandFQueue::new();
     let mut physics = PhysicsState::new();
+    let mut shader = BasicShader {
+        viewport: &viewport,
+        projection: &projection,
+        view: camera::get_view(&physics.camera_position, &physics.camera_direction),
+        model: model,
+        tex: &img,
+        light_direction: vec3(0.0, 0.0, 1.0),
+    };
+
     let mut quit: bool = false;
     while !quit && inputs.pump(&(*window)) {
         canvas.clear(&Color{r: 0, g:0, b: 0, a: 255});
@@ -225,7 +243,7 @@ fn game() -> std::result::Result<(), obj::ObjError> {
         // }
         rot = rot + 0.01;
         shader.model = rotate(&identity(), rot, &vec3(0.0, 1.0, 0.0));
-        shader.view = camera.get_view();
+        shader.view = camera::get_view(&physics.camera_position, &physics.camera_direction);
 
         let mut triangle_count: i32 = 0;
         for t in &mesh {

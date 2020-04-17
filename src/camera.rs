@@ -1,32 +1,18 @@
 use nalgebra_glm::*;
 
-pub struct Camera {
-    direction: Vec3,
-    position: Vec3,
+fn right_vector(direction: &Vec3) -> Vec3 {
+    cross(&direction, &vec3(0.0, 1.0, 0.0))
 }
 
-impl Camera {
-    pub fn new() -> Camera {
-        Camera {
-            direction: vec3(0.0, 0.0, -1.0),
-            position: vec3(0.0, 0.0, 2.0),
-        }
-    }
+pub fn movement(forward: f32, right: f32, position: &Vec3, direction: &Vec3) -> Vec3 {
+    position + direction * forward + right_vector(direction) * right
+}
 
-    fn right(&self) -> Vec3 {
-        cross(&self.direction, &vec3(0.0, 1.0, 0.0))
-    }
+pub fn rotation(updown: f32, around: f32, position: &Vec3, direction: &Vec3) -> Vec3 {
+    let temp_direction = &rotate_vec3(direction, around, &vec3(0.0, 1.0, 0.0)).normalize();
+    rotate_vec3(temp_direction, updown, &right_vector(direction)).normalize()
+}
 
-    pub fn movement(&mut self, forward: f32, right: f32) {
-        self.position = &self.position + (&self.direction * forward) + (&self.right() * right);
-    }
-
-    pub fn rotation(&mut self, updown: f32, around: f32) {
-        self.direction = rotate_vec3(&self.direction, around, &vec3(0.0, 1.0, 0.0)).normalize();
-        self.direction = rotate_vec3(&self.direction, updown, &self.right()).normalize();
-    }
-
-    pub fn get_view(&self) -> Mat4 {
-        look_at(&self.position, &(&self.position + &self.direction), &vec3(0.0, 1.0, 0.0))
-    }
+pub fn get_view(position: &Vec3, direction: &Vec3) -> Mat4 {
+    look_at(&position, &(position + direction), &vec3(0.0, 1.0, 0.0))
 }
