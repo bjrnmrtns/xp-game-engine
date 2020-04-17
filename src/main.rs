@@ -104,15 +104,21 @@ fn _example_viewport_projection_view_model() -> std::result::Result<(), obj::Obj
     Ok(())
 }
 
-pub struct CommandMove {
+pub struct CommandCameraMove {
     forward: bool,
     back: bool,
     left: bool,
     right: bool,
 }
 
+pub struct CommandCameraRotation {
+    around_local_x: f32,
+    around_global_y: f32,
+}
+
 pub enum Command {
-    move_(CommandMove),
+    camera_move(CommandCameraMove),
+    camera_rotate(CommandCameraRotation)
 }
 
 pub struct CommandF {
@@ -146,7 +152,7 @@ impl CommandFQueue {
     }
 
     pub fn handle_input(&mut self, inputs: &mut window::InputQueue) {
-        self.add(Command::move_(CommandMove {
+        self.add(Command::camera_move(CommandCameraMove {
             forward: inputs.is_key_down(Key::KeyW),
             back: inputs.is_key_down(Key::KeyS),
             left: inputs.is_key_down(Key::KeyA),
@@ -154,7 +160,9 @@ impl CommandFQueue {
         }));
         while let Some(event) = inputs.event() {
             match event {
-                Event::MouseMotion { x_rel, y_rel} => {
+                Event::MouseMotion { x_rel, y_rel} => { self.add(Command::camera_rotate(
+                    CommandCameraRotation { around_local_x: -y_rel as f32 / 100.0, around_global_y: -x_rel as f32 / 100.0,}
+                ))
                 },
                 _ => (),
             }
@@ -172,17 +180,24 @@ impl PhysicsState {
         PhysicsState { camera_position: vec3(0.0, 0.0, 2.0), camera_direction: vec3(0.0, 0.0, -1.0),}
     }
 
-    fn camera_movement(&mut self, forward: i32, right: i32) {
-        self.camera_position = camera::movement(forward as f32 / 100.0, right as f32 / 100.0, &self.camera_position, &self.camera_direction);
+    fn camera_move(&mut self, forward: i32, right: i32) {
+        self.camera_position = camera::move_(forward as f32 / 10.0, right as f32 / 10.0, &self.camera_position, &self.camera_direction);
+    }
+
+    fn camera_rotate(&mut self, around_local_x: f32, around_global_y: f32) {
+        self.camera_direction = camera::rotate(around_local_x, around_global_y, &self.camera_direction);
     }
 
     pub fn apply_commands(&mut self, commands: &mut CommandFQueue) {
         while let Some(command) = commands.command() {
             match command {
-                CommandF { frame: _, command: Command::move_(move_) } => {
+                CommandF { frame: _, command: Command::camera_move(move_) } => {
                     let forward: i32 = move_.forward as i32 - move_.back as i32;
                     let right: i32 = move_.right as i32 - move_.left as i32;
-                    self.camera_movement(forward, right);
+                    self.camera_move(forward, right);
+                },
+                CommandF {frame: _, command: Command::camera_rotate(rotate)} => {
+                    self.camera_rotate(rotate.around_local_x, rotate.around_global_y);
                 }
             }
         }
@@ -215,7 +230,7 @@ fn game() -> std::result::Result<(), obj::ObjError> {
     let mut shader = BasicShader {
         viewport: &viewport,
         projection: &projection,
-        view: camera::get_view(&physics.camera_position, &physics.camera_direction),
+        view: camera::view(&physics.camera_position, &physics.camera_direction),
         model: model,
         tex: &img,
         light_direction: vec3(0.0, 0.0, 1.0),
@@ -243,7 +258,7 @@ fn game() -> std::result::Result<(), obj::ObjError> {
         // }
         rot = rot + 0.01;
         shader.model = rotate(&identity(), rot, &vec3(0.0, 1.0, 0.0));
-        shader.view = camera::get_view(&physics.camera_position, &physics.camera_direction);
+        shader.view = camera::view(&physics.camera_position, &physics.camera_direction);
 
         let mut triangle_count: i32 = 0;
         for t in &mesh {
