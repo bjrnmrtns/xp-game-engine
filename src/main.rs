@@ -17,6 +17,7 @@ use nalgebra_glm::*;
 use std::fs::File;
 use std::io::BufReader;
 use std::time::{Instant};
+use image::flat::NormalForm::ColumnMajorPacked;
 
 #[derive(Copy, Clone)]
 pub struct Varyings {
@@ -103,6 +104,33 @@ fn _example_viewport_projection_view_model() -> std::result::Result<(), obj::Obj
     Ok(())
 }
 
+pub struct CommandQueue {
+}
+
+impl CommandQueue {
+    pub fn new() -> CommandQueue {
+        CommandQueue {
+
+        }
+    }
+    pub fn handle(&mut self, input_queue: &mut window::InputQueue) {
+
+    }
+}
+
+pub struct PhysicsState {
+
+}
+
+impl PhysicsState {
+    pub fn new() -> PhysicsState {
+        PhysicsState {}
+    }
+
+    pub fn handle(&mut self, command_queue: &mut CommandQueue) {
+    }
+}
+
 fn game() -> std::result::Result<(), obj::ObjError> {
     //configuration
     let width: usize = 800;
@@ -132,13 +160,18 @@ fn game() -> std::result::Result<(), obj::ObjError> {
     let mut previous_time = Instant::now();
     let mut rot: f32 = 0.0;
 
-    let mut input_queue = window::InputQueue::new();
+    let mut inputs = window::InputQueue::new();
+    let mut commands = CommandQueue::new();
+    let mut physics = PhysicsState::new();
     let mut quit: bool = false;
-    while !quit && input_queue.pump(&(*window)) {
+    while !quit && inputs.pump(&(*window)) {
         canvas.clear(&Color{r: 0, g:0, b: 0, a: 255});
         canvas.clear_zbuffer();
 
-        while let Some(event) = input_queue.event() {
+        commands.handle(&mut inputs);
+        physics.handle(&mut commands);
+
+        while let Some(event) = inputs.event() {
             match event {
                 Event::MouseMotion { x_rel, y_rel} => {
                     camera.rotation(-y_rel as f32 / 100.0, -x_rel as f32 / 100.0);
@@ -148,16 +181,16 @@ fn game() -> std::result::Result<(), obj::ObjError> {
             }
         }
 
-        if input_queue.is_key_down(Key::KeyW) {
+        if inputs.is_key_down(Key::KeyW) {
             camera.movement(0.1, 0.0);
         }
-        if input_queue.is_key_down(Key::KeyS) {
+        if inputs.is_key_down(Key::KeyS) {
             camera.movement(-0.1, 0.0);
         }
-        if input_queue.is_key_down(Key::KeyA) {
+        if inputs.is_key_down(Key::KeyA) {
             camera.movement(0.0, -0.1);
         }
-        if input_queue.is_key_down(Key::KeyD) {
+        if inputs.is_key_down(Key::KeyD) {
             camera.movement(0.0, 0.1);
         }
         rot = rot + 0.01;
