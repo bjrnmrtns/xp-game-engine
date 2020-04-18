@@ -1,4 +1,4 @@
-use std::collections::{VecDeque, HashMap};
+use std::collections::{VecDeque};
 
 pub enum Event {
     Quit,
@@ -33,7 +33,10 @@ pub struct InputQueue {
 
 impl InputQueue {
     pub fn new() -> InputQueue {
-        InputQueue { queue: VecDeque::new(), keyboard_state: vec![false; convert(&Key::KeyEscape) + 1], }
+        InputQueue {
+            queue: VecDeque::new(),
+            keyboard_state: vec![false; convert(&Key::KeyEscape) + 1],
+        }
     }
 
     pub fn is_key_down(&self, key: Key) -> bool {

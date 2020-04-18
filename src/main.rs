@@ -6,6 +6,7 @@ mod window;
 mod camera;
 mod physics;
 mod commandqueue;
+mod counter;
 
 use rasterizer::{Vary, Shader};
 use sdlwindow::*;
@@ -18,9 +19,7 @@ use nalgebra_glm::*;
 use std::fs::File;
 use std::io::BufReader;
 use std::time::{Instant};
-use image::flat::NormalForm::ColumnMajorPacked;
-use std::collections::VecDeque;
-use crate::commandqueue::CommandFQueue;
+use commandqueue::CommandFQueue;
 
 #[derive(Copy, Clone)]
 pub struct Varyings {
@@ -103,23 +102,22 @@ fn _example_viewport_projection_view_model() -> std::result::Result<(), obj::Obj
     let unprojected = unproject(&projected, &modelview, &projection, viewport.clone());
     println!("original: {}", original);
     println!("projected: {}", projected);
-    println!("unrprojected: {}", unprojected);
+    println!("unprojected: {}", unprojected);
     Ok(())
 }
 
 fn game() -> std::result::Result<(), obj::ObjError> {
-    //configuration
+
     let width: usize = 800;
     let height: usize = 800;
-    //create_window
+
     let mut canvas = Canvas::new(width, height, &Color{r: 0, g:0, b: 0, a: 255});
     let window = SDLWindow::new(&canvas);
-    //load_resources
+
     let img: RgbImage = image::open("obj/ah/african_head_diffuse.tga").unwrap().to_rgb(); // use try/? but convert to generic error to standard error and change result of main into that error.
     let input = &mut BufReader::new(File::open("obj/ah/african_head.obj")?);
     let mesh = load_mesh(input)?;
 
-    //render
     let viewport = vec4(0.0, 0.0, 800.0, 800.0);
     let projection = perspective(800.0 / 800.0, 45.0, 1.0, 1000.0);
     let model: Mat4 = identity();
@@ -130,6 +128,7 @@ fn game() -> std::result::Result<(), obj::ObjError> {
     let mut inputs = window::InputQueue::new();
     let mut commands = CommandFQueue::new();
     let mut physics = physics::State::new();
+
     let mut shader = BasicShader {
         viewport: &viewport,
         projection: &projection,
@@ -140,25 +139,16 @@ fn game() -> std::result::Result<(), obj::ObjError> {
     };
 
     let mut quit: bool = false;
+    let frame_counter: &counter::Counter = &counter::FrameCounter::new(60);
+    let last_frame: u64 = 0;
     while !quit && inputs.pump(&(*window)) {
+        let current_frame = frame_counter.count();
         canvas.clear(&Color{r: 0, g:0, b: 0, a: 255});
         canvas.clear_zbuffer();
 
         commands.handle_input(&mut inputs);
         physics.apply_commands(&mut commands);
 
-        // if inputs.is_key_down(Key::KeyW) {
-        //     camera.movement(0.1, 0.0);
-        // }
-        // if inputs.is_key_down(Key::KeyS) {
-        //     camera.movement(-0.1, 0.0);
-        // }
-        // if inputs.is_key_down(Key::KeyA) {
-        //     camera.movement(0.0, -0.1);
-        // }
-        // if inputs.is_key_down(Key::KeyD) {
-        //     camera.movement(0.0, 0.1);
-        // }
         rot = rot + 0.01;
         shader.model = rotate(&identity(), rot, &vec3(0.0, 1.0, 0.0));
         shader.view = camera::view(&physics.camera_position, &physics.camera_direction);
