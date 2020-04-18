@@ -1,9 +1,5 @@
 use std::time::Duration;
 
-pub trait Counter {
-    fn count(&self) -> u64;
-}
-
 pub struct FrameCounter {
     time: std::time::Instant,
     fps: u64,
@@ -33,10 +29,8 @@ impl FrameCounter {
         self.counter = (self.time_elapsed().as_micros() / self.frame_time().as_micros()) as u64;
         true
     }
-}
 
-impl Counter for FrameCounter {
-    fn count(&self) -> u64 {
+    pub fn count(&self) -> u64 {
         self.counter
     }
 }

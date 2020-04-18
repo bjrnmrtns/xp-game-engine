@@ -138,10 +138,11 @@ fn game() -> std::result::Result<(), obj::ObjError> {
         light_direction: vec3(0.0, 0.0, 1.0),
     };
 
-    let mut quit: bool = false;
-    let frame_counter: &counter::Counter = &counter::FrameCounter::new(60);
-    let last_frame: u64 = 0;
-    while !quit && inputs.pump(&(*window)) {
+    let mut quit = false;
+    let mut frame_counter = counter::FrameCounter::new(60);
+    while !quit {
+        frame_counter.run();
+        quit = inputs.pump(&(*window));
         let current_frame = frame_counter.count();
         canvas.clear(&Color{r: 0, g:0, b: 0, a: 255});
         canvas.clear_zbuffer();
