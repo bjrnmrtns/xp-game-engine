@@ -20,12 +20,12 @@ pub enum Command {
 }
 
 pub struct CommandF {
-    pub frame: u32,
+    pub frame: u64,
     pub command: Command,
 }
 
 impl CommandF {
-    pub fn new(frame: u32, command: Command) -> CommandF {
+    pub fn new(frame: u64, command: Command) -> CommandF {
         CommandF { frame: frame, command: command }
     }
 }
@@ -41,16 +41,16 @@ impl CommandFQueue {
         }
     }
 
-    fn add(&mut self, command: Command) {
-        self.commands.push_back(CommandF::new(0, command))
+    fn add(&mut self, frame_count: u64, command: Command) {
+        self.commands.push_back(CommandF::new(frame_count, command))
     }
 
     pub fn command(&mut self) -> Option<CommandF> {
         self.commands.pop_front()
     }
 
-    pub fn handle_input(&mut self, inputs: &mut window::InputQueue) {
-        self.add(Command::camera_move(CommandCameraMove {
+    pub fn handle_input(&mut self, inputs: &mut window::InputQueue, frame_count: u64) {
+        self.add(frame_count, Command::camera_move(CommandCameraMove {
             forward: inputs.is_key_down(Key::KeyW),
             back: inputs.is_key_down(Key::KeyS),
             left: inputs.is_key_down(Key::KeyA),
@@ -59,7 +59,7 @@ impl CommandFQueue {
         while let Some(event) = inputs.event() {
             match event {
                 Event::MouseMotion { x_rel, y_rel } => {
-                    self.add(Command::camera_rotate(
+                    self.add(frame_count, Command::camera_rotate(
                         CommandCameraRotation { around_local_x: -y_rel as f32 / 100.0, around_global_y: -x_rel as f32 / 100.0, }
                     ))
                 },

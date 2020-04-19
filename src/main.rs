@@ -143,11 +143,10 @@ fn game() -> std::result::Result<(), obj::ObjError> {
     while !quit {
         frame_counter.run();
         quit = !inputs.pump(&(*window));
-        let current_frame = frame_counter.count();
         canvas.clear(&Color{r: 0, g:0, b: 0, a: 255});
         canvas.clear_zbuffer();
 
-        commands.handle_input(&mut inputs);
+        commands.handle_input(&mut inputs, frame_counter.count());
         physics.apply_commands(&mut commands);
 
         rot = rot + 0.01;
