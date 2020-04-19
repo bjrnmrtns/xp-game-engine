@@ -142,7 +142,7 @@ fn game() -> std::result::Result<(), obj::ObjError> {
     let mut frame_counter = counter::FrameCounter::new(60);
     while !quit {
         frame_counter.run();
-        quit = inputs.pump(&(*window));
+        quit = !inputs.pump(&(*window));
         let current_frame = frame_counter.count();
         canvas.clear(&Color{r: 0, g:0, b: 0, a: 255});
         canvas.clear_zbuffer();
