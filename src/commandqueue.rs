@@ -49,8 +49,8 @@ impl CommandFQueue {
         self.commands.clear();
     }
 
-    pub fn retrieve_commands(&self, frame_nr: u64) -> Vec<&CommandF> {
-        self.commands.iter().filter(|c| c.frame == frame_nr).collect()
+    pub fn retrieve_commands(&self, frame_nr: u64) -> Vec<&Command> {
+        self.commands.iter().filter(|c| c.frame == frame_nr).map(|c| &c.command).collect()
     }
 
     pub fn handle_input(&mut self, inputs: &mut window::InputQueue, frame_count: u64) {

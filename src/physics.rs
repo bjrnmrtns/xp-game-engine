@@ -21,15 +21,15 @@ impl State {
         self.camera_direction = camera::rotate(around_local_x, around_global_y, &self.camera_direction);
     }
 
-    fn handle_frame(&mut self, commands :&[&CommandF], frame_nr: u64) {
+    fn handle_frame(&mut self, commands :&[&Command], frame_nr: u64) {
         for command in commands {
             match command {
-                CommandF { frame: _, command: Command::camera_move(move_) } => {
+                Command::camera_move(move_) => {
                     let forward: i32 = move_.forward as i32 - move_.back as i32;
                     let right: i32 = move_.right as i32 - move_.left as i32;
                     self.camera_move(forward, right);
                 },
-                CommandF { frame: _, command: Command::camera_rotate(rotate) } => {
+                Command::camera_rotate(rotate) => {
                     self.camera_rotate(rotate.around_local_x, rotate.around_global_y);
                 }
             }
