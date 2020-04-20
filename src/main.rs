@@ -10,7 +10,6 @@ mod counter;
 
 use rasterizer::{Vary, Shader};
 use sdlwindow::*;
-use window::*;
 use canvas::{Canvas, Color};
 
 use image::RgbImage;
@@ -147,7 +146,7 @@ fn game() -> std::result::Result<(), obj::ObjError> {
         canvas.clear_zbuffer();
 
         commands.handle_input(&mut inputs, frame_counter.count());
-        physics.apply_commands(&mut commands);
+        physics.run(&mut commands, frame_counter.count());
 
         rot = rot + 0.01;
         shader.model = rotate(&identity(), rot, &vec3(0.0, 1.0, 0.0));

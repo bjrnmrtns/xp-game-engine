@@ -31,22 +31,26 @@ impl CommandF {
 }
 
 pub struct CommandFQueue {
-    commands: VecDeque<CommandF>,
+    commands: Vec<CommandF>,
 }
 
 impl CommandFQueue {
     pub fn new() -> CommandFQueue {
         CommandFQueue {
-            commands: VecDeque::new()
+            commands: Vec::new()
         }
     }
 
     fn add(&mut self, frame_count: u64, command: Command) {
-        self.commands.push_back(CommandF::new(frame_count, command))
+        self.commands.push(CommandF::new(frame_count, command))
     }
 
-    pub fn command(&mut self) -> Option<CommandF> {
-        self.commands.pop_front()
+    pub fn clear_commands(&mut self) {
+        self.commands.clear();
+    }
+
+    pub fn retrieve_commands(&self, frame_nr: u64) -> Vec<&CommandF> {
+        self.commands.iter().filter(|c| c.frame == frame_nr).collect()
     }
 
     pub fn handle_input(&mut self, inputs: &mut window::InputQueue, frame_count: u64) {
