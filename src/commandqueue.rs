@@ -20,13 +20,13 @@ pub enum Command {
 }
 
 pub struct CommandF {
-    pub frame: u64,
+    pub frame_nr: u64,
     pub command: Command,
 }
 
 impl CommandF {
     pub fn new(frame: u64, command: Command) -> CommandF {
-        CommandF { frame: frame, command: command }
+        CommandF { frame_nr: frame, command: command }
     }
 }
 
@@ -45,12 +45,12 @@ impl CommandFQueue {
         self.commands.push(CommandF::new(frame_count, command))
     }
 
-    pub fn clear_commands(&mut self) {
-        self.commands.clear();
+    pub fn clear_commands_until_frame(&mut self, frame_nr: u64) {
+        self.commands.retain(|c| c.frame_nr > frame_nr);
     }
 
     pub fn retrieve_commands(&self, frame_nr: u64) -> Vec<&Command> {
-        self.commands.iter().filter(|c| c.frame == frame_nr).map(|c| &c.command).collect()
+        self.commands.iter().filter(|c| c.frame_nr == frame_nr).map(|c| &c.command).collect()
     }
 
     pub fn handle_input(&mut self, inputs: &mut window::InputQueue, frame_count: u64) {

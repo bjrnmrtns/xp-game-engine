@@ -40,6 +40,6 @@ impl State {
         for frame_nr in self.last_frame_nr..frame_nr +1 {
             self.handle_frame(&commands.retrieve_commands(frame_nr), frame_nr);
         }
-        commands.clear_commands()
+        commands.clear_commands_until_frame(frame_nr)
     }
 }
