@@ -124,8 +124,10 @@ fn game() -> std::result::Result<(), obj::ObjError> {
     let mut previous_time = Instant::now();
     let mut rot: f32 = 0.0;
 
+    let mut f = std::io::BufWriter::new(File::create("recording.txt")?);
+
     let mut inputs = window::InputQueue::new();
-    let mut commands = CommandFQueue::new();
+    let mut commands = CommandFQueue::new(&f);
     let mut physics = physics::State::new();
 
     let mut shader = BasicShader {

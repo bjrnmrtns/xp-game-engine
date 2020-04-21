@@ -30,14 +30,16 @@ impl CommandF {
     }
 }
 
-pub struct CommandFQueue {
+pub struct CommandFQueue<'a> {
     commands: Vec<CommandF>,
+    recorder: &'a std::io::Write,
 }
 
-impl CommandFQueue {
-    pub fn new() -> CommandFQueue {
+impl CommandFQueue<'_> {
+    pub fn new<'a>(recorder: &'a std::io::Write) -> CommandFQueue {
         CommandFQueue {
-            commands: Vec::new()
+            commands: Vec::new(),
+            recorder: recorder,
         }
     }
 
