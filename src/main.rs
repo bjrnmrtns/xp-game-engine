@@ -117,6 +117,10 @@ fn create_new_recording_file() -> std::fs::File {
     }
 }
 
+fn load_recorded_file() -> std::fs::File {
+   std::fs::File::open("recording-12.txt").unwrap()
+}
+
 fn game() -> std::result::Result<(), obj::ObjError> {
     let width: usize = 800;
     let height: usize = 800;
@@ -135,7 +139,7 @@ fn game() -> std::result::Result<(), obj::ObjError> {
     let mut previous_time = Instant::now();
     let mut rot: f32 = 0.0;
 
-    let recording = create_new_recording_file();
+    let recording = &mut create_new_recording_file();
 
     let mut inputs = window::InputQueue::new();
     let mut commands = CommandQueue::new();
@@ -152,6 +156,7 @@ fn game() -> std::result::Result<(), obj::ObjError> {
 
     let mut quit = false;
     let mut frame_counter = counter::FrameCounter::new(60);
+    commands = serde_cbor::from_reader(load_recorded_file()).unwrap();
     while !quit {
         frame_counter.run();
         quit = !inputs.pump(&(*window));
@@ -164,7 +169,7 @@ fn game() -> std::result::Result<(), obj::ObjError> {
         // prediction using a second physics run for already gathered input and doing extrapolation
         // on network input and the rest
         if frame_counter.count() > 0 {
-            physics.run(&mut commands, frame_counter.count() - 1, &recording);
+            physics.run(&mut commands, frame_counter.count() - 1, recording);
         }
 
         rot = rot + 0.01;
@@ -183,6 +188,7 @@ fn game() -> std::result::Result<(), obj::ObjError> {
         previous_time = current_time;
         window.update();
     }
+    serde_cbor::to_writer(recording, &commands);
     Ok(())
 }
 

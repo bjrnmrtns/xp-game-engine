@@ -21,9 +21,9 @@ impl State {
         self.camera_direction = camera::rotate(around_local_x, around_global_y, &self.camera_direction);
     }
 
-    fn handle_frame(&mut self, commands: &[&(u64, Command)], frame_nr: u64) {
+    fn handle_frame(&mut self, commands: &[&Command], frame_nr: u64) {
         commands.iter().map(|command| {
-            match &command.1 {
+            match &command {
                 Command::camera_move(move_) => {
                     let forward: i32 = move_.forward as i32 - move_.back as i32;
                     let right: i32 = move_.right as i32 - move_.left as i32;
@@ -36,20 +36,12 @@ impl State {
         }).collect::<Vec<_>>();
     }
 
-    fn save_frame(&mut self, commands: &[&(u64, Command)], frame_nr: u64) {
-        for command in commands {
-            // save command
-        }
-        // save hash of physics state
-    }
-
-    pub fn run(&mut self, commands: &mut CommandQueue, frame_nr: u64, recorder: &std::io::Write) {
+    pub fn run(&mut self, commands: &mut CommandQueue, frame_nr: u64, recorder: &mut std::io::Write) {
         for frame_nr in self.last_frame_nr..frame_nr + 1 {
             let frame_commands = commands.retrieve_commands(frame_nr);
             self.handle_frame(&frame_commands, frame_nr);
-            self.save_frame(&frame_commands, frame_nr);
         }
-        commands.clear_commands_until_frame(frame_nr);
+        //commands.clear_commands_until_frame(frame_nr);
         self.last_frame_nr = frame_nr;
     }
 }

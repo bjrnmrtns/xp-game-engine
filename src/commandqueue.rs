@@ -23,6 +23,7 @@ pub enum Command {
     camera_rotate(CommandCameraRotation),
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct CommandQueue {
     commands: Vec<(u64, Command)>,
 }
@@ -42,8 +43,8 @@ impl CommandQueue {
         self.commands.retain(|c| c.0 > frame_nr);
     }
 
-    pub fn retrieve_commands(&self, frame_nr: u64) -> Vec<&(u64, Command)> {
-        self.commands.iter().filter(|c| c.0 == frame_nr).collect()
+    pub fn retrieve_commands(&self, frame_nr: u64) -> Vec<&Command> {
+        self.commands.iter().filter(|c| c.0 == frame_nr).map(|c| &c.1 ).collect()
     }
 
     pub fn handle_input(&mut self, inputs: &mut window::InputQueue, frame_nr: u64) {
