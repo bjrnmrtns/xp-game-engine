@@ -18,7 +18,7 @@ use nalgebra_glm::*;
 use std::fs::File;
 use std::io::BufReader;
 use std::time::{Instant};
-use commandqueue::CommandFQueue;
+use commandqueue::CommandQueue;
 
 #[derive(Copy, Clone)]
 pub struct Varyings {
@@ -105,8 +105,19 @@ fn _example_viewport_projection_view_model() -> std::result::Result<(), obj::Obj
     Ok(())
 }
 
-fn game() -> std::result::Result<(), obj::ObjError> {
+fn create_new_recording_file() -> std::fs::File {
+    let mut file_index = 0;
+    loop {
+        let recording_file = std::fs::OpenOptions::new().write(true).create_new(true).open(
+            format!("recording-{}.txt", file_index));
+        match recording_file {
+            Ok(file) => return file,
+            Err(_) => file_index = file_index + 1,
+        }
+    }
+}
 
+fn game() -> std::result::Result<(), obj::ObjError> {
     let width: usize = 800;
     let height: usize = 800;
 
@@ -124,10 +135,10 @@ fn game() -> std::result::Result<(), obj::ObjError> {
     let mut previous_time = Instant::now();
     let mut rot: f32 = 0.0;
 
-    let mut f = std::io::BufWriter::new(File::create("recording.txt")?);
+    let recording = create_new_recording_file();
 
     let mut inputs = window::InputQueue::new();
-    let mut commands = CommandFQueue::new(&f);
+    let mut commands = CommandQueue::new();
     let mut physics = physics::State::new();
 
     let mut shader = BasicShader {
@@ -148,7 +159,13 @@ fn game() -> std::result::Result<(), obj::ObjError> {
         canvas.clear_zbuffer();
 
         commands.handle_input(&mut inputs, frame_counter.count());
-        physics.run(&mut commands, frame_counter.count());
+        // always do the physics loop of the previous frame, to be sure that all input is gathered
+        // for this frame (network input and user input), we can think of doing client side
+        // prediction using a second physics run for already gathered input and doing extrapolation
+        // on network input and the rest
+        if frame_counter.count() > 0 {
+            physics.run(&mut commands, frame_counter.count() - 1, &recording);
+        }
 
         rot = rot + 0.01;
         shader.model = rotate(&identity(), rot, &vec3(0.0, 1.0, 0.0));
