@@ -4,7 +4,7 @@ mod canvas;
 mod sdlwindow;
 mod window;
 mod camera;
-mod physics;
+mod simulation;
 mod commandqueue;
 mod counter;
 
@@ -118,7 +118,7 @@ fn create_new_recording_file() -> std::fs::File {
 }
 
 fn load_recorded_file() -> std::fs::File {
-   std::fs::File::open("recording-12.txt").unwrap()
+   std::fs::File::open("recording-0.txt").unwrap()
 }
 
 fn game() -> std::result::Result<(), obj::ObjError> {
@@ -143,12 +143,12 @@ fn game() -> std::result::Result<(), obj::ObjError> {
 
     let mut inputs = window::InputQueue::new();
     let mut commands = CommandQueue::new();
-    let mut physics = physics::State::new();
+    let mut simulation = simulation::Simulation::new();
 
     let mut shader = BasicShader {
         viewport: &viewport,
         projection: &projection,
-        view: camera::view(&physics.camera_position, &physics.camera_direction),
+        view: camera::view(&simulation.camera_position, &simulation.camera_direction),
         model: model,
         tex: &img,
         light_direction: vec3(0.0, 0.0, 1.0),
@@ -156,7 +156,7 @@ fn game() -> std::result::Result<(), obj::ObjError> {
 
     let mut quit = false;
     let mut frame_counter = counter::FrameCounter::new(60);
-    commands = serde_cbor::from_reader(load_recorded_file()).unwrap();
+    //commands = serde_cbor::from_reader(load_recorded_file()).unwrap();
     while !quit {
         frame_counter.run();
         quit = !inputs.pump(&(*window));
@@ -169,12 +169,12 @@ fn game() -> std::result::Result<(), obj::ObjError> {
         // prediction using a second physics run for already gathered input and doing extrapolation
         // on network input and the rest
         if frame_counter.count() > 0 {
-            physics.run(&mut commands, frame_counter.count() - 1, recording);
+            simulation.run(&mut commands, frame_counter.count() - 1, recording);
         }
 
         rot = rot + 0.01;
         shader.model = rotate(&identity(), rot, &vec3(0.0, 1.0, 0.0));
-        shader.view = camera::view(&physics.camera_position, &physics.camera_direction);
+        shader.view = camera::view(&simulation.camera_position, &simulation.camera_direction);
 
         let mut triangle_count: i32 = 0;
         for t in &mesh {
