@@ -2,28 +2,8 @@ use std::collections::VecDeque;
 use crate::window;
 use crate::window::{Key, Event};
 pub use serde::{Serialize, Deserialize};
+use crate::commands::{Command, CameraMove, CameraRotation};
 
-#[derive(Serialize, Deserialize)]
-pub struct CommandCameraMove {
-    pub forward: bool,
-    pub back: bool,
-    pub left: bool,
-    pub right: bool,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct CommandCameraRotation {
-    pub around_local_x: f32,
-    pub around_global_y: f32,
-}
-
-#[derive(Serialize, Deserialize)]
-pub enum Command {
-    camera_move(CommandCameraMove),
-    camera_rotate(CommandCameraRotation),
-}
-
-#[derive(Serialize, Deserialize)]
 pub struct CommandQueue {
     commands: Vec<(u64, Command)>,
 }
@@ -48,7 +28,7 @@ impl CommandQueue {
     }
 
     pub fn handle_input(&mut self, inputs: &mut window::InputQueue, frame_nr: u64) {
-        self.add(frame_nr, Command::camera_move(CommandCameraMove {
+        self.add(frame_nr, Command::camera_move(CameraMove {
             forward: inputs.is_key_down(Key::KeyW),
             back: inputs.is_key_down(Key::KeyS),
             left: inputs.is_key_down(Key::KeyA),
@@ -58,7 +38,7 @@ impl CommandQueue {
             match event {
                 Event::MouseMotion { x_rel, y_rel } => {
                     self.add(frame_nr, Command::camera_rotate(
-                        CommandCameraRotation { around_local_x: -y_rel as f32 / 100.0, around_global_y: -x_rel as f32 / 100.0, }
+                        CameraRotation { around_local_x: -y_rel, around_global_y: -x_rel, }
                     ))
                 },
                 _ => (),

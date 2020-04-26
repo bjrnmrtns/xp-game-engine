@@ -1,6 +1,7 @@
 use nalgebra_glm::*;
 use crate::camera;
 use crate::commandqueue::*;
+use crate::commands::Command;
 
 pub struct Simulation {
     last_frame_nr: u64,
@@ -30,7 +31,7 @@ impl Simulation {
                     self.camera_move(forward, right);
                 },
                 Command::camera_rotate(rotate) => {
-                    self.camera_rotate(rotate.around_local_x, rotate.around_global_y);
+                    self.camera_rotate(rotate.around_local_x as f32 / 100.0, rotate.around_global_y as f32 / 100.0);
                 }
             }
         }).collect::<Vec<_>>();

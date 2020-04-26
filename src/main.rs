@@ -7,6 +7,8 @@ mod camera;
 mod simulation;
 mod commandqueue;
 mod counter;
+mod commands;
+mod client;
 
 use rasterizer::{Vary, Shader};
 use sdlwindow::*;
@@ -188,7 +190,7 @@ fn game() -> std::result::Result<(), obj::ObjError> {
         previous_time = current_time;
         window.update();
     }
-    serde_cbor::to_writer(recording, &commands);
+//    serde_cbor::to_writer(recording, &commands);
     Ok(())
 }
 
