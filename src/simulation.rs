@@ -4,14 +4,13 @@ use crate::commandqueue::*;
 use crate::commands::Command;
 
 pub struct Simulation {
-    last_frame_nr: u64,
     pub camera_position: Vec3,
     pub camera_direction: Vec3,
 }
 
 impl Simulation {
     pub fn new() -> Simulation {
-        Simulation { last_frame_nr: 0, camera_position: vec3(0.0, 0.0, 2.0), camera_direction: vec3(0.0, 0.0, -1.0), }
+        Simulation { camera_position: vec3(0.0, 0.0, 2.0), camera_direction: vec3(0.0, 0.0, -1.0), }
     }
 
     fn camera_move(&mut self, forward: i32, right: i32) {
@@ -22,8 +21,8 @@ impl Simulation {
         self.camera_direction = camera::rotate(around_local_x, around_global_y, &self.camera_direction);
     }
 
-    fn handle_frame(&mut self, commands: &[&Command], frame_nr: u64) {
-        commands.iter().map(|command| {
+    fn handle_frame(&mut self, commands: &(u64, Vec<Command>)) {
+        commands.1.iter().map(|command| {
             match &command {
                 Command::camera_move(move_) => {
                     let forward: i32 = move_.forward as i32 - move_.back as i32;
@@ -37,12 +36,9 @@ impl Simulation {
         }).collect::<Vec<_>>();
     }
 
-    pub fn run(&mut self, commands: &mut CommandQueue, frame_nr: u64, recorder: &mut std::io::Write) {
-        for frame_nr in self.last_frame_nr..frame_nr + 1 {
-            let frame_commands = commands.retrieve_commands(frame_nr);
-            self.handle_frame(&frame_commands, frame_nr);
+    pub fn run(&mut self, commands: &[(u64, Vec<Command>)], recorder: &mut std::io::Write) {
+        for frame in commands {
+            self.handle_frame(frame);
         }
-        //commands.clear_commands_until_frame(frame_nr);
-        self.last_frame_nr = frame_nr;
     }
 }

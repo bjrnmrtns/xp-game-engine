@@ -144,8 +144,9 @@ fn game() -> std::result::Result<(), obj::ObjError> {
     let recording = &mut create_new_recording_file();
 
     let mut inputs = window::InputQueue::new();
-    let mut commands = CommandQueue::new();
+    let mut commands_queue = CommandQueue::new();
     let mut simulation = simulation::Simulation::new();
+    let mut client = client::LocalClient::new();
 
     let mut shader = BasicShader {
         viewport: &viewport,
@@ -156,23 +157,27 @@ fn game() -> std::result::Result<(), obj::ObjError> {
         light_direction: vec3(0.0, 0.0, 1.0),
     };
 
+    /* every client creates if possible for every frame its commands, if there are no commands then
+       the server will do nothing. every client runs its own local simulation. when the server
+       returns the frames it merged from all clients (this means the server also needs to wait
+        on slow clients). the "real" simulation is applied and the
+       local simulation is rebased on that. In this way user input acts fast and the simulation
+       state is equal on all clients at the cost rebasing the simulation every time the server
+       sends an update.
+       */
     let mut quit = false;
     let mut frame_counter = counter::FrameCounter::new(60);
     //commands = serde_cbor::from_reader(load_recorded_file()).unwrap();
     while !quit {
         frame_counter.run();
-        quit = !inputs.pump(&(*window));
         canvas.clear(&Color{r: 0, g:0, b: 0, a: 255});
         canvas.clear_zbuffer();
 
-        commands.handle_input(&mut inputs, frame_counter.count());
-        // always do the physics loop of the previous frame, to be sure that all input is gathered
-        // for this frame (network input and user input), we can think of doing client side
-        // prediction using a second physics run for already gathered input and doing extrapolation
-        // on network input and the rest
-        if frame_counter.count() > 0 {
-            simulation.run(&mut commands, frame_counter.count() - 1, recording);
-        }
+        quit = !inputs.pump(&(*window));
+        let commands_to_send = commands_queue.handle_input(&mut inputs, frame_counter.count());
+        client.send(commands_to_send.as_slice());
+        let commands_received = client.receive();
+        simulation.run(commands_received.as_slice(), recording);
 
         rot = rot + 0.01;
         shader.model = rotate(&identity(), rot, &vec3(0.0, 1.0, 0.0));
