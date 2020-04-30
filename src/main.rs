@@ -114,7 +114,31 @@ fn load_recorded_file() -> std::fs::File {
 
 mod recording {
     use crate::commands::Command;
+    use crate::client::{Receiver, Sender};
 
+    pub struct Replay;
+    impl Replay {
+        pub fn new() -> Replay {
+            Replay {
+            }
+        }
+    }
+    impl Receiver for Replay {
+        fn receive(&mut self, from_frame_nr: u64, to_frame_nr: u64) -> Vec<(u64, Vec<Command>)> {
+            Vec::new()
+        }
+    }
+    pub struct Record;
+    impl Record {
+        pub fn new() -> Record {
+            Record {
+            }
+        }
+    }
+    impl Sender for Record {
+        fn send(&mut self, commands: &[(u64, Vec<Command>)]) {
+        }
+    }
 }
 
 fn game(options: Options) -> std::result::Result<(), obj::ObjError> {
@@ -140,7 +164,9 @@ fn game(options: Options) -> std::result::Result<(), obj::ObjError> {
     let mut inputs = window::InputQueue::new();
     let mut commands_queue = CommandQueue::new();
     let mut simulation = simulation::Simulation::new();
-    let mut client = local_client::LocalClient::new();
+    let mut client= local_client::LocalClient::new();
+    let mut record = recording::Record::new();
+    let mut replay = recording::Replay::new();
     let mut shader = BasicShader {
         viewport: &viewport,
         projection: &projection,
@@ -166,9 +192,12 @@ fn game(options: Options) -> std::result::Result<(), obj::ObjError> {
         canvas.clear_zbuffer();
 
         quit = !inputs.pump(&(*window));
-        let commands_to_send = commands_queue.handle_input(&mut inputs, frame_counter.count());
-        client::send(&mut client, commands_to_send.as_slice());
+        let input_commands = commands_queue.handle_input(&mut inputs, frame_counter.count());
+        client::send(&mut client, input_commands.as_slice());
+        let replay_commands = client::receive(&mut replay, 0, frame_counter.count());
+        client::send(&mut client, replay_commands.as_slice());
         let commands_received = client::receive(&mut client, 0, frame_counter.count());
+        client::send(&mut record, commands_received.as_slice());
         simulation.run(commands_received.as_slice());
 
         rot = rot + 0.01;
