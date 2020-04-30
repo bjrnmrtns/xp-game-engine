@@ -22,6 +22,8 @@ use std::fs::File;
 use std::io::BufReader;
 use std::time::{Instant};
 use command_queue::CommandQueue;
+use std::path::PathBuf;
+use structopt::StructOpt;
 
 #[derive(Copy, Clone)]
 pub struct Varyings {
@@ -114,7 +116,8 @@ fn load_recorded_file() -> std::fs::File {
 
 mod recording {
     use crate::commands::Command;
-    use crate::client::{Receiver, Sender};
+    use crate::client::{Receiver, Sender, NullSender};
+    use std::path::PathBuf;
 
     pub struct Replay;
     impl Replay {
@@ -128,10 +131,13 @@ mod recording {
             Vec::new()
         }
     }
-    pub struct Record;
+    pub struct Record {
+        writer: Box<std::io::Write>
+    }
     impl Record {
-        pub fn new() -> Record {
+        pub fn new(writer: Box<dyn std::io::Write>) -> Record {
             Record {
+                writer,
             }
         }
     }
@@ -139,6 +145,27 @@ mod recording {
         fn send(&mut self, commands: &[(u64, Vec<Command>)]) {
         }
     }
+
+    // returns a NullRecorder if no path is given
+    pub fn try_create_recorder(recording: Option<PathBuf>) -> Box<Sender> {
+        match recording {
+            Some(path) => {
+                let mut f = std::fs::OpenOptions::new().write(true).create(true).open(path).expect("cannot open file for recording");
+                Box::new(NullSender::new())
+            },
+            None => Box::new(NullSender::new()),
+        }
+    }
+}
+
+#[derive(Debug, StructOpt)]
+#[structopt(name = "options", about = "command line options")]
+pub struct Options {
+    #[structopt(long = "recording", parse(from_os_str))]
+    record_path: Option<PathBuf>,
+
+    #[structopt(long = "replay", parse(from_os_str))]
+    replay_path: Option<PathBuf>,
 }
 
 fn game(options: Options) -> std::result::Result<(), obj::ObjError> {
@@ -159,13 +186,11 @@ fn game(options: Options) -> std::result::Result<(), obj::ObjError> {
     let mut previous_time = Instant::now();
     let mut rot: f32 = 0.0;
 
-//    let recording_file = std::fs::OpenOptions::new().write(true).create_new(true).open(options.recording.unwrap()).expect("could not create file for recording");
-
     let mut inputs = window::InputQueue::new();
     let mut commands_queue = CommandQueue::new();
     let mut simulation = simulation::Simulation::new();
     let mut client= local_client::LocalClient::new();
-    let mut record = recording::Record::new();
+    let mut record = recording::try_create_recorder(options.record_path);
     let mut replay = recording::Replay::new();
     let mut shader = BasicShader {
         viewport: &viewport,
@@ -197,7 +222,7 @@ fn game(options: Options) -> std::result::Result<(), obj::ObjError> {
         let replay_commands = client::receive(&mut replay, 0, frame_counter.count());
         client::send(&mut client, replay_commands.as_slice());
         let commands_received = client::receive(&mut client, 0, frame_counter.count());
-        client::send(&mut record, commands_received.as_slice());
+        client::send(&mut *record, commands_received.as_slice());
         simulation.run(commands_received.as_slice());
 
         rot = rot + 0.01;
@@ -217,20 +242,6 @@ fn game(options: Options) -> std::result::Result<(), obj::ObjError> {
         window.update();
     }
     Ok(())
-}
-
-use std::path::PathBuf;
-use structopt::StructOpt;
-use std::sync::mpsc::Sender;
-
-#[derive(Debug, StructOpt)]
-#[structopt(name = "options", about = "command line options")]
-pub struct Options {
-    #[structopt(long = "recording", parse(from_os_str))]
-    recording: Option<PathBuf>,
-
-    #[structopt(long = "replay", parse(from_os_str))]
-    replay: Option<PathBuf>,
 }
 
 fn main() -> std::result::Result<(), obj::ObjError> {
