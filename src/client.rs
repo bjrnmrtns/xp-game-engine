@@ -1,24 +1,18 @@
 use crate::commands::Command;
+use serde::{Serialize, Deserialize};
 
-// Local client is server and client in one (loopback mode for local "networking")
-pub struct LocalClient {
-    server_queue: Vec<(u64, Vec<Command>)>,
+pub trait Sender {
+    fn send(&mut self, commands: &[(u64, Vec<Command>)]);
 }
 
-impl LocalClient {
-    pub fn new() -> LocalClient {
-        LocalClient {
-            server_queue: Vec::new(),
-        }
-    }
+pub trait Receiver {
+    fn receive(&mut self, from_frame_nr: u64, to_frame_nr: u64) -> Vec<(u64, Vec<Command>)>;
+}
 
-    pub fn send(&mut self, commands: &[(u64, Vec<Command>)]) {
-        self.server_queue.append(commands.to_vec().as_mut());
-    }
+pub fn send(sender: &mut Sender, commands: &[(u64, Vec<Command>)]) {
+    sender.send(commands)
+}
 
-    pub fn receive(&mut self, frame_nr: u64) ->  Vec<(u64, Vec<Command>)> {
-        let ret = self.server_queue.iter().filter(|c| c.0 <= frame_nr).map(|c| c.clone()).collect();
-        self.server_queue.retain(|c| c.0 > frame_nr);
-        ret
-    }
+pub fn receive(receiver: &mut Receiver, from_frame_nr: u64, to_frame_nr: u64) -> Vec<(u64, Vec<Command>)> {
+    receiver.receive(from_frame_nr, to_frame_nr)
 }

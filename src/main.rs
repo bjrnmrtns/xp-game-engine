@@ -1,17 +1,18 @@
 mod obj;
 mod rasterizer;
 mod canvas;
-mod sdlwindow;
+mod sdl_window;
 mod window;
 mod camera;
 mod simulation;
-mod commandqueue;
+mod command_queue;
 mod counter;
 mod commands;
+mod local_client;
 mod client;
 
 use rasterizer::{Vary, Shader};
-use sdlwindow::*;
+use sdl_window::*;
 use canvas::{Canvas, Color};
 
 use image::RgbImage;
@@ -20,7 +21,7 @@ use nalgebra_glm::*;
 use std::fs::File;
 use std::io::BufReader;
 use std::time::{Instant};
-use commandqueue::CommandQueue;
+use command_queue::CommandQueue;
 
 #[derive(Copy, Clone)]
 pub struct Varyings {
@@ -107,20 +108,13 @@ fn _example_viewport_projection_view_model() -> std::result::Result<(), obj::Obj
     Ok(())
 }
 
-fn create_new_recording_file() -> std::fs::File {
-    let mut file_index = 0;
-    loop {
-        let recording_file = std::fs::OpenOptions::new().write(true).create_new(true).open(
-            format!("recording-{}.txt", file_index));
-        match recording_file {
-            Ok(file) => return file,
-            Err(_) => file_index = file_index + 1,
-        }
-    }
-}
-
 fn load_recorded_file() -> std::fs::File {
    std::fs::File::open("recording-0.txt").unwrap()
+}
+
+mod recording {
+    use crate::commands::Command;
+
 }
 
 fn game(options: Options) -> std::result::Result<(), obj::ObjError> {
@@ -141,13 +135,12 @@ fn game(options: Options) -> std::result::Result<(), obj::ObjError> {
     let mut previous_time = Instant::now();
     let mut rot: f32 = 0.0;
 
-    let recording = &mut create_new_recording_file();
+//    let recording_file = std::fs::OpenOptions::new().write(true).create_new(true).open(options.recording.unwrap()).expect("could not create file for recording");
 
     let mut inputs = window::InputQueue::new();
     let mut commands_queue = CommandQueue::new();
     let mut simulation = simulation::Simulation::new();
-    let mut client = client::LocalClient::new();
-
+    let mut client = local_client::LocalClient::new();
     let mut shader = BasicShader {
         viewport: &viewport,
         projection: &projection,
@@ -167,7 +160,6 @@ fn game(options: Options) -> std::result::Result<(), obj::ObjError> {
        */
     let mut quit = false;
     let mut frame_counter = counter::FrameCounter::new(60);
-    //commands = serde_cbor::from_reader(load_recorded_file()).unwrap();
     while !quit {
         frame_counter.run();
         canvas.clear(&Color{r: 0, g:0, b: 0, a: 255});
@@ -175,9 +167,9 @@ fn game(options: Options) -> std::result::Result<(), obj::ObjError> {
 
         quit = !inputs.pump(&(*window));
         let commands_to_send = commands_queue.handle_input(&mut inputs, frame_counter.count());
-        client.send(commands_to_send.as_slice());
-        let commands_received = client.receive(frame_counter.count() - 1);
-        simulation.run(commands_received.as_slice(), recording);
+        client::send(&mut client, commands_to_send.as_slice());
+        let commands_received = client::receive(&mut client, 0, frame_counter.count());
+        simulation.run(commands_received.as_slice());
 
         rot = rot + 0.01;
         shader.model = rotate(&identity(), rot, &vec3(0.0, 1.0, 0.0));
@@ -195,12 +187,12 @@ fn game(options: Options) -> std::result::Result<(), obj::ObjError> {
         previous_time = current_time;
         window.update();
     }
-//    serde_cbor::to_writer(recording, &commands);
     Ok(())
 }
 
 use std::path::PathBuf;
 use structopt::StructOpt;
+use std::sync::mpsc::Sender;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "options", about = "command line options")]

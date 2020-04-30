@@ -1,6 +1,6 @@
 use nalgebra_glm::*;
 use crate::camera;
-use crate::commandqueue::*;
+use crate::command_queue::*;
 use crate::commands::Command;
 
 pub struct Simulation {
@@ -36,7 +36,7 @@ impl Simulation {
         }).collect::<Vec<_>>();
     }
 
-    pub fn run(&mut self, commands: &[(u64, Vec<Command>)], recorder: &mut std::io::Write) {
+    pub fn run(&mut self, commands: &[(u64, Vec<Command>)]) {
         for frame in commands {
             self.handle_frame(frame);
         }
