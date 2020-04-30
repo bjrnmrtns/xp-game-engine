@@ -16,9 +16,9 @@ impl LocalClient {
         self.server_queue.append(commands.to_vec().as_mut());
     }
 
-    pub fn receive(&mut self) ->  Vec<(u64, Vec<Command>)> {
-        let ret = self.server_queue.clone();
-        self.server_queue.clear();
+    pub fn receive(&mut self, frame_nr: u64) ->  Vec<(u64, Vec<Command>)> {
+        let ret = self.server_queue.iter().filter(|c| c.0 <= frame_nr).map(|c| c.clone()).collect();
+        self.server_queue.retain(|c| c.0 > frame_nr);
         ret
     }
 }

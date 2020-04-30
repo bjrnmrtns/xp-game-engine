@@ -123,7 +123,7 @@ fn load_recorded_file() -> std::fs::File {
    std::fs::File::open("recording-0.txt").unwrap()
 }
 
-fn game() -> std::result::Result<(), obj::ObjError> {
+fn game(options: Options) -> std::result::Result<(), obj::ObjError> {
     let width: usize = 800;
     let height: usize = 800;
 
@@ -176,7 +176,7 @@ fn game() -> std::result::Result<(), obj::ObjError> {
         quit = !inputs.pump(&(*window));
         let commands_to_send = commands_queue.handle_input(&mut inputs, frame_counter.count());
         client.send(commands_to_send.as_slice());
-        let commands_received = client.receive();
+        let commands_received = client.receive(frame_counter.count() - 1);
         simulation.run(commands_received.as_slice(), recording);
 
         rot = rot + 0.01;
@@ -199,6 +199,20 @@ fn game() -> std::result::Result<(), obj::ObjError> {
     Ok(())
 }
 
+use std::path::PathBuf;
+use structopt::StructOpt;
+
+#[derive(Debug, StructOpt)]
+#[structopt(name = "options", about = "command line options")]
+pub struct Options {
+    #[structopt(long = "recording", parse(from_os_str))]
+    recording: Option<PathBuf>,
+
+    #[structopt(long = "replay", parse(from_os_str))]
+    replay: Option<PathBuf>,
+}
+
 fn main() -> std::result::Result<(), obj::ObjError> {
-    game()
+    let options = Options::from_args();
+    game(options)
 }

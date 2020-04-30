@@ -12,6 +12,7 @@ nalgebra-glm = "0.7.0"
 serde = { version = "1.0.106", features = ["derive"] }
 serde_cbor = "0.11.1"
 byteorder = "1.3.4"
+structopt = { version = "0.3", default-features = false }
 
 
 [build-dependencies]
