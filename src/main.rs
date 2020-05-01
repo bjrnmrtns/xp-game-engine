@@ -10,6 +10,7 @@ mod counter;
 mod commands;
 mod local_client;
 mod client;
+mod packet;
 
 use rasterizer::{Vary, Shader};
 use sdl_window::*;
@@ -116,44 +117,59 @@ fn load_recorded_file() -> std::fs::File {
 
 mod recording {
     use crate::commands::Command;
-    use crate::client::{Receiver, Sender, NullSender};
+    use crate::client::{Receiver, Sender, NullSender, NullReceiver};
     use std::path::PathBuf;
 
-    pub struct Replay;
-    impl Replay {
-        pub fn new() -> Replay {
-            Replay {
+    pub struct Replayer {
+        reader: Box<std::io::Read>
+    }
+    impl Replayer {
+        pub fn new(reader: Box<dyn std::io::Read>) -> Replayer {
+            Replayer {
+                reader,
             }
         }
     }
-    impl Receiver for Replay {
+    impl Receiver for Replayer {
         fn receive(&mut self, from_frame_nr: u64, to_frame_nr: u64) -> Vec<(u64, Vec<Command>)> {
             Vec::new()
         }
     }
-    pub struct Record {
-        writer: Box<std::io::Write>
+    pub struct Recorder {
+        writer: Box<std::io::Write>,
     }
-    impl Record {
-        pub fn new(writer: Box<dyn std::io::Write>) -> Record {
-            Record {
+    impl Recorder {
+        pub fn new(writer: Box<dyn std::io::Write>) -> Recorder {
+            Recorder {
                 writer,
             }
         }
     }
-    impl Sender for Record {
+    impl Sender for Recorder {
         fn send(&mut self, commands: &[(u64, Vec<Command>)]) {
+
         }
     }
 
-    // returns a NullRecorder if no path is given
+    // returns a NullSender if no path is given
     pub fn try_create_recorder(recording: Option<PathBuf>) -> Box<Sender> {
         match recording {
             Some(path) => {
-                let mut f = std::fs::OpenOptions::new().write(true).create(true).open(path).expect("cannot open file for recording");
-                Box::new(NullSender::new())
+                let mut f = Box::new(std::fs::OpenOptions::new().write(true).create(true).open(path).expect("cannot open file for recording"));
+                Box::new(Recorder::new(f))
             },
             None => Box::new(NullSender::new()),
+        }
+    }
+
+    // returns a NullReceiver if no path is given
+    pub fn try_create_replayer(replay: Option<PathBuf>) -> Box<Receiver> {
+        match replay {
+            Some(path) => {
+                let mut f = Box::new(std::fs::OpenOptions::new().read(true).open(path).expect("cannot open file for replay"));
+                Box::new(Replayer::new(f))
+            },
+            None => Box::new(NullReceiver::new()),
         }
     }
 }
@@ -191,7 +207,7 @@ fn game(options: Options) -> std::result::Result<(), obj::ObjError> {
     let mut simulation = simulation::Simulation::new();
     let mut client= local_client::LocalClient::new();
     let mut record = recording::try_create_recorder(options.record_path);
-    let mut replay = recording::Replay::new();
+    let mut replay = recording::try_create_replayer(options.replay_path);
     let mut shader = BasicShader {
         viewport: &viewport,
         projection: &projection,
@@ -219,7 +235,7 @@ fn game(options: Options) -> std::result::Result<(), obj::ObjError> {
         quit = !inputs.pump(&(*window));
         let input_commands = commands_queue.handle_input(&mut inputs, frame_counter.count());
         client::send(&mut client, input_commands.as_slice());
-        let replay_commands = client::receive(&mut replay, 0, frame_counter.count());
+        let replay_commands = client::receive(&mut *replay, 0, frame_counter.count());
         client::send(&mut client, replay_commands.as_slice());
         let commands_received = client::receive(&mut client, 0, frame_counter.count());
         client::send(&mut *record, commands_received.as_slice());
