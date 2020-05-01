@@ -17,18 +17,24 @@ impl Replayer {
 }
 impl Receiver for Replayer {
     fn receive(&mut self, to_frame_nr: u64) -> Vec<(u64, Vec<Command>)> {
-        while let Ok(Some(packet)) = packet::read(&mut *self.reader) {
-            let mut deser: Vec<(u64, Vec<Command>)> = serde_cbor::de::from_slice(packet.as_slice()).unwrap();
-            self.read_state.append(&mut deser);
-            if self.read_state.iter().any(|c| c.0 >= to_frame_nr - 1) {
-                let ret = self.read_state.iter().filter(|c| c.0 < to_frame_nr).map(|c| c.clone()).collect();
-                self.read_state.retain(|c| c.0 >= to_frame_nr);
-                return ret;
+        loop {
+            match packet::read(&mut *self.reader) {
+                Ok(Some(packet)) => {
+                    let mut deser: Vec<(u64, Vec<Command>)> = serde_cbor::de::from_slice(packet.as_slice()).unwrap();
+                    self.read_state.append(&mut deser);
+                    if self.read_state.iter().any(|c| c.0 >= to_frame_nr - 1) {
+                        let ret = self.read_state.iter().filter(|c| c.0 < to_frame_nr).map(|c| c.clone()).collect();
+                        self.read_state.retain(|c| c.0 >= to_frame_nr);
+                        return ret;
+                    }
+                },
+                _ => {
+                    let ret = self.read_state.clone();
+                    self.read_state.clear();
+                    return ret;
+                },
             }
         }
-        let ret = self.read_state.clone();
-        self.read_state.clear();
-        ret
     }
 }
 pub struct Recorder {
