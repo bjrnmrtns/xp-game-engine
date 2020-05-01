@@ -6,7 +6,7 @@ pub trait Sender {
 }
 
 pub trait Receiver {
-    fn receive(&mut self, from_frame_nr: u64, to_frame_nr: u64) -> Vec<(u64, Vec<Command>)>;
+    fn receive(&mut self, to_frame_nr: u64) -> Vec<(u64, Vec<Command>)>;
 }
 
 pub struct NullSender;
@@ -25,7 +25,7 @@ impl NullSender {
 pub struct NullReceiver;
 
 impl Receiver for NullReceiver {
-    fn receive(&mut self, from_frame_nr: u64, to_frame_nr: u64) -> Vec<(u64, Vec<Command>)> {
+    fn receive(&mut self, to_frame_nr: u64) -> Vec<(u64, Vec<Command>)> {
         Vec::new()
     }
 }
@@ -40,6 +40,6 @@ pub fn send(sender: &mut Sender, commands: &[(u64, Vec<Command>)]) {
     sender.send(commands)
 }
 
-pub fn receive(receiver: &mut Receiver, from_frame_nr: u64, to_frame_nr: u64) -> Vec<(u64, Vec<Command>)> {
-    receiver.receive(from_frame_nr, to_frame_nr)
+pub fn receive(receiver: &mut Receiver, to_frame_nr: u64) -> Vec<(u64, Vec<Command>)> {
+    receiver.receive( to_frame_nr)
 }

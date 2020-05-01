@@ -4,7 +4,7 @@ use byteorder::{ByteOrder};
 
 // write exactly one packet, change later to write multiple and store state
 // of writing
-pub fn write_packet(writer: &mut dyn std::io::Write, packet_data: &[u8]) -> std::io::Result<()> {
+pub fn write(writer: &mut dyn std::io::Write, packet_data: &[u8]) -> std::io::Result<()> {
     let mut size = [0; 4];
     byteorder::NetworkEndian::write_u32(&mut size, packet_data.len() as u32);
     writer.write_all(&size)?;
@@ -14,7 +14,7 @@ pub fn write_packet(writer: &mut dyn std::io::Write, packet_data: &[u8]) -> std:
 
 // read exactly one packet, change later into internally read more and store state
 // of reading
-pub fn read_packet(reader: &mut dyn std::io::Read) -> std::io::Result<Option<Vec<u8>>> {
+pub fn read(reader: &mut dyn std::io::Read) -> std::io::Result<Option<Vec<u8>>> {
     let mut len: [u8; 4] = [0; 4];
     reader.read_exact(&mut len)?;
     let len= byteorder::NetworkEndian::read_u32(&mut len) as usize;

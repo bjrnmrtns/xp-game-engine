@@ -15,9 +15,9 @@ impl LocalClient {
 }
 
 impl Receiver for LocalClient {
-    fn receive(&mut self, from_frame_nr: u64, to_frame_nr: u64) -> Vec<(u64, Vec<Command>)> {
-        let ret = self.server_queue.iter().filter(|c| c.0 >= from_frame_nr && c.0 < to_frame_nr).map(|c| c.clone()).collect();
-        self.server_queue.retain(|c| c.0 < from_frame_nr && c.0 >= to_frame_nr);
+    fn receive(&mut self, to_frame_nr: u64) -> Vec<(u64, Vec<Command>)> {
+        let ret = self.server_queue.iter().filter(|c| c.0 < to_frame_nr).map(|c| c.clone()).collect();
+        self.server_queue.retain(|c| c.0 >= to_frame_nr);
         ret
     }
 }
