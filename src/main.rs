@@ -145,6 +145,7 @@ fn game(options: Options) -> std::result::Result<(), obj::ObjError> {
     let mut simulation = simulation::Simulation::new();
     let mut client= local_client::LocalClient::new();
     let mut record = recording::try_create_recorder(options.record_path);
+    let replaying = options.replay_path != None;
     let mut replay = recording::try_create_replayer(options.replay_path);
     let mut shader = BasicShader {
         viewport: &viewport,
@@ -171,10 +172,13 @@ fn game(options: Options) -> std::result::Result<(), obj::ObjError> {
         canvas.clear_zbuffer();
 
         quit = !inputs.pump(&(*window));
-        let input_commands = commands_queue.handle_input(&mut inputs, frame_counter.count());
-        client::send(&mut client, input_commands.as_slice());
-        let replay_commands = client::receive(&mut *replay, frame_counter.count());
-        client::send(&mut client, replay_commands.as_slice());
+        if !replaying {
+            let input_commands = commands_queue.handle_input(&mut inputs, frame_counter.count());
+            client::send(&mut client, input_commands.as_slice());
+        } else {
+            let replay_commands = client::receive(&mut *replay, frame_counter.count());
+            client::send(&mut client, replay_commands.as_slice());
+        }
         let commands_received = client::receive(&mut client,frame_counter.count());
         client::send(&mut *record, commands_received.as_slice());
         simulation.run(commands_received.as_slice());
