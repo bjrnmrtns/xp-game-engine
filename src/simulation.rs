@@ -4,13 +4,14 @@ use crate::command_queue::*;
 use crate::commands::Command;
 
 pub struct Simulation {
+    last_hash: u32,
     pub camera_position: Vec3,
     pub camera_direction: Vec3,
 }
 
 impl Simulation {
     pub fn new() -> Simulation {
-        Simulation { camera_position: vec3(0.0, 0.0, 2.0), camera_direction: vec3(0.0, 0.0, -1.0), }
+        Simulation { last_hash: 0, camera_position: vec3(0.0, 0.0, 2.0), camera_direction: vec3(0.0, 0.0, -1.0), }
     }
 
     fn camera_move(&mut self, forward: i32, right: i32) {
@@ -21,7 +22,17 @@ impl Simulation {
         self.camera_direction = camera::rotate(around_local_x, around_global_y, &self.camera_direction);
     }
 
-    fn handle_frame(&mut self, commands: &(u64, Vec<Command>)) {
+    fn hash_state_now(&mut self) -> u32 {
+        let mut hasher = crc32fast::Hasher::new_with_initial(self.last_hash);
+        unsafe {
+            hasher.update(std::slice::from_raw_parts(self.camera_position.as_ptr() as *const u8, self.camera_position.len() * 4));
+            hasher.update(std::slice::from_raw_parts(self.camera_direction.as_ptr() as *const u8, self.camera_position.len() * 4));
+        };
+        self.last_hash = hasher.finalize();
+        self.last_hash
+    }
+
+    pub fn handle_frame(&mut self, commands: &(u64, Vec<Command>)) -> u32 {
         commands.1.iter().map(|command| {
             match &command {
                 Command::camera_move(move_) => {
@@ -34,11 +45,6 @@ impl Simulation {
                 }
             }
         }).collect::<Vec<_>>();
-    }
-
-    pub fn run(&mut self, commands: &[(u64, Vec<Command>)]) {
-        for frame in commands {
-            self.handle_frame(frame);
-        }
+        self.hash_state_now()
     }
 }

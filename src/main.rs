@@ -26,6 +26,7 @@ use std::time::{Instant};
 use command_queue::CommandQueue;
 use std::path::PathBuf;
 use structopt::StructOpt;
+use crate::commands::Command;
 
 #[derive(Copy, Clone)]
 pub struct Varyings {
@@ -181,7 +182,9 @@ fn game(options: Options) -> std::result::Result<(), obj::ObjError> {
         }
         let commands_received = client::receive(&mut client,frame_counter.count());
         client::send(&mut *record, commands_received.as_slice());
-        simulation.run(commands_received.as_slice());
+        for frame in &commands_received {
+            let _ = simulation.handle_frame(frame);
+        }
 
         rot = rot + 0.01;
         shader.model = rotate(&identity(), rot, &vec3(0.0, 1.0, 0.0));
