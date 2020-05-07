@@ -1,32 +1,13 @@
-mod obj;
-mod rasterizer;
-mod canvas;
-mod sdl_window;
-mod window;
-mod camera;
-mod simulation;
-mod command_queue;
-mod counter;
-mod commands;
-mod local_client;
-mod client;
-mod packet;
-mod recording;
-
-use rasterizer::{Vary, Shader};
-use sdl_window::*;
-use canvas::{Canvas, Color};
-
 use image::RgbImage;
 use nalgebra_glm::*;
 
 use std::fs::File;
 use std::io::BufReader;
 use std::time::{Instant};
-use command_queue::CommandQueue;
 use std::path::PathBuf;
 use structopt::StructOpt;
-use crate::commands::Command;
+
+use xp::{*, rasterizer::{Vary, Shader}, sdl_window::*, canvas::{Canvas, Color}, command_queue::CommandQueue, commands::Command, obj};
 
 #[derive(Copy, Clone)]
 pub struct Varyings {
