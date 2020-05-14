@@ -114,7 +114,6 @@ unsafe impl bytemuck::Pod for Instance {}
 unsafe impl bytemuck::Zeroable for Instance {}
 
 pub struct Renderer {
-    rot: f32,
     surface: wgpu::Surface,
     device: wgpu::Device,
     queue: wgpu::Queue,
@@ -259,7 +258,6 @@ impl Renderer {
         });
         let depth_texture = Texture::create_depth_texture(&device, &sc_descriptor);
         Self {
-            rot: 0.0,
             surface,
             device,
             queue,
@@ -285,9 +283,8 @@ impl Renderer {
         self.swap_chain = self.device.create_swap_chain(&self.surface, &self.sc_descriptor);
     }
 
-    pub fn update(&mut self) {
-        self.rot = self.rot + 0.01;
-        let instances = [Instance { model: identity(), }];
+    pub fn update(&mut self, model: Mat4) {
+        let instances = [Instance { model, }];
         let buffer = self.device.create_buffer_with_data(bytemuck::cast_slice(&instances), wgpu::BufferUsage::COPY_SRC);
         let mut encoder =
             self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });

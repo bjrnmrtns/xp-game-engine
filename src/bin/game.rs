@@ -1,5 +1,3 @@
-use nalgebra_glm::*;
-
 use std::fs::File;
 use std::io::BufReader;
 use std::time::{Instant};
@@ -11,6 +9,7 @@ use winit::event_loop::{EventLoop, ControlFlow};
 use winit::event::{WindowEvent, ElementState, VirtualKeyCode, Event, KeyboardInput};
 use winit::window::WindowBuilder;
 use std::convert::TryInto;
+use nalgebra_glm::{rotate, identity, vec3};
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "options", about = "command line options")]
@@ -40,8 +39,6 @@ fn load_mesh<R>(reader: R) -> std::result::Result<(Vec<graphics::Vertex>, Vec<u1
     }
     Ok((points, indices))
 }
-
-
 
 fn game(options: Options) -> std::result::Result<(), obj::ObjError> {
     let event_loop = EventLoop::new();
@@ -90,14 +87,12 @@ fn game(options: Options) -> std::result::Result<(), obj::ObjError> {
             let _ = simulation.handle_frame(frame);
         }
 
-        rot = rot + 0.01;
-        //let model = rotate(&identity(), rot, &vec3(0.0, 1.0, 0.0));
-        //let view = camera::view(&simulation.camera_position, &simulation.camera_direction);
-
         match event {
             Event::RedrawRequested(_) => {
-                renderer.update();
-                futures::executor::block_on(renderer.render(&look_at(&simulation.camera_position, &(simulation.camera_position + simulation.camera_direction), &vec3(0.0, 1.0, 0.0))));
+                rot = rot + 0.01;
+                let model = rotate(&identity(), rot, &vec3(0.0, 1.0, 0.0));
+                renderer.update(model);
+                futures::executor::block_on(renderer.render(&camera::view(&simulation.camera_position, &simulation.camera_direction)));
                 let current_time = Instant::now();
                 println!("fps: {}", (current_time - previous_time).as_millis());
                 previous_time = current_time;
