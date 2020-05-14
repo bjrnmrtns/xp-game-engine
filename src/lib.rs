@@ -1,7 +1,5 @@
 // Better to do fine grained pub, using pub use
 pub mod obj;
-pub mod rasterizer;
-pub mod canvas;
 pub mod camera;
 pub mod simulation;
 pub mod command_queue;

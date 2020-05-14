@@ -1,6 +1,6 @@
 use winit::window::Window;
-use cgmath::SquareMatrix;
 use wgpu::BufferDescriptor;
+use nalgebra_glm::*;
 
 pub struct Texture {
     pub texture: wgpu::Texture,
@@ -83,7 +83,7 @@ impl Vertex {
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct Uniforms {
-    proj_view: cgmath::Matrix4<f32>,
+    proj_view: Mat4,
 }
 
 unsafe impl bytemuck::Pod for Uniforms {}
@@ -92,10 +92,10 @@ unsafe impl bytemuck::Zeroable for Uniforms {}
 impl Uniforms {
     pub fn new() -> Self {
         Self {
-            proj_view: cgmath::Matrix4::identity(),
+            proj_view: identity(),
         }
     }
-    pub fn update_view(&mut self, camera_proj_view: cgmath::Matrix4<f32>) {
+    pub fn update_view(&mut self, camera_proj_view: Mat4) {
         self.proj_view = camera_proj_view;
     }
 }
@@ -108,7 +108,7 @@ pub struct Mesh {
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct Instance {
-    model: cgmath::Matrix4<f32>,
+    model: Mat4,
 }
 
 unsafe impl bytemuck::Pod for Instance {}
@@ -164,7 +164,7 @@ impl Renderer {
         let uniform_buffer = device.create_buffer_with_data(bytemuck::cast_slice(&[uniforms]),
                                                             wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST);
 
-        let instances = [Instance { model: cgmath::Matrix4::identity(), }, Instance { model: cgmath::Matrix4::from_translation(cgmath::Vector3 { x: 0.2 as f32, y: 0.2 as f32, z: -0.5 as f32}), }];
+        let instances = [Instance { model: identity(), }];
         let instance_buffer = device.create_buffer_with_data(bytemuck::cast_slice(&instances),
                                                              wgpu::BufferUsage::STORAGE | wgpu::BufferUsage::COPY_DST);
 
@@ -288,8 +288,7 @@ impl Renderer {
 
     pub fn update(&mut self) {
         self.rot = self.rot + 0.01;
-        let instances = [Instance { model: cgmath::Matrix4::identity(), },
-            Instance { model: cgmath::Matrix4::from_translation(cgmath::Vector3 { x: self.rot, y: 0.0 as f32, z: -0.0 as f32}), },];
+        let instances = [Instance { model: identity(), }];
         let buffer = self.device.create_buffer_with_data(bytemuck::cast_slice(&instances), wgpu::BufferUsage::COPY_SRC);
         let mut encoder =
             self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
@@ -298,8 +297,8 @@ impl Renderer {
         self.queue.submit(&[encoder.finish()]);
     }
 
-    pub async fn render(&mut self, view: &cgmath::Matrix4<f32>) {
-        let projection = cgmath::perspective(cgmath::Deg(45.0), self.sc_descriptor.width as f32 / self.sc_descriptor.height as f32, 0.1, 100.0);
+    pub async fn render(&mut self, view: &Mat4) {
+        let projection = perspective(self.sc_descriptor.width as f32 / self.sc_descriptor.height as f32,45.0, 0.1, 100.0);
         let uniforms = Uniforms { proj_view: projection * view, };
         let buffer = self.device.create_buffer_with_data(bytemuck::cast_slice(&[uniforms]), wgpu::BufferUsage::COPY_SRC);
         let frame = self.swap_chain.get_next_texture().expect("failed to get next texture");

@@ -50,7 +50,6 @@ fn game(options: Options) -> std::result::Result<(), obj::ObjError> {
         .build(&event_loop)
         .unwrap();
 
-    let view = cgmath::Matrix4::look_at((0.0, 0.0, 2.0).into(), (0.0, 0.0, 0.0).into(), (0.0, 1.0, 0.0).into());
     let input = &mut BufReader::new(File::open("obj/ah/african_head.obj").unwrap());
     let mesh = load_mesh(input);
     let mesh = graphics::Mesh { vertices: mesh.0, indices: mesh.1, };
@@ -99,7 +98,7 @@ fn game(options: Options) -> std::result::Result<(), obj::ObjError> {
         match event {
             Event::RedrawRequested(_) => {
                 renderer.update();
-                futures::executor::block_on(renderer.render(&view));
+                futures::executor::block_on(renderer.render(&look_at(&simulation.camera_position, &(simulation.camera_position + simulation.camera_direction), &vec3(0.0, 1.0, 0.0))));
                 let current_time = Instant::now();
                 println!("fps: {}", (current_time - previous_time).as_millis());
                 previous_time = current_time;
