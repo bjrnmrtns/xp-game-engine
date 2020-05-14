@@ -1,8 +1,8 @@
 use std::collections::VecDeque;
-use crate::window;
-use crate::window::{Key, Event};
 pub use serde::{Serialize, Deserialize};
 use crate::commands::{Command, CameraMove, CameraRotation};
+use crate::input::{Event, InputQueue};
+use winit::event::VirtualKeyCode;
 
 pub struct CommandQueue {
     commands: Vec<(u64, Command)>,
@@ -17,7 +17,7 @@ impl CommandQueue {
         }
     }
 
-    pub fn handle_input(&mut self, inputs: &mut window::InputQueue, current_frame_nr: u64) -> Vec<(u64, Vec<Command>)> {
+    pub fn handle_input(&mut self, inputs: &mut InputQueue, current_frame_nr: u64) -> Vec<(u64, Vec<Command>)> {
         // store always with frame number, and return frames of previous frames when available,
         // so we are sure that it is the complete set
         while let Some(event) = inputs.event() {
@@ -34,10 +34,10 @@ impl CommandQueue {
         for frame_nr in self.last_frame_nr..current_frame_nr {
             let mut frame = Vec::new();
             frame.push(Command::camera_move(CameraMove {
-                forward: inputs.is_key_down(Key::KeyW),
-                back: inputs.is_key_down(Key::KeyS),
-                left: inputs.is_key_down(Key::KeyA),
-                right: inputs.is_key_down(Key::KeyD),
+                forward: inputs.is_key_down(VirtualKeyCode::W),
+                back: inputs.is_key_down(VirtualKeyCode::S),
+                left: inputs.is_key_down(VirtualKeyCode::A),
+                right: inputs.is_key_down(VirtualKeyCode::D),
             }));
             frame.extend(self.commands.iter().filter(|c| c.0 == frame_nr).map(|c| c.1.clone()));
             frames.push((frame_nr, frame));

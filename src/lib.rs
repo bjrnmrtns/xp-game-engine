@@ -2,8 +2,6 @@
 pub mod obj;
 pub mod rasterizer;
 pub mod canvas;
-pub mod sdl_window;
-pub mod window;
 pub mod camera;
 pub mod simulation;
 pub mod command_queue;
@@ -13,3 +11,5 @@ pub mod local_client;
 pub mod client;
 pub mod packet;
 pub mod recording;
+pub mod graphics;
+pub mod input;

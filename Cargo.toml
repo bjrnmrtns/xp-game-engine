@@ -1,9 +1,8 @@
 [package]
 name = "xp"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Bjorn Martens <bjorn@expeditious.nl>"]
 edition = "2018"
-build="build.rs"
 
 [dependencies]
 libc = "0.2.69"
@@ -22,5 +21,3 @@ glsl-to-spirv = "0.1.7"
 bytemuck = "1.2.0"
 cgmath = "0.17.0"
 
-[build-dependencies]
-cmake = "0.1.42"
