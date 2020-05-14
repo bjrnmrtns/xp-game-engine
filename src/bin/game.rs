@@ -1,4 +1,3 @@
-use image::RgbImage;
 use nalgebra_glm::*;
 
 use std::fs::File;
@@ -7,7 +6,7 @@ use std::time::{Instant};
 use std::path::PathBuf;
 use structopt::StructOpt;
 
-use xp::{*, command_queue::CommandQueue, commands::Command, obj};
+use xp::{*, command_queue::CommandQueue, obj};
 use winit::event_loop::{EventLoop, ControlFlow};
 use winit::event::{WindowEvent, ElementState, VirtualKeyCode, Event, KeyboardInput};
 use winit::window::WindowBuilder;
@@ -23,9 +22,9 @@ pub struct Options {
     replay_path: Option<PathBuf>,
 }
 
-fn load_mesh<R>(reader: R) -> (Vec<graphics::Vertex>, Vec<u16>)
+fn load_mesh<R>(reader: R) -> std::result::Result<(Vec<graphics::Vertex>, Vec<u16>), obj::ObjError>
     where R: std::io::BufRead {
-    let vertices = obj::parse_obj(reader).unwrap();
+    let vertices = obj::parse_obj(reader)?;
     let mut points = Vec::new();
     let mut indices = Vec::new();
     let mut index: u16 = 0;
@@ -39,7 +38,7 @@ fn load_mesh<R>(reader: R) -> (Vec<graphics::Vertex>, Vec<u16>)
         indices.push(index); index += 1;
         color_id = (color_id + 1) % 3;
     }
-    (points, indices)
+    Ok((points, indices))
 }
 
 
@@ -51,7 +50,7 @@ fn game(options: Options) -> std::result::Result<(), obj::ObjError> {
         .unwrap();
 
     let input = &mut BufReader::new(File::open("obj/ah/african_head.obj").unwrap());
-    let mesh = load_mesh(input);
+    let mesh = load_mesh(input)?;
     let mesh = graphics::Mesh { vertices: mesh.0, indices: mesh.1, };
     let mut renderer = futures::executor::block_on(graphics::Renderer::new(&window, &mesh));
 
@@ -135,7 +134,6 @@ fn game(options: Options) -> std::result::Result<(), obj::ObjError> {
             _ => {}
         }
     });
-    Ok(())
 }
 
 fn main() -> std::result::Result<(), obj::ObjError> {

@@ -1,6 +1,5 @@
 use nalgebra_glm::*;
 use crate::camera;
-use crate::command_queue::*;
 use crate::commands::Command;
 
 pub struct Simulation {
@@ -33,14 +32,14 @@ impl Simulation {
     }
 
     pub fn handle_frame(&mut self, commands: &(u64, Vec<Command>)) -> u32 {
-        commands.1.iter().map(|command| {
+        let _ = commands.1.iter().map(|command| {
             match &command {
-                Command::camera_move(move_) => {
+                Command::CameraMove(move_) => {
                     let forward: i32 = move_.forward as i32 - move_.back as i32;
                     let right: i32 = move_.right as i32 - move_.left as i32;
                     self.camera_move(forward, right);
                 },
-                Command::camera_rotate(rotate) => {
+                Command::CameraRotate(rotate) => {
                     self.camera_rotate(rotate.around_local_x as f32 / 100.0, rotate.around_global_y as f32 / 100.0);
                 }
             }

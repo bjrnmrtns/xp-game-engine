@@ -1,5 +1,4 @@
 use winit::window::Window;
-use wgpu::BufferDescriptor;
 use nalgebra_glm::*;
 
 pub struct Texture {
@@ -160,7 +159,7 @@ impl Renderer {
         let index_buffer = device.create_buffer_with_data(bytemuck::cast_slice(&mesh.indices), wgpu::BufferUsage::INDEX);
 
 
-        let mut uniforms = Uniforms::new();
+        let uniforms = Uniforms::new();
         let uniform_buffer = device.create_buffer_with_data(bytemuck::cast_slice(&[uniforms]),
                                                             wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST);
 

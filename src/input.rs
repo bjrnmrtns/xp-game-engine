@@ -1,6 +1,5 @@
 use std::collections::{VecDeque};
-use winit::event_loop::{EventLoop, ControlFlow};
-use winit::event::{WindowEvent, VirtualKeyCode, KeyboardInput, ElementState};
+use winit::event::{VirtualKeyCode, KeyboardInput, ElementState};
 use crate::input::Event::KeyEvent;
 
 pub enum Event {
@@ -32,7 +31,7 @@ impl InputQueue {
 
     pub fn push_keyboard_input(&mut self, input: &KeyboardInput) {
         match input {
-            KeyboardInput { state: state, virtual_keycode: Some(key_code), .. } => {
+            KeyboardInput { state, virtual_keycode: Some(key_code), .. } => {
                 self.keyboard_state[convert(key_code)] = state == &ElementState::Pressed;
                 self.queue.push_back(KeyEvent { key: *key_code, down: state == &ElementState::Pressed, });
             },

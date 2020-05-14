@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use crate::packet;
 
 pub struct Replayer {
-    reader: Box<std::io::Read>,
+    reader: Box<dyn std::io::Read>,
     read_state: Vec<(u64, Vec<Command>)>,
 }
 impl Replayer {
@@ -38,7 +38,7 @@ impl Receiver for Replayer {
     }
 }
 pub struct Recorder {
-    writer: Box<std::io::Write>,
+    writer: Box<dyn std::io::Write>,
 }
 impl Recorder {
     pub fn new(writer: Box<dyn std::io::Write>) -> Recorder {
@@ -49,15 +49,15 @@ impl Recorder {
 }
 impl Sender for Recorder {
     fn send(&mut self, commands: &[(u64, Vec<Command>)]) {
-        packet::write(&mut *self.writer, serde_cbor::ser::to_vec(&commands).unwrap().as_slice());
+        packet::write(&mut *self.writer, serde_cbor::ser::to_vec(&commands).unwrap().as_slice()).unwrap();
     }
 }
 
 // returns a NullSender if no path is given
-pub fn try_create_recorder(recording: Option<PathBuf>) -> Box<Sender> {
+pub fn try_create_recorder(recording: Option<PathBuf>) -> Box<dyn Sender> {
     match recording {
         Some(path) => {
-            let mut f = Box::new(std::fs::OpenOptions::new().write(true).create(true).open(path).expect("cannot open file for recording"));
+            let f = Box::new(std::fs::OpenOptions::new().write(true).create(true).open(path).expect("cannot open file for recording"));
             Box::new(Recorder::new(f))
         },
         None => Box::new(NullSender::new()),
@@ -65,10 +65,10 @@ pub fn try_create_recorder(recording: Option<PathBuf>) -> Box<Sender> {
 }
 
 // returns a NullReceiver if no path is given
-pub fn try_create_replayer(replay: Option<PathBuf>) -> Box<Receiver> {
+pub fn try_create_replayer(replay: Option<PathBuf>) -> Box<dyn Receiver> {
     match replay {
         Some(path) => {
-            let mut f = Box::new(std::fs::OpenOptions::new().read(true).open(path).expect("cannot open file for replay"));
+            let f = Box::new(std::fs::OpenOptions::new().read(true).open(path).expect("cannot open file for replay"));
             Box::new(Replayer::new(f))
         },
         None => Box::new(NullReceiver::new()),

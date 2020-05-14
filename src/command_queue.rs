@@ -1,4 +1,3 @@
-use std::collections::VecDeque;
 pub use serde::{Serialize, Deserialize};
 use crate::commands::{Command, CameraMove, CameraRotation};
 use crate::input::{Event, InputQueue};
@@ -23,7 +22,7 @@ impl CommandQueue {
         while let Some(event) = inputs.event() {
             match event {
                 Event::MouseMotion { x_rel, y_rel } => {
-                    self.commands.push((current_frame_nr, Command::camera_rotate(
+                    self.commands.push((current_frame_nr, Command::CameraRotate(
                         CameraRotation { around_local_x: -y_rel, around_global_y: -x_rel, }
                     )))
                 },
@@ -33,7 +32,7 @@ impl CommandQueue {
         let mut frames = Vec::new();
         for frame_nr in self.last_frame_nr..current_frame_nr {
             let mut frame = Vec::new();
-            frame.push(Command::camera_move(CameraMove {
+            frame.push(Command::CameraMove(CameraMove {
                 forward: inputs.is_key_down(VirtualKeyCode::W),
                 back: inputs.is_key_down(VirtualKeyCode::S),
                 left: inputs.is_key_down(VirtualKeyCode::A),

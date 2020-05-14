@@ -1,5 +1,4 @@
 use serde::{Serialize, Deserialize};
-use std::iter::Sum;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct CameraMove {
@@ -17,7 +16,7 @@ pub struct CameraRotation {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub enum Command {
-    camera_move(CameraMove),
-    camera_rotate(CameraRotation),
+    CameraMove(CameraMove),
+    CameraRotate(CameraRotation),
 }
 
