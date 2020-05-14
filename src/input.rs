@@ -1,6 +1,6 @@
 use std::collections::{VecDeque};
 use winit::event::{VirtualKeyCode, KeyboardInput, ElementState};
-use crate::input::Event::KeyEvent;
+use crate::input::Event::{KeyEvent, MouseMotion};
 
 pub enum Event {
     Quit,
@@ -37,6 +37,10 @@ impl InputQueue {
             },
             _ => ()
         }
+    }
+
+    pub fn push_mouse_movement(&mut self, mouse: &(f64, f64)) {
+        self.queue.push_back(MouseMotion { x_rel: mouse.0 as i32, y_rel: mouse.1 as i32 })
     }
 
     pub fn event(&mut self) -> Option<Event> {

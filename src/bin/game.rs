@@ -10,6 +10,7 @@ use winit::event::{WindowEvent, ElementState, VirtualKeyCode, Event, KeyboardInp
 use winit::window::WindowBuilder;
 use std::convert::TryInto;
 use nalgebra_glm::{rotate, identity, vec3};
+use winit::event::DeviceEvent::MouseMotion;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "options", about = "command line options")]
@@ -100,6 +101,15 @@ fn game(options: Options) -> std::result::Result<(), obj::ObjError> {
             Event::MainEventsCleared => {
                 window.request_redraw();
             }
+            Event::DeviceEvent {
+                ref event,
+                ..
+            } => match event {
+                MouseMotion { delta} => {
+                    inputs.push_mouse_movement(delta);
+                },
+                _ => (),
+            },
             Event::WindowEvent {
                 ref event,
                 window_id,
