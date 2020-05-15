@@ -47,7 +47,7 @@ fn game(options: Options) {
     let obj_file = &mut BufReader::new(File::open(obj_file_name).expect(format!("Could not open obj file: {}", obj_file_name).as_str()));
     let (vertices, indices) = obj::parse_obj(obj_file).expect(format!("Could not parse obj file: {}", obj_file_name).as_str());
     let (vertices, indices) = ensure_unique_provoking_vertices(vertices.as_slice(), indices.as_slice());
-    let mesh = graphics::Mesh { vertices: vertices.iter().enumerate().map(|v| graphics::Vertex { position: *v.1, color_id: (v.0 % 3) as u32, }).collect(), indices, };
+    let mesh = graphics::Mesh { vertices: vertices.iter().enumerate().map(|v| graphics::Vertex { position: *v.1, normal: [1.0, 1.0, 1.0], color_id: (v.0 % 3) as u32, }).collect(), indices, };
     let mut renderer = futures::executor::block_on(graphics::Renderer::new(&window, &mesh)).expect("Could not create graphics renderer");
 
     let mut previous_time = Instant::now();

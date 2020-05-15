@@ -72,6 +72,7 @@ impl Texture {
 #[derive(Copy, Clone, Debug)]
 pub struct Vertex {
     pub position: [f32; 3],
+    pub normal: [f32; 3],
     pub color_id: u32, // check if this can be a byte (will index into a colormap)
 }
 
@@ -93,6 +94,11 @@ impl Vertex {
                 wgpu::VertexAttributeDescriptor {
                     offset: mem::size_of::<[f32;3]>() as wgpu::BufferAddress,
                     shader_location: 1,
+                    format: wgpu::VertexFormat::Float3,
+                },
+                wgpu::VertexAttributeDescriptor {
+                    offset: 2 * mem::size_of::<[f32;3]>() as wgpu::BufferAddress,
+                    shader_location: 2,
                     format: wgpu::VertexFormat::Uint,
                 },
             ]
