@@ -122,7 +122,7 @@ impl Uniforms {
 
 pub struct Mesh {
     pub vertices: Vec<Vertex>,
-    pub indices: Vec<u16>,
+    pub indices: Vec<u32>,
 }
 
 #[repr(C)]
@@ -274,7 +274,7 @@ impl Renderer {
                 stencil_write_mask: 0,
             }),
             vertex_state: wgpu::VertexStateDescriptor {
-                index_format: wgpu::IndexFormat::Uint16,
+                index_format: wgpu::IndexFormat::Uint32,
                 vertex_buffers: &[Vertex::desc()],
             },
             sample_count: 1,

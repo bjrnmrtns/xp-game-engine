@@ -8,7 +8,6 @@ use xp::{*, command_queue::CommandQueue, obj};
 use winit::event_loop::{EventLoop, ControlFlow};
 use winit::event::{WindowEvent, ElementState, VirtualKeyCode, Event, KeyboardInput};
 use winit::window::WindowBuilder;
-use std::convert::TryInto;
 use nalgebra_glm::{rotate, identity, vec3};
 use winit::event::DeviceEvent::MouseMotion;
 
@@ -22,34 +21,15 @@ pub struct Options {
     replay_path: Option<PathBuf>,
 }
 
-fn load_mesh<R>(reader: R) -> std::result::Result<(Vec<graphics::Vertex>, Vec<u16>), obj::ObjError>
-    where R: std::io::BufRead {
-    let vertices = obj::parse_obj(reader)?;
-    let mut points = Vec::new();
-    let mut indices = Vec::new();
-    let mut index: u16 = 0;
-    let mut color_id: u32 = 0;
-    for v in vertices {
-        points.push(graphics::Vertex { position: v[0].0.as_slice().try_into().unwrap(), color_id: color_id });
-        indices.push(index); index += 1;
-        points.push(graphics::Vertex { position: v[1].0.as_slice().try_into().unwrap(), color_id: color_id });
-        indices.push(index); index += 1;
-        points.push(graphics::Vertex { position: v[2].0.as_slice().try_into().unwrap(), color_id: color_id });
-        indices.push(index); index += 1;
-        color_id = (color_id + 1) % 3;
-    }
-    Ok((points, indices))
-}
-
 fn game(options: Options) {
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()
         .build(&event_loop).expect("Could not create window");
 
     let obj_file_name = "obj/ah/african_head.obj";
-    let input = &mut BufReader::new(File::open(obj_file_name).expect(format!("Could not open file: {}", obj_file_name).as_str()));
-    let mesh = load_mesh(input).unwrap();
-    let mesh = graphics::Mesh { vertices: mesh.0, indices: mesh.1, };
+    let obj_file = &mut BufReader::new(File::open(obj_file_name).expect(format!("Could not open file: {}", obj_file_name).as_str()));
+    let obj_data = obj::parse_obj(obj_file).expect(format!("Could not parse obj file: {}", obj_file_name).as_str());
+    let mesh = graphics::Mesh { vertices: obj_data.0.iter().map(|v| graphics::Vertex { position: *v, color_id: 1, }).collect(), indices: obj_data.1, };
     let mut renderer = futures::executor::block_on(graphics::Renderer::new(&window, &mesh)).expect("Could not create graphics renderer");
 
     let mut previous_time = Instant::now();

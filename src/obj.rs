@@ -1,5 +1,3 @@
-use nalgebra_glm::*;
-
 pub type ObjResult<T> = std::result::Result<T, ObjError>;
 
 macro_rules! str_args_to_f32 {
@@ -90,60 +88,27 @@ pub fn parse<R, C>(reader: R, mut converter: C) -> ObjResult<()>
 }
 
 struct Face {
-    v_index: usize,
-    t_index: usize,
-    n_index: usize,
+    v_index: u32,
 }
 
 fn parse_face(face: &str) -> ObjResult<Face> {
     let mut indices = face.split("/");
     let first = indices.next().unwrap_or("");
-    let second = indices.next().unwrap_or("");
-    let third = indices.next().unwrap_or("");
-
     let first: i32 = first.parse()?;
-    let second: i32 = if second == "" {
-        1
-    } else {
-        second.parse()?
-    };
-    let third: i32 = if third == "" {
-        1
-    } else {
-        third.parse()?
-    };
-    Ok(Face { v_index: (first - 1) as usize, t_index: (second - 1) as usize, n_index: (third - 1) as usize })
+    Ok(Face { v_index: (first - 1) as u32, })
 }
 
-pub fn parse_obj<R>(reader: R) -> ObjResult<Vec<[(Vec3, (Vec3, Vec2)); 3]>>
+pub fn parse_obj<R>(reader: R) -> ObjResult<(Vec<[f32; 3]>, Vec<u32>)>
     where R: std::io::BufRead {
     let mut positions = Vec::new();
-    let mut tex_coords = Vec::new();
-    let mut normals = Vec::new();
-    let mut faces = Vec::new();
+    let mut indices = Vec::new();
     parse(reader, |obj_type, args| {
         match obj_type {
             "v" => {
                 let args = str_args_to_f32!(args);
                 positions.push(match args.len() {
-                    3 => Vec3::new(args[0], args[1], args[2]),
-                    4 => Vec3::new(args[0] / args[3], args[1] / args[3], args[2] / args[3]),
-                    _ => return Err(ObjError::WrongNumberOfArguments),
-                });
-            }
-            "vt" => {
-                let args = str_args_to_f32!(args);
-                tex_coords.push(match args.len() {
-                    1 => Vec2::new(args[0], 0.0),
-                    2 => Vec2::new(args[0], args[1]),
-                    3 => Vec2::new(args[0], args[1]),
-                    _ => return Err(ObjError::WrongNumberOfArguments),
-                });
-            }
-            "vn" => {
-                let args = str_args_to_f32!(args);
-                normals.push(match args.len() {
-                    3 => Vec3::new(args[0], args[1], args[2]),
+                    3 => [args[0], args[1], args[2]],
+                    4 => [args[0] / args[3], args[1] / args[3], args[2] / args[3]],
                     _ => return Err(ObjError::WrongNumberOfArguments),
                 });
             }
@@ -151,26 +116,13 @@ pub fn parse_obj<R>(reader: R) -> ObjResult<Vec<[(Vec3, (Vec3, Vec2)); 3]>>
                 if args.len() < 3 {
                     return Err(ObjError::WrongNumberOfArguments);
                 }
-                let facev0 = parse_face(args[0])?;
-                let facev1 = parse_face(args[1])?;
-                let facev2 = parse_face(args[2])?;
-                faces.push((facev0, facev1, facev2));
+                indices.push(parse_face(args[0])?.v_index);
+                indices.push(parse_face(args[1])?.v_index);
+                indices.push(parse_face(args[2])?.v_index);
             }
             _ => ()
         }
         Ok(())
     })?;
-    let mut vertices = Vec::new();
-    for face in faces {
-        let vertex0 = (positions[face.0.v_index],
-                                        (normals[face.0.n_index], tex_coords[face.0.t_index]));
-        let vertex1 = (positions[face.1.v_index],
-                                        (normals[face.1.n_index], tex_coords[face.1.t_index]));
-
-        let vertex2 = (positions[face.2.v_index],
-                                        (normals[face.2.n_index], tex_coords[face.2.t_index]));
-
-        vertices.push([vertex0, vertex1, vertex2] )
-    }
-    Ok(vertices)
+    Ok((positions, indices))
 }
