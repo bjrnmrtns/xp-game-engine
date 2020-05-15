@@ -27,9 +27,9 @@ fn game(options: Options) {
         .build(&event_loop).expect("Could not create window");
 
     let obj_file_name = "obj/ah/african_head.obj";
-    let obj_file = &mut BufReader::new(File::open(obj_file_name).expect(format!("Could not open file: {}", obj_file_name).as_str()));
+    let obj_file = &mut BufReader::new(File::open(obj_file_name).expect(format!("Could not open obj file: {}", obj_file_name).as_str()));
     let obj_data = obj::parse_obj(obj_file).expect(format!("Could not parse obj file: {}", obj_file_name).as_str());
-    let mesh = graphics::Mesh { vertices: obj_data.0.iter().map(|v| graphics::Vertex { position: *v, color_id: 1, }).collect(), indices: obj_data.1, };
+    let mesh = graphics::Mesh { vertices: obj_data.0.iter().enumerate().map(|v| graphics::Vertex { position: *v.1, color_id: (v.0 % 3) as u32, }).collect(), indices: obj_data.1, };
     let mut renderer = futures::executor::block_on(graphics::Renderer::new(&window, &mesh)).expect("Could not create graphics renderer");
 
     let mut previous_time = Instant::now();
