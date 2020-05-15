@@ -93,9 +93,8 @@ struct Face {
 
 fn parse_face(face: &str) -> ObjResult<Face> {
     let mut indices = face.split("/");
-    let first = indices.next().unwrap_or("");
-    let first: i32 = first.parse()?;
-    Ok(Face { v_index: (first - 1) as u32, })
+    let first: u32 = indices.next().unwrap_or("").parse()?;
+    Ok(Face { v_index: (first - 1), })
 }
 
 pub fn parse_obj<R>(reader: R) -> ObjResult<(Vec<[f32; 3]>, Vec<u32>)>
