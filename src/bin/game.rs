@@ -41,16 +41,16 @@ fn load_mesh<R>(reader: R) -> std::result::Result<(Vec<graphics::Vertex>, Vec<u1
     Ok((points, indices))
 }
 
-fn game(options: Options) -> std::result::Result<(), obj::ObjError> {
+fn game(options: Options) {
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()
-        .build(&event_loop)
-        .unwrap();
+        .build(&event_loop).expect("Could not create window");
 
-    let input = &mut BufReader::new(File::open("obj/ah/african_head.obj").unwrap());
-    let mesh = load_mesh(input)?;
+    let obj_file_name = "obj/ah/african_head.obj";
+    let input = &mut BufReader::new(File::open(obj_file_name).expect(format!("Could not open file: {}", obj_file_name).as_str()));
+    let mesh = load_mesh(input).unwrap();
     let mesh = graphics::Mesh { vertices: mesh.0, indices: mesh.1, };
-    let mut renderer = futures::executor::block_on(graphics::Renderer::new(&window, &mesh));
+    let mut renderer = futures::executor::block_on(graphics::Renderer::new(&window, &mesh)).expect("Could not create graphics renderer");
 
     let mut previous_time = Instant::now();
     let mut rot: f32 = 0.0;
@@ -141,7 +141,7 @@ fn game(options: Options) -> std::result::Result<(), obj::ObjError> {
     });
 }
 
-fn main() -> std::result::Result<(), obj::ObjError> {
+fn main() {
     let options = Options::from_args();
     game(options)
 }

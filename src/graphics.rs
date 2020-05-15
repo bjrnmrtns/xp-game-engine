@@ -1,6 +1,27 @@
 use winit::window::Window;
 use nalgebra_glm::*;
 
+pub type Result<T> = std::result::Result<T, GraphicsError>;
+
+#[derive(Debug)]
+pub enum GraphicsError {
+    String(String),
+    IOError(std::io::Error),
+    RequestAdapter,
+}
+
+impl From<String> for GraphicsError {
+    fn from(e: String) -> GraphicsError {
+        GraphicsError::String(e)
+    }
+}
+
+impl From<std::io::Error> for GraphicsError {
+    fn from(e: std::io::Error) -> GraphicsError {
+        GraphicsError::IOError(e)
+    }
+}
+
 pub struct Texture {
     pub texture: wgpu::Texture,
     pub view: wgpu::TextureView,
@@ -131,11 +152,15 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub async fn new(window: &Window, mesh: &Mesh) ->Self {
+    pub async fn new(window: &Window, mesh: &Mesh) -> Result<Self> {
         let surface =  wgpu::Surface::create(window);
         let adapter = wgpu::Adapter::request(
             &wgpu::RequestAdapterOptions { power_preference: wgpu::PowerPreference::Default,
-                compatible_surface: Some(&surface) }, wgpu::BackendBit::PRIMARY).await.unwrap();
+                compatible_surface: Some(&surface) }, wgpu::BackendBit::PRIMARY).await;
+        let adapter = match adapter {
+            Some(adapter) => adapter,
+            None => { return Err(GraphicsError::RequestAdapter); },
+        };
         let (device, queue) = adapter.request_device(&wgpu::DeviceDescriptor
         { extensions: wgpu::Extensions { anisotropic_filtering: false, }, limits: Default::default(), }).await;
         let sc_descriptor = wgpu::SwapChainDescriptor{
@@ -147,10 +172,10 @@ impl Renderer {
         };
         let swap_chain = device.create_swap_chain(&surface, &sc_descriptor);
 
-        let vs_spirv = glsl_to_spirv::compile(include_str!("shader.vert"), glsl_to_spirv::ShaderType::Vertex).unwrap();
-        let fs_spirv = glsl_to_spirv::compile(include_str!("shader.frag"), glsl_to_spirv::ShaderType::Fragment).unwrap();
-        let vs_data = wgpu::read_spirv(vs_spirv).unwrap();
-        let fs_data = wgpu::read_spirv(fs_spirv).unwrap();
+        let vs_spirv = glsl_to_spirv::compile(include_str!("shader.vert"), glsl_to_spirv::ShaderType::Vertex)?;
+        let fs_spirv = glsl_to_spirv::compile(include_str!("shader.frag"), glsl_to_spirv::ShaderType::Fragment)?;
+        let vs_data = wgpu::read_spirv(vs_spirv)?;
+        let fs_data = wgpu::read_spirv(fs_spirv)?;
         let vs_module = device.create_shader_module(&vs_data);
         let fs_module = device.create_shader_module(&fs_data);
 
@@ -257,7 +282,7 @@ impl Renderer {
             alpha_to_coverage_enabled: false,
         });
         let depth_texture = Texture::create_depth_texture(&device, &sc_descriptor);
-        Self {
+        Ok(Self {
             surface,
             device,
             queue,
@@ -272,7 +297,7 @@ impl Renderer {
             uniform_bind_group,
             depth_texture,
             window_size: window.inner_size(),
-        }
+        })
     }
 
     pub async fn resize(&mut self, size: winit::dpi::PhysicalSize<u32>) {
