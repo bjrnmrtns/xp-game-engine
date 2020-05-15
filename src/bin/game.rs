@@ -10,6 +10,7 @@ use winit::event::{WindowEvent, ElementState, VirtualKeyCode, Event, KeyboardInp
 use winit::window::WindowBuilder;
 use nalgebra_glm::{rotate, identity, vec3};
 use winit::event::DeviceEvent::MouseMotion;
+use std::collections::{HashSet};
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "options", about = "command line options")]
@@ -21,6 +22,22 @@ pub struct Options {
     replay_path: Option<PathBuf>,
 }
 
+fn ensure_unique_provoking_vertices(vertices: &[[f32; 3]], indices: &[u32]) -> (Vec<[f32; 3]>, Vec<u32>) {
+    let mut new_vertices= vertices.to_vec();
+    let mut new_indices = indices.to_vec();
+    let mut provs_used: HashSet<u32> = HashSet::new();
+    for face in indices.chunks(3).enumerate() {
+        // first vertex of face is a provoking vertex
+        if provs_used.contains(&face.1[0]) {
+            new_vertices.push(vertices[face.1[0] as usize].clone());
+            new_indices[&face.0 * 3] = new_vertices.len() as u32 - 1;
+        } else {
+            provs_used.insert(face.1[0]);
+        }
+    }
+    (new_vertices, new_indices)
+}
+
 fn game(options: Options) {
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()
@@ -28,8 +45,9 @@ fn game(options: Options) {
 
     let obj_file_name = "obj/ah/african_head.obj";
     let obj_file = &mut BufReader::new(File::open(obj_file_name).expect(format!("Could not open obj file: {}", obj_file_name).as_str()));
-    let obj_data = obj::parse_obj(obj_file).expect(format!("Could not parse obj file: {}", obj_file_name).as_str());
-    let mesh = graphics::Mesh { vertices: obj_data.0.iter().enumerate().map(|v| graphics::Vertex { position: *v.1, color_id: (v.0 % 3) as u32, }).collect(), indices: obj_data.1, };
+    let (vertices, indices) = obj::parse_obj(obj_file).expect(format!("Could not parse obj file: {}", obj_file_name).as_str());
+    let (vertices, indices) = ensure_unique_provoking_vertices(vertices.as_slice(), indices.as_slice());
+    let mesh = graphics::Mesh { vertices: vertices.iter().enumerate().map(|v| graphics::Vertex { position: *v.1, color_id: (v.0 % 3) as u32, }).collect(), indices, };
     let mut renderer = futures::executor::block_on(graphics::Renderer::new(&window, &mesh)).expect("Could not create graphics renderer");
 
     let mut previous_time = Instant::now();
