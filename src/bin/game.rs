@@ -8,9 +8,10 @@ use xp::{*, command_queue::CommandQueue, obj};
 use winit::event_loop::{EventLoop, ControlFlow};
 use winit::event::{WindowEvent, ElementState, VirtualKeyCode, Event, KeyboardInput};
 use winit::window::WindowBuilder;
-use nalgebra_glm::{rotate, identity, vec3};
+use nalgebra_glm::{rotate, identity, vec3, cross, Vec3, make_vec3};
 use winit::event::DeviceEvent::MouseMotion;
 use std::collections::{HashSet};
+use std::convert::TryInto;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "options", about = "command line options")]
@@ -38,6 +39,18 @@ fn ensure_unique_provoking_vertices(vertices: &[[f32; 3]], indices: &[u32]) -> (
     (new_vertices, new_indices)
 }
 
+fn enhance_provoking_vertices(vertices: &[[f32; 3]], indices: &[u32]) -> Vec<graphics::Vertex> {
+    let mut mesh_vertices: Vec<graphics::Vertex> = vertices.iter().map(|v| graphics::Vertex { position: *v, normal: [0.0, 1.0, 0.0], color_id: 2 } ).collect();
+    for face in indices.chunks(3) {
+        let edge_0: Vec3 = make_vec3(&vertices[face[2] as usize]) - make_vec3(&vertices[face[0] as usize]);
+        let edge_1: Vec3 = make_vec3(&vertices[face[1] as usize]) - make_vec3(&vertices[face[0] as usize]);
+        let n: Vec3 = cross(&edge_0, &edge_1).normalize();
+        mesh_vertices[face[0] as usize].normal = n.as_slice().try_into().unwrap();
+    }
+    mesh_vertices
+}
+
+
 fn game(options: Options) {
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()
@@ -47,7 +60,7 @@ fn game(options: Options) {
     let obj_file = &mut BufReader::new(File::open(obj_file_name).expect(format!("Could not open obj file: {}", obj_file_name).as_str()));
     let (vertices, indices) = obj::parse_obj(obj_file).expect(format!("Could not parse obj file: {}", obj_file_name).as_str());
     let (vertices, indices) = ensure_unique_provoking_vertices(vertices.as_slice(), indices.as_slice());
-    let mesh = graphics::Mesh { vertices: vertices.iter().enumerate().map(|v| graphics::Vertex { position: *v.1, normal: [1.0, 1.0, 1.0], color_id: (v.0 % 3) as u32, }).collect(), indices, };
+    let mesh = graphics::Mesh { vertices: enhance_provoking_vertices(vertices.as_slice(), indices.as_slice()), indices, };
     let mut renderer = futures::executor::block_on(graphics::Renderer::new(&window, &mesh)).expect("Could not create graphics renderer");
 
     let mut previous_time = Instant::now();
@@ -88,7 +101,7 @@ fn game(options: Options) {
 
         match event {
             Event::RedrawRequested(_) => {
-                rot = rot + 0.01;
+                //rot = rot + 0.01;
                 let model = rotate(&identity(), rot, &vec3(0.0, 1.0, 0.0));
                 renderer.update(model);
                 futures::executor::block_on(renderer.render(&camera::view(&simulation.camera_position, &simulation.camera_direction)));

@@ -76,6 +76,17 @@ pub struct Vertex {
     pub color_id: u32, // check if this can be a byte (will index into a colormap)
 }
 
+impl From<&[f32; 3]> for Vertex {
+    fn from(p: &[f32; 3]) -> Self {
+        Self {
+            position: *p,
+            normal: [0.0, 1.0, 0.0],
+            color_id: 0,
+        }
+    }
+}
+
+
 unsafe impl bytemuck::Pod for Vertex {}
 unsafe impl bytemuck::Zeroable for Vertex {}
 

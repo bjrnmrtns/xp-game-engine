@@ -5,5 +5,7 @@ layout(location=1) flat in vec3 in_normal;
 layout(location=0) out vec4 out_color;
 
 void main() {
-    out_color = vec4(in_color, 1.0);
+    vec3 light = vec3(0.0, 0.0, -1.0);
+    float intensity = max(dot(in_normal, light), 0.0);
+    out_color = vec4(in_color * intensity, 1.0);
 }
