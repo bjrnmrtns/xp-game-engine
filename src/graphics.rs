@@ -120,22 +120,12 @@ impl Vertex {
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct Uniforms {
-    proj_view: Mat4,
+    projection: Mat4,
+    view: Mat4,
 }
 
 unsafe impl bytemuck::Pod for Uniforms {}
 unsafe impl bytemuck::Zeroable for Uniforms {}
-
-impl Uniforms {
-    pub fn new() -> Self {
-        Self {
-            proj_view: identity(),
-        }
-    }
-    pub fn update_view(&mut self, camera_proj_view: Mat4) {
-        self.proj_view = camera_proj_view;
-    }
-}
 
 pub struct Mesh {
     pub vertices: Vec<Vertex>,
@@ -199,8 +189,8 @@ impl Renderer {
         let vertex_buffer = device.create_buffer_with_data(bytemuck::cast_slice(&mesh.vertices), wgpu::BufferUsage::VERTEX);
         let index_buffer = device.create_buffer_with_data(bytemuck::cast_slice(&mesh.indices), wgpu::BufferUsage::INDEX);
 
+        let uniforms = Uniforms { projection: identity(), view: identity(), };
 
-        let uniforms = Uniforms::new();
         let uniform_buffer = device.create_buffer_with_data(bytemuck::cast_slice(&[uniforms]),
                                                             wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST);
 
@@ -335,9 +325,9 @@ impl Renderer {
         self.queue.submit(&[encoder.finish()]);
     }
 
-    pub async fn render(&mut self, view: &Mat4) {
+    pub async fn render(&mut self, view: Mat4) {
         let projection = perspective(self.sc_descriptor.width as f32 / self.sc_descriptor.height as f32,45.0, 0.1, 100.0);
-        let uniforms = Uniforms { proj_view: projection * view, };
+        let uniforms = Uniforms { projection: projection, view: view, };
         let buffer = self.device.create_buffer_with_data(bytemuck::cast_slice(&[uniforms]), wgpu::BufferUsage::COPY_SRC);
         let frame = self.swap_chain.get_next_texture().expect("failed to get next texture");
         let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {

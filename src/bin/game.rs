@@ -101,10 +101,10 @@ fn game(options: Options) {
 
         match event {
             Event::RedrawRequested(_) => {
-                //rot = rot + 0.01;
+                rot = rot + 0.01;
                 let model = rotate(&identity(), rot, &vec3(0.0, 1.0, 0.0));
                 renderer.update(model);
-                futures::executor::block_on(renderer.render(&camera::view(&simulation.camera_position, &simulation.camera_direction)));
+                futures::executor::block_on(renderer.render(camera::view(&simulation.camera_position, &simulation.camera_direction)));
                 let current_time = Instant::now();
                 println!("fps: {}", (current_time - previous_time).as_millis());
                 previous_time = current_time;
