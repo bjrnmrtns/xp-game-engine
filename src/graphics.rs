@@ -1,5 +1,7 @@
 use winit::window::Window;
 use nalgebra_glm::*;
+use std::collections::HashSet;
+use std::convert::TryInto;
 
 pub type Result<T> = std::result::Result<T, GraphicsError>;
 
@@ -20,6 +22,33 @@ impl From<std::io::Error> for GraphicsError {
     fn from(e: std::io::Error) -> GraphicsError {
         GraphicsError::IOError(e)
     }
+}
+
+pub fn ensure_unique_provoking_vertices(vertices: &[[f32; 3]], indices: &[u32]) -> (Vec<[f32; 3]>, Vec<u32>) {
+    let mut new_vertices= vertices.to_vec();
+    let mut new_indices = indices.to_vec();
+    let mut provs_used: HashSet<u32> = HashSet::new();
+    for face in indices.chunks(3).enumerate() {
+        // first vertex of face is a provoking vertex
+        if provs_used.contains(&face.1[0]) {
+            new_vertices.push(vertices[face.1[0] as usize].clone());
+            new_indices[&face.0 * 3] = new_vertices.len() as u32 - 1;
+        } else {
+            provs_used.insert(face.1[0]);
+        }
+    }
+    (new_vertices, new_indices)
+}
+
+pub fn enhance_provoking_vertices(vertices: &[[f32; 3]], indices: &[u32]) -> Vec<Vertex> {
+    let mut mesh_vertices: Vec<Vertex> = vertices.iter().map(|v| Vertex { position: *v, normal: [0.0, 1.0, 0.0], color_id: 2 } ).collect();
+    for face in indices.chunks(3) {
+        let edge_0: Vec3 = make_vec3(&vertices[face[2] as usize]) - make_vec3(&vertices[face[0] as usize]);
+        let edge_1: Vec3 = make_vec3(&vertices[face[1] as usize]) - make_vec3(&vertices[face[0] as usize]);
+        let n: Vec3 = cross(&edge_0, &edge_1).normalize();
+        mesh_vertices[face[0] as usize].normal = n.as_slice().try_into().unwrap();
+    }
+    mesh_vertices
 }
 
 pub struct Texture {

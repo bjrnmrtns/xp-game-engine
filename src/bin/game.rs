@@ -8,10 +8,8 @@ use xp::{*, command_queue::CommandQueue, obj};
 use winit::event_loop::{EventLoop, ControlFlow};
 use winit::event::{WindowEvent, ElementState, VirtualKeyCode, Event, KeyboardInput};
 use winit::window::WindowBuilder;
-use nalgebra_glm::{rotate, identity, vec3, cross, Vec3, make_vec3};
+use nalgebra_glm::{rotate, identity, vec3};
 use winit::event::DeviceEvent::MouseMotion;
-use std::collections::{HashSet};
-use std::convert::TryInto;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "options", about = "command line options")]
@@ -23,34 +21,6 @@ pub struct Options {
     replay_path: Option<PathBuf>,
 }
 
-fn ensure_unique_provoking_vertices(vertices: &[[f32; 3]], indices: &[u32]) -> (Vec<[f32; 3]>, Vec<u32>) {
-    let mut new_vertices= vertices.to_vec();
-    let mut new_indices = indices.to_vec();
-    let mut provs_used: HashSet<u32> = HashSet::new();
-    for face in indices.chunks(3).enumerate() {
-        // first vertex of face is a provoking vertex
-        if provs_used.contains(&face.1[0]) {
-            new_vertices.push(vertices[face.1[0] as usize].clone());
-            new_indices[&face.0 * 3] = new_vertices.len() as u32 - 1;
-        } else {
-            provs_used.insert(face.1[0]);
-        }
-    }
-    (new_vertices, new_indices)
-}
-
-fn enhance_provoking_vertices(vertices: &[[f32; 3]], indices: &[u32]) -> Vec<graphics::Vertex> {
-    let mut mesh_vertices: Vec<graphics::Vertex> = vertices.iter().map(|v| graphics::Vertex { position: *v, normal: [0.0, 1.0, 0.0], color_id: 2 } ).collect();
-    for face in indices.chunks(3) {
-        let edge_0: Vec3 = make_vec3(&vertices[face[2] as usize]) - make_vec3(&vertices[face[0] as usize]);
-        let edge_1: Vec3 = make_vec3(&vertices[face[1] as usize]) - make_vec3(&vertices[face[0] as usize]);
-        let n: Vec3 = cross(&edge_0, &edge_1).normalize();
-        mesh_vertices[face[0] as usize].normal = n.as_slice().try_into().unwrap();
-    }
-    mesh_vertices
-}
-
-
 fn game(options: Options) {
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()
@@ -59,8 +29,8 @@ fn game(options: Options) {
     let obj_file_name = "obj/ah/african_head.obj";
     let obj_file = &mut BufReader::new(File::open(obj_file_name).expect(format!("Could not open obj file: {}", obj_file_name).as_str()));
     let (vertices, indices) = obj::parse_obj(obj_file).expect(format!("Could not parse obj file: {}", obj_file_name).as_str());
-    let (vertices, indices) = ensure_unique_provoking_vertices(vertices.as_slice(), indices.as_slice());
-    let mesh = graphics::Mesh { vertices: enhance_provoking_vertices(vertices.as_slice(), indices.as_slice()), indices, };
+    let (vertices, indices) = graphics::ensure_unique_provoking_vertices(vertices.as_slice(), indices.as_slice());
+    let mesh = graphics::Mesh { vertices: graphics::enhance_provoking_vertices(vertices.as_slice(), indices.as_slice()), indices, };
     let mut renderer = futures::executor::block_on(graphics::Renderer::new(&window, &mesh)).expect("Could not create graphics renderer");
 
     let mut previous_time = Instant::now();
