@@ -26,7 +26,7 @@ fn game(options: Options) {
     let window = WindowBuilder::new()
         .build(&event_loop).expect("Could not create window");
 
-    let obj_file_name = "obj/ah/african_head.obj";
+    let obj_file_name = "obj/arrow.obj";
     let obj_file = &mut BufReader::new(File::open(obj_file_name).expect(format!("Could not open obj file: {}", obj_file_name).as_str()));
     let (vertices, indices) = obj::parse_obj(obj_file).expect(format!("Could not parse obj file: {}", obj_file_name).as_str());
     let (vertices, indices) = graphics::ensure_unique_provoking_vertices(vertices.as_slice(), indices.as_slice());
