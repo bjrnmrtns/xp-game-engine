@@ -115,9 +115,19 @@ pub fn parse_obj<R>(reader: R) -> ObjResult<(Vec<[f32; 3]>, Vec<u32>)>
                 if args.len() < 3 {
                     return Err(ObjError::WrongNumberOfArguments);
                 }
-                indices.push(parse_face(args[0])?.v_index);
-                indices.push(parse_face(args[1])?.v_index);
-                indices.push(parse_face(args[2])?.v_index);
+                if args.len() == 3 {
+                    indices.push(parse_face(args[0])?.v_index);
+                    indices.push(parse_face(args[1])?.v_index);
+                    indices.push(parse_face(args[2])?.v_index);
+                }
+                if args.len() == 4 {
+                    indices.push(parse_face(args[0])?.v_index);
+                    indices.push(parse_face(args[1])?.v_index);
+                    indices.push(parse_face(args[2])?.v_index);
+                    indices.push(parse_face(args[0])?.v_index);
+                    indices.push(parse_face(args[2])?.v_index);
+                    indices.push(parse_face(args[3])?.v_index);
+                }
             }
             _ => ()
         }
