@@ -1,5 +1,10 @@
 use nalgebra_glm::*;
 
+pub enum CameraType {
+    FreeLook,
+    Follow,
+}
+
 fn right_vector(direction: &Vec3) -> Vec3 {
     cross(&direction, &vec3(0.0, 1.0, 0.0))
 }

@@ -26,6 +26,7 @@ fn game(options: Options) {
     let window = WindowBuilder::new()
         .build(&event_loop).expect("Could not create window");
 
+    let camera = camera::CameraType::FreeLook;
     let obj_file_name = "obj/arrow.obj";
     let obj_file = &mut BufReader::new(File::open(obj_file_name).expect(format!("Could not open obj file: {}", obj_file_name).as_str()));
     let (vertices, indices) = obj::parse_obj(obj_file).expect(format!("Could not parse obj file: {}", obj_file_name).as_str());
@@ -65,7 +66,7 @@ fn game(options: Options) {
         let commands_received = client::receive(&mut client,frame_counter.count());
         client::send(&mut *record, commands_received.as_slice());
         for frame in &commands_received {
-            let _ = simulation.handle_frame(frame);
+            let _ = simulation.handle_frame(frame, &camera);
         }
 
         match event {

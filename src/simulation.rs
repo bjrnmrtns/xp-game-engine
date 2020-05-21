@@ -38,17 +38,22 @@ impl Simulation {
         self.last_hash
     }
 
-    pub fn handle_frame(&mut self, commands: &(u64, Vec<Command>)) -> u32 {
+    pub fn handle_frame(&mut self, commands: &(u64, Vec<Command>), camera: &camera::CameraType) -> u32 {
         let _ = commands.1.iter().map(|command| {
             match &command {
                 Command::CameraMove(move_) => {
                     let forward: i32 = move_.forward as i32 - move_.back as i32;
                     let right: i32 = move_.right as i32 - move_.left as i32;
-                    self.camera_move(forward, right);
-                    self.player_move(forward, right);
+                    match camera {
+                        camera::CameraType::FreeLook => { self.camera_move(forward, right); },
+                        camera::CameraType::Follow => { self.player_move(forward, right); },
+                    }
                 },
                 Command::CameraRotate(rotate) => {
-                    self.camera_rotate(rotate.around_local_x as f32 / 100.0, rotate.around_global_y as f32 / 100.0);
+                    match camera {
+                        camera::CameraType::FreeLook => { self.camera_rotate(rotate.around_local_x as f32 / 100.0, rotate.around_global_y as f32 / 100.0); },
+                        camera::CameraType::Follow => (),
+                    }
                 }
             }
         }).collect::<Vec<_>>();
