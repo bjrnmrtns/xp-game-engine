@@ -8,7 +8,7 @@ use xp::{*, command_queue::CommandQueue, obj};
 use winit::event_loop::{EventLoop, ControlFlow};
 use winit::event::{WindowEvent, ElementState, VirtualKeyCode, Event, KeyboardInput};
 use winit::window::WindowBuilder;
-use nalgebra_glm::{rotate, identity, vec3};
+use nalgebra_glm::{rotate, identity, vec3, translate};
 use winit::event::DeviceEvent::MouseMotion;
 
 #[derive(Debug, StructOpt)]
@@ -70,7 +70,7 @@ fn game(options: Options) {
 
         match event {
             Event::RedrawRequested(_) => {
-                let model = rotate(&identity(), 0.0, &vec3(0.0, 1.0, 0.0));
+                let model = translate(&rotate(&identity(), simulation.player_direction[1], &vec3(0.0, 1.0, 0.0)), &simulation.player_position);
                 renderer.update(model);
                 futures::executor::block_on(renderer.render(camera::view(&simulation.camera_position, &simulation.camera_direction)));
                 let current_time = Instant::now();

@@ -6,11 +6,14 @@ pub struct Simulation {
     last_hash: u32,
     pub camera_position: Vec3,
     pub camera_direction: Vec3,
+    pub player_position: Vec3,
+    pub player_direction: Vec3,
 }
 
 impl Simulation {
     pub fn new() -> Simulation {
-        Simulation { last_hash: 0, camera_position: vec3(3.0, 3.0, 0.0), camera_direction: vec3(-1.0, -1.0, 0.0), }
+        Simulation { last_hash: 0, camera_position: vec3(-3.0, 3.0, 0.0), camera_direction: vec3(1.0, -1.0, 0.0),
+                                   player_position: vec3(0.0, 0.0, 0.0), player_direction: vec3(1.0, 0.0, 0.0), }
     }
 
     fn camera_move(&mut self, forward: i32, right: i32) {
@@ -19,6 +22,10 @@ impl Simulation {
 
     fn camera_rotate(&mut self, around_local_x: f32, around_global_y: f32) {
         self.camera_direction = camera::rotate(around_local_x, around_global_y, &self.camera_direction);
+    }
+
+    fn player_move(&mut self, forward: i32, _right: i32) {
+        self.player_position = &self.player_position + &self.player_direction * forward as f32 / 10.0;
     }
 
     fn hash_state_now(&mut self) -> u32 {
@@ -38,6 +45,7 @@ impl Simulation {
                     let forward: i32 = move_.forward as i32 - move_.back as i32;
                     let right: i32 = move_.right as i32 - move_.left as i32;
                     self.camera_move(forward, right);
+                    self.player_move(forward, right);
                 },
                 Command::CameraRotate(rotate) => {
                     self.camera_rotate(rotate.around_local_x as f32 / 100.0, rotate.around_global_y as f32 / 100.0);
