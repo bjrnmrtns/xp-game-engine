@@ -34,7 +34,6 @@ fn game(options: Options) {
     let mut renderer = futures::executor::block_on(graphics::Renderer::new(&window, &mesh)).expect("Could not create graphics renderer");
 
     let mut previous_time = Instant::now();
-    let mut rot: f32 = 0.0;
 
     let mut inputs = input::InputQueue::new();
     let mut commands_queue = CommandQueue::new();
@@ -71,8 +70,7 @@ fn game(options: Options) {
 
         match event {
             Event::RedrawRequested(_) => {
-                rot = rot + 0.01;
-                let model = rotate(&identity(), rot, &vec3(0.0, 1.0, 0.0));
+                let model = rotate(&identity(), 0.0, &vec3(0.0, 1.0, 0.0));
                 renderer.update(model);
                 futures::executor::block_on(renderer.render(camera::view(&simulation.camera_position, &simulation.camera_direction)));
                 let current_time = Instant::now();

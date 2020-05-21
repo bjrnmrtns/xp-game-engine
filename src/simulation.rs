@@ -10,7 +10,7 @@ pub struct Simulation {
 
 impl Simulation {
     pub fn new() -> Simulation {
-        Simulation { last_hash: 0, camera_position: vec3(0.0, 0.0, 2.0), camera_direction: vec3(0.0, 0.0, -1.0), }
+        Simulation { last_hash: 0, camera_position: vec3(3.0, 3.0, 0.0), camera_direction: vec3(-1.0, -1.0, 0.0), }
     }
 
     fn camera_move(&mut self, forward: i32, right: i32) {
