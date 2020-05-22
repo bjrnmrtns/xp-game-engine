@@ -44,6 +44,7 @@ fn game(options: Options) {
     let replaying = options.replay_path != None;
     let mut replay = recording::try_create_replayer(options.replay_path);
 
+
     /* every client creates if possible for every frame its commands, if there are no commands then
        the server will do nothing. every client runs its own local simulation. when the server
        returns the frames it merged from all clients (this means the server also needs to wait
@@ -77,7 +78,7 @@ fn game(options: Options) {
                 let model = translate * rotate;
                 renderer.update(model);
                 // for the view matrix we can also use player_move and player_rotate, and use the inverse of the resulting matrix
-                futures::executor::block_on(renderer.render(camera::view(&simulation.camera_position, &simulation.camera_direction)));
+                futures::executor::block_on(renderer.render(simulation.freelook_camera.view()));
                 let current_time = Instant::now();
                 println!("fps: {}", (current_time - previous_time).as_millis());
                 previous_time = current_time;

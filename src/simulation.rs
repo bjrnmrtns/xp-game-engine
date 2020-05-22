@@ -5,24 +5,15 @@ use std::f32::consts::PI;
 
 pub struct Simulation {
     last_hash: u32,
-    pub camera_position: Vec3,
-    pub camera_direction: Vec3,
     pub player_position: Vec3,
     pub player_orientation: Quat,
+    pub freelook_camera: camera::FreeLook,
 }
 
 impl Simulation {
     pub fn new() -> Simulation {
-        Simulation { last_hash: 0, camera_position: vec3(0.0, 3.0, 3.0), camera_direction: vec3(0.0, -1.0, -1.0),
-                                   player_position: vec3(2.0, 0.0, 0.0), player_orientation: quat_angle_axis( (3.0 / 2.0) * PI, &vec3(0.0, 1.0, 0.0)) }
-    }
-
-    fn camera_move(&mut self, forward: i32, right: i32) {
-        self.camera_position = camera::move_(forward as f32 / 10.0, right as f32 / 10.0, &self.camera_position, &self.camera_direction);
-    }
-
-    fn camera_rotate(&mut self, around_local_x: f32, around_global_y: f32) {
-        self.camera_direction = camera::camera_rotate(around_local_x, around_global_y, &self.camera_direction);
+        Simulation { last_hash: 0, player_position: vec3(2.0, 0.0, 0.0), player_orientation: quat_angle_axis( (3.0 / 2.0) * PI, &vec3(0.0, 1.0, 0.0)),
+            freelook_camera: camera::FreeLook::new(vec3(0.0, 3.0, 3.0), vec3(0.0, -1.0, -1.0))}
     }
 
     fn player_move(&mut self, forward: f32, right: f32) {
@@ -53,13 +44,13 @@ impl Simulation {
                     let forward: i32 = move_.forward as i32 - move_.back as i32;
                     let right: i32 = move_.right as i32 - move_.left as i32;
                     match camera {
-                        camera::CameraType::FreeLook => { self.camera_move(forward, right); },
+                        camera::CameraType::FreeLook => { self.freelook_camera.move_(forward as f32 / 10.0, right as f32 / 10.0); },
                         camera::CameraType::Follow => { self.player_move(forward as f32 / 10.0, right as f32 / 10.0); },
                     }
                 },
                 Command::CameraRotate(rotate) => {
                     match camera {
-                        camera::CameraType::FreeLook => { self.camera_rotate(rotate.around_local_x as f32 / 100.0, rotate.around_global_y as f32 / 100.0); },
+                        camera::CameraType::FreeLook => { self.freelook_camera.camera_rotate(rotate.around_local_x as f32 / 100.0, rotate.around_global_y as f32 / 100.0); },
                         camera::CameraType::Follow => { self.player_rotate(rotate.around_global_y as f32 / 100.0, 0.0)},
                     }
                 }

@@ -5,19 +5,29 @@ pub enum CameraType {
     Follow,
 }
 
-fn right_vector(direction: &Vec3) -> Vec3 {
-    cross(&direction, &vec3(0.0, 1.0, 0.0))
+pub struct FreeLook {
+    position: Vec3,
+    direction: Vec3,
 }
+impl FreeLook {
+    fn right_vector(&self) -> Vec3 {
+        cross(&self.direction, &vec3(0.0, 1.0, 0.0))
+    }
 
-pub fn move_(forward: f32, right: f32, position: &Vec3, direction: &Vec3) -> Vec3 {
-    position + direction * forward + right_vector(direction) * right
-}
+    pub fn new(position: Vec3, direction: Vec3) -> FreeLook {
+        FreeLook { position, direction, }
+    }
 
-pub fn camera_rotate(updown: f32, around: f32, direction: &Vec3) -> Vec3 {
-    let temp_direction = &rotate_vec3(direction, around, &vec3(0.0, 1.0, 0.0)).normalize();
-    rotate_vec3(temp_direction, updown, &right_vector(direction)).normalize()
-}
+    pub fn move_(&mut self, forward: f32, right: f32) {
+        self.position = &self.position + &self.direction * forward + self.right_vector() * right;
+    }
 
-pub fn view(position: &Vec3, direction: &Vec3) -> Mat4 {
-    look_at(&position, &(position + direction), &vec3(0.0, 1.0, 0.0))
+    pub fn camera_rotate(&mut self, updown: f32, around: f32) {
+        let temp_direction = &rotate_vec3(&self.direction, around, &vec3(0.0, 1.0, 0.0)).normalize();
+        self.direction = rotate_vec3(&temp_direction, updown, &self.right_vector()).normalize()
+    }
+
+    pub fn view(&self) -> Mat4 {
+        look_at(&self.position, &(&self.position + &self.direction), &vec3(0.0, 1.0, 0.0))
+    }
 }
