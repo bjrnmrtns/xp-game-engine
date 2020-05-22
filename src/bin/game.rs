@@ -26,7 +26,7 @@ fn game(options: Options) {
     let window = WindowBuilder::new()
         .build(&event_loop).expect("Could not create window");
 
-    let camera = camera::CameraType::FreeLook;
+    let camera = camera::CameraType::Follow;
     let obj_file_name = "obj/arrow.obj";
     let obj_file = &mut BufReader::new(File::open(obj_file_name).expect(format!("Could not open obj file: {}", obj_file_name).as_str()));
     let (vertices, indices) = obj::parse_obj(obj_file).expect(format!("Could not parse obj file: {}", obj_file_name).as_str());
@@ -78,7 +78,11 @@ fn game(options: Options) {
                 let model = translate * rotate;
                 renderer.update(model);
                 // for the view matrix we can also use player_move and player_rotate, and use the inverse of the resulting matrix
-                futures::executor::block_on(renderer.render(simulation.freelook_camera.view()));
+                let view = match camera {
+                    camera::CameraType::FreeLook => simulation.freelook_camera.view(),
+                    camera::CameraType::Follow => camera::follow_view_matrix(simulation.player_position, simulation.player_orientation),
+                };
+                futures::executor::block_on(renderer.render(view));
                 let current_time = Instant::now();
                 println!("fps: {}", (current_time - previous_time).as_millis());
                 previous_time = current_time;
