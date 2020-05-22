@@ -8,7 +8,7 @@ use xp::{*, command_queue::CommandQueue, obj};
 use winit::event_loop::{EventLoop, ControlFlow};
 use winit::event::{WindowEvent, ElementState, VirtualKeyCode, Event, KeyboardInput};
 use winit::window::WindowBuilder;
-use nalgebra_glm::{rotate, identity, vec3, translate};
+use nalgebra_glm::{identity, translate, quat_to_mat4};
 use winit::event::DeviceEvent::MouseMotion;
 
 #[derive(Debug, StructOpt)]
@@ -71,8 +71,12 @@ fn game(options: Options) {
 
         match event {
             Event::RedrawRequested(_) => {
-                let model = translate(&rotate(&identity(), simulation.player_direction[1], &vec3(0.0, 1.0, 0.0)), &simulation.player_position);
+                // first rotate all vertices on 0,0,0 (rotate around origin), then translate all points towards location.
+                let translate = translate(&identity(), &simulation.player_position);
+                let rotate = quat_to_mat4(&simulation.player_orientation);
+                let model = translate * rotate;
                 renderer.update(model);
+                // for the view matrix we can also use player_move and player_rotate, and use the inverse of the resulting matrix
                 futures::executor::block_on(renderer.render(camera::view(&simulation.camera_position, &simulation.camera_direction)));
                 let current_time = Instant::now();
                 println!("fps: {}", (current_time - previous_time).as_millis());
