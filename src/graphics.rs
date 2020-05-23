@@ -167,7 +167,7 @@ pub struct Mesh {
     pub indices: Vec<u32>,
 }
 
-struct DrawableBuffer {
+struct Drawable {
     pub vertex_buffer: wgpu::Buffer,
     pub index_buffer: wgpu::Buffer,
     pub index_buffer_len: u32,
@@ -183,7 +183,7 @@ pub struct Renderer {
     sc_descriptor: wgpu::SwapChainDescriptor,
     swap_chain: wgpu::SwapChain,
     render_pipeline: wgpu::RenderPipeline,
-    drawable: DrawableBuffer,
+    drawables: Vec<Drawable>,
     uniform_buffer: wgpu::Buffer,
     instance_buffer: wgpu::Buffer,
     uniform_bind_group: wgpu::BindGroup,
@@ -192,7 +192,7 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub async fn new(window: &Window, mesh: &Mesh) -> Result<Self> {
+    pub async fn new(window: &Window) -> Result<Self> {
         let surface =  wgpu::Surface::create(window);
         let adapter = wgpu::Adapter::request(
             &wgpu::RequestAdapterOptions { power_preference: wgpu::PowerPreference::Default,
@@ -218,9 +218,6 @@ impl Renderer {
         let fs_data = wgpu::read_spirv(fs_spirv)?;
         let vs_module = device.create_shader_module(&vs_data);
         let fs_module = device.create_shader_module(&fs_data);
-
-        let vertex_buffer = device.create_buffer_with_data(bytemuck::cast_slice(&mesh.vertices), wgpu::BufferUsage::VERTEX);
-        let index_buffer = device.create_buffer_with_data(bytemuck::cast_slice(&mesh.indices), wgpu::BufferUsage::INDEX);
 
         let uniforms = Uniforms { projection: identity(), view: identity(), };
 
@@ -329,7 +326,7 @@ impl Renderer {
             sc_descriptor,
             swap_chain,
             render_pipeline,
-            drawable:  DrawableBuffer { vertex_buffer, index_buffer, index_buffer_len: mesh.indices.len() as u32, },
+            drawables: Vec::new(),
             uniform_buffer,
             instance_buffer,
             uniform_bind_group,
@@ -344,6 +341,13 @@ impl Renderer {
         self.sc_descriptor.height = size.height;
         self.depth_texture = Texture::create_depth_texture(&self.device, &self.sc_descriptor);
         self.swap_chain = self.device.create_swap_chain(&self.surface, &self.sc_descriptor);
+    }
+
+    pub fn create_drawable_from_mesh(&mut self, mesh: &Mesh) -> usize {
+        let vertex_buffer = self.device.create_buffer_with_data(bytemuck::cast_slice(&mesh.vertices), wgpu::BufferUsage::VERTEX);
+        let index_buffer = self.device.create_buffer_with_data(bytemuck::cast_slice(&mesh.indices), wgpu::BufferUsage::INDEX);
+        self.drawables.push(Drawable { vertex_buffer, index_buffer, index_buffer_len: mesh.indices.len() as u32, });
+        self.drawables.len() - 1
     }
 
     pub fn update(&mut self, model: Mat4) {
@@ -392,10 +396,12 @@ impl Renderer {
                 }),
             });
             diffuse_scene_pass.set_pipeline(&self.render_pipeline);
-            diffuse_scene_pass.set_vertex_buffer(0, &self.drawable.vertex_buffer, 0, 0);
-            diffuse_scene_pass.set_index_buffer(&self.drawable.index_buffer, 0, 0);
-            diffuse_scene_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
-            diffuse_scene_pass.draw_indexed(0..self.drawable.index_buffer_len, 0, 0..2);
+            for drawable in &self.drawables {
+                diffuse_scene_pass.set_vertex_buffer(0, &drawable.vertex_buffer, 0, 0);
+                diffuse_scene_pass.set_index_buffer(&drawable.index_buffer, 0, 0);
+                diffuse_scene_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
+                diffuse_scene_pass.draw_indexed(0..drawable.index_buffer_len, 0, 0..2);
+            }
         }
         self.queue.submit(&[encoder.finish()]);
     }

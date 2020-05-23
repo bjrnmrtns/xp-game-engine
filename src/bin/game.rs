@@ -40,7 +40,8 @@ fn game(options: Options) {
     let player_mesh = graphics::Mesh { vertices: graphics::enhance_provoking_vertices(vertices.as_slice(), indices.as_slice()), indices, };
     let (vertices, indices) = create_terrain();
     let _terrain_mesh = graphics::Mesh { vertices: graphics::enhance_provoking_vertices(vertices.as_slice(), indices.as_slice()), indices, };
-    let mut renderer = futures::executor::block_on(graphics::Renderer::new(&window, &player_mesh)).expect("Could not create graphics renderer");
+    let mut renderer = futures::executor::block_on(graphics::Renderer::new(&window)).expect("Could not create graphics renderer");
+    renderer.create_drawable_from_mesh(&player_mesh);
 
     let mut previous_time = Instant::now();
 
