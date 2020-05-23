@@ -8,8 +8,8 @@ use xp::{*, command_queue::CommandQueue, obj};
 use winit::event_loop::{EventLoop, ControlFlow};
 use winit::event::{WindowEvent, ElementState, VirtualKeyCode, Event, KeyboardInput};
 use winit::window::WindowBuilder;
-use nalgebra_glm::{identity, translate, quat_to_mat4};
 use winit::event::DeviceEvent::MouseMotion;
+use xp::entity::{Posable, Followable};
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "options", about = "command line options")]
@@ -21,18 +21,26 @@ pub struct Options {
     replay_path: Option<PathBuf>,
 }
 
+pub fn create_terrain() -> (Vec<[f32; 3]>, Vec<u32>) {
+
+    (Vec::new(), Vec::new())
+}
+
 fn game(options: Options) {
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()
         .build(&event_loop).expect("Could not create window");
 
     let camera = camera::CameraType::Follow;
+    let mut player = entity::Entity::new();
     let obj_file_name = "obj/arrow.obj";
     let obj_file = &mut BufReader::new(File::open(obj_file_name).expect(format!("Could not open obj file: {}", obj_file_name).as_str()));
     let (vertices, indices) = obj::parse_obj(obj_file).expect(format!("Could not parse obj file: {}", obj_file_name).as_str());
     let (vertices, indices) = graphics::ensure_unique_provoking_vertices(vertices.as_slice(), indices.as_slice());
-    let mesh = graphics::Mesh { vertices: graphics::enhance_provoking_vertices(vertices.as_slice(), indices.as_slice()), indices, };
-    let mut renderer = futures::executor::block_on(graphics::Renderer::new(&window, &mesh)).expect("Could not create graphics renderer");
+    let player_mesh = graphics::Mesh { vertices: graphics::enhance_provoking_vertices(vertices.as_slice(), indices.as_slice()), indices, };
+    let (vertices, indices) = create_terrain();
+    let _terrain_mesh = graphics::Mesh { vertices: graphics::enhance_provoking_vertices(vertices.as_slice(), indices.as_slice()), indices, };
+    let mut renderer = futures::executor::block_on(graphics::Renderer::new(&window, &player_mesh)).expect("Could not create graphics renderer");
 
     let mut previous_time = Instant::now();
 
@@ -67,20 +75,17 @@ fn game(options: Options) {
         let commands_received = client::receive(&mut client,frame_counter.count());
         client::send(&mut *record, commands_received.as_slice());
         for frame in &commands_received {
-            let _ = simulation.handle_frame(frame, &camera);
+            let _ = simulation.handle_frame(frame, &camera, &mut player);
         }
 
         match event {
             Event::RedrawRequested(_) => {
                 // first rotate all vertices on 0,0,0 (rotate around origin), then translate all points towards location.
-                let translate = translate(&identity(), &simulation.player_position);
-                let rotate = quat_to_mat4(&simulation.player_orientation);
-                let model = translate * rotate;
-                renderer.update(model);
+                renderer.update(player.pose());
                 // for the view matrix we can also use player_move and player_rotate, and use the inverse of the resulting matrix
                 let view = match camera {
                     camera::CameraType::FreeLook => simulation.freelook_camera.view(),
-                    camera::CameraType::Follow => camera::follow_view_matrix(simulation.player_position, simulation.player_orientation),
+                    camera::CameraType::Follow => player.follow(),
                 };
                 futures::executor::block_on(renderer.render(view));
                 let current_time = Instant::now();

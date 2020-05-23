@@ -31,9 +31,3 @@ impl FreeLook {
         look_at(&self.position, &(&self.position + &self.direction), &vec3(0.0, 1.0, 0.0))
     }
 }
-
-pub fn follow_view_matrix(follow_position: Vec3, follow_orientation: Quat) -> Mat4 {
-    let camera_direction =  vec4_to_vec3(&(quat_to_mat4(&follow_orientation) * vec4(0.0, -2.0, -3.0, 1.0)));
-    let eye =  &follow_position - &camera_direction;
-    look_at(&eye, &follow_position, &vec3(0.0, 1.0, 0.0))
-}

@@ -156,15 +156,21 @@ pub struct Uniforms {
 unsafe impl bytemuck::Pod for Uniforms {}
 unsafe impl bytemuck::Zeroable for Uniforms {}
 
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct Instance {
+    model: Mat4,
+}
+
 pub struct Mesh {
     pub vertices: Vec<Vertex>,
     pub indices: Vec<u32>,
 }
 
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct Instance {
-    model: Mat4,
+struct DrawableBuffer {
+    pub vertex_buffer: wgpu::Buffer,
+    pub index_buffer: wgpu::Buffer,
+    pub index_buffer_len: u32,
 }
 
 unsafe impl bytemuck::Pod for Instance {}
@@ -177,9 +183,7 @@ pub struct Renderer {
     sc_descriptor: wgpu::SwapChainDescriptor,
     swap_chain: wgpu::SwapChain,
     render_pipeline: wgpu::RenderPipeline,
-    vertex_buffer: wgpu::Buffer,
-    index_buffer: wgpu::Buffer,
-    index_buffer_len: u32,
+    drawable: DrawableBuffer,
     uniform_buffer: wgpu::Buffer,
     instance_buffer: wgpu::Buffer,
     uniform_bind_group: wgpu::BindGroup,
@@ -325,9 +329,7 @@ impl Renderer {
             sc_descriptor,
             swap_chain,
             render_pipeline,
-            vertex_buffer,
-            index_buffer,
-            index_buffer_len: mesh.indices.len() as u32,
+            drawable:  DrawableBuffer { vertex_buffer, index_buffer, index_buffer_len: mesh.indices.len() as u32, },
             uniform_buffer,
             instance_buffer,
             uniform_bind_group,
@@ -390,10 +392,10 @@ impl Renderer {
                 }),
             });
             diffuse_scene_pass.set_pipeline(&self.render_pipeline);
-            diffuse_scene_pass.set_vertex_buffer(0, &self.vertex_buffer, 0, 0);
-            diffuse_scene_pass.set_index_buffer(&self.index_buffer, 0, 0);
+            diffuse_scene_pass.set_vertex_buffer(0, &self.drawable.vertex_buffer, 0, 0);
+            diffuse_scene_pass.set_index_buffer(&self.drawable.index_buffer, 0, 0);
             diffuse_scene_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
-            diffuse_scene_pass.draw_indexed(0..self.index_buffer_len, 0, 0..2);
+            diffuse_scene_pass.draw_indexed(0..self.drawable.index_buffer_len, 0, 0..2);
         }
         self.queue.submit(&[encoder.finish()]);
     }
