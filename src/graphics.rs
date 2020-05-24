@@ -45,7 +45,7 @@ pub fn enhance_provoking_vertices(vertices: &[[f32; 3]], indices: &[u32]) -> Vec
     for face in indices.chunks(3) {
         let edge_0: Vec3 = make_vec3(&vertices[face[2] as usize]) - make_vec3(&vertices[face[0] as usize]);
         let edge_1: Vec3 = make_vec3(&vertices[face[1] as usize]) - make_vec3(&vertices[face[0] as usize]);
-        let n: Vec3 = cross(&edge_0, &edge_1).normalize();
+        let n: Vec3 = cross(&edge_1, &edge_0).normalize();
         mesh_vertices[face[0] as usize].normal = n.as_slice().try_into().unwrap();
     }
     mesh_vertices

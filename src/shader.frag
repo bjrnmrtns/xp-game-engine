@@ -11,7 +11,7 @@ uniform Uniforms {
 };
 
 void main() {
-    vec3 light = mat3(view) * vec3(0.0, 1.0, 0.0);
+    vec3 light = mat3(view) * vec3(100.0, 100.0, 0.0);
     float intensity = max(dot(in_normal, light), 0.01);
     out_color = vec4(in_color * intensity, 1.0);
 }
