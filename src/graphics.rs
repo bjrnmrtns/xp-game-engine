@@ -350,8 +350,8 @@ impl Renderer {
         self.drawables.len() - 1
     }
 
-    pub fn update(&mut self, model: Mat4) {
-        let instances = [Instance { model, }];
+    pub fn update(&mut self, model_player: Mat4, model_terrain: Mat4) {
+        let instances = [Instance { model: model_player }, Instance { model: model_terrain }];
         let buffer = self.device.create_buffer_with_data(bytemuck::cast_slice(&instances), wgpu::BufferUsage::COPY_SRC);
         let mut encoder =
             self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
@@ -396,12 +396,16 @@ impl Renderer {
                 }),
             });
             diffuse_scene_pass.set_pipeline(&self.render_pipeline);
-            for drawable in &self.drawables {
-                diffuse_scene_pass.set_vertex_buffer(0, &drawable.vertex_buffer, 0, 0);
-                diffuse_scene_pass.set_index_buffer(&drawable.index_buffer, 0, 0);
-                diffuse_scene_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
-                diffuse_scene_pass.draw_indexed(0..drawable.index_buffer_len, 0, 0..2);
-            }
+
+            diffuse_scene_pass.set_vertex_buffer(0, &self.drawables[0].vertex_buffer, 0, 0);
+            diffuse_scene_pass.set_index_buffer(&self.drawables[0].index_buffer, 0, 0);
+            diffuse_scene_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
+            diffuse_scene_pass.draw_indexed(0..self.drawables[0].index_buffer_len, 0, 0..1);
+
+            diffuse_scene_pass.set_vertex_buffer(0, &self.drawables[1].vertex_buffer, 0, 0);
+            diffuse_scene_pass.set_index_buffer(&self.drawables[1].index_buffer, 0, 0);
+            diffuse_scene_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
+            diffuse_scene_pass.draw_indexed(0..self.drawables[1].index_buffer_len, 0, 1..2);
         }
         self.queue.submit(&[encoder.finish()]);
     }

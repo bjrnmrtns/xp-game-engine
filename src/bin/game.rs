@@ -10,6 +10,7 @@ use winit::event::{WindowEvent, ElementState, VirtualKeyCode, Event, KeyboardInp
 use winit::window::WindowBuilder;
 use winit::event::DeviceEvent::MouseMotion;
 use xp::entity::{Posable, Followable};
+use nalgebra_glm::identity;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "options", about = "command line options")]
@@ -26,22 +27,27 @@ pub fn create_terrain() -> (Vec<[f32; 3]>, Vec<u32>) {
     (Vec::new(), Vec::new())
 }
 
+pub fn create_mesh_from(obj_file_name: &str) -> graphics::Mesh {
+    let obj_file = &mut BufReader::new(File::open(obj_file_name).expect(format!("Could not open obj file: {}", obj_file_name).as_str()));
+    let (vertices, indices) = obj::parse_obj(obj_file).expect(format!("Could not parse obj file: {}", obj_file_name).as_str());
+    let (vertices, indices) = graphics::ensure_unique_provoking_vertices(vertices.as_slice(), indices.as_slice());
+    graphics::Mesh { vertices: graphics::enhance_provoking_vertices(vertices.as_slice(), indices.as_slice()), indices, }
+}
+
 fn game(options: Options) {
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()
         .build(&event_loop).expect("Could not create window");
 
-    let camera = camera::CameraType::Follow;
+    let camera = camera::CameraType::FreeLook;
     let mut player = entity::Entity::new();
-    let obj_file_name = "obj/arrow.obj";
-    let obj_file = &mut BufReader::new(File::open(obj_file_name).expect(format!("Could not open obj file: {}", obj_file_name).as_str()));
-    let (vertices, indices) = obj::parse_obj(obj_file).expect(format!("Could not parse obj file: {}", obj_file_name).as_str());
-    let (vertices, indices) = graphics::ensure_unique_provoking_vertices(vertices.as_slice(), indices.as_slice());
-    let player_mesh = graphics::Mesh { vertices: graphics::enhance_provoking_vertices(vertices.as_slice(), indices.as_slice()), indices, };
-    let (vertices, indices) = create_terrain();
-    let _terrain_mesh = graphics::Mesh { vertices: graphics::enhance_provoking_vertices(vertices.as_slice(), indices.as_slice()), indices, };
+
+    let player_mesh = create_mesh_from("obj/arrow.obj");
+    let terrain_mesh = create_mesh_from("obj/ground-plane-20x20.obj");
+
     let mut renderer = futures::executor::block_on(graphics::Renderer::new(&window)).expect("Could not create graphics renderer");
     renderer.create_drawable_from_mesh(&player_mesh);
+    renderer.create_drawable_from_mesh(&terrain_mesh);
 
     let mut previous_time = Instant::now();
 
@@ -82,7 +88,7 @@ fn game(options: Options) {
         match event {
             Event::RedrawRequested(_) => {
                 // first rotate all vertices on 0,0,0 (rotate around origin), then translate all points towards location.
-                renderer.update(player.pose());
+                renderer.update(player.pose(), identity());
                 // for the view matrix we can also use player_move and player_rotate, and use the inverse of the resulting matrix
                 let view = match camera {
                     camera::CameraType::FreeLook => simulation.freelook_camera.view(),
