@@ -42,6 +42,7 @@ fn game(options: Options) {
     let camera = camera::CameraType::Follow;
     let mut player = entity::Entity::new();
 
+    let (models, materials) = tobj::load_obj("obj/axis.obj", true).expect("Could not open obj/axis.obj");
     let player_mesh = create_mesh_from("obj/arrow.obj");
     let terrain_mesh = create_mesh_from("obj/ground-plane-20x20.obj");
 
