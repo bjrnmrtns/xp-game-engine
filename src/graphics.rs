@@ -2,6 +2,7 @@ use winit::window::Window;
 use nalgebra_glm::*;
 use std::collections::HashSet;
 use std::convert::TryInto;
+use wgpu::*;
 
 pub type Result<T> = std::result::Result<T, GraphicsError>;
 
@@ -161,7 +162,7 @@ impl Vertex {
     fn desc<'a>() -> wgpu::VertexBufferDescriptor<'a> {
         use std::mem;
         wgpu::VertexBufferDescriptor {
-            stride: mem::size_of::<Vertex>() as wgpu::BufferAddress,
+            stride: mem::size_of::<Self>() as wgpu::BufferAddress,
             step_mode: wgpu::InputStepMode::Vertex,
             attributes: &[
                 wgpu::VertexAttributeDescriptor {
@@ -178,6 +179,41 @@ impl Vertex {
                     offset: 2 * mem::size_of::<[f32;3]>() as wgpu::BufferAddress,
                     shader_location: 2,
                     format: wgpu::VertexFormat::Float3,
+                },
+            ]
+        }
+    }
+}
+
+#[repr(C)]
+#[derive(Copy, Clone, Debug)]
+pub struct UIVertex {
+    pub position: [f32; 2],
+    pub uv: [f32; 2],
+    pub color: [u8; 4],
+}
+
+impl UIVertex {
+    fn desc<'a>() -> wgpu::VertexBufferDescriptor<'a> {
+        use std::mem;
+        wgpu::VertexBufferDescriptor {
+            stride: mem::size_of::<Self>() as wgpu::BufferAddress,
+            step_mode: wgpu::InputStepMode::Vertex,
+            attributes: &[
+                wgpu::VertexAttributeDescriptor {
+                    offset: 0,
+                    shader_location: 0,
+                    format: wgpu::VertexFormat::Float2,
+                },
+                wgpu::VertexAttributeDescriptor {
+                    offset: 8,
+                    shader_location: 1,
+                    format: wgpu::VertexFormat::Float2,
+                },
+                wgpu::VertexAttributeDescriptor {
+                    offset: 16,
+                    shader_location: 2,
+                    format: wgpu::VertexFormat::Uint,
                 },
             ]
         }
@@ -231,6 +267,7 @@ pub struct Renderer {
 
 impl Renderer {
     pub async fn new(window: &Window) -> Result<Self> {
+        // from here device creation and surface swapchain
         let surface =  wgpu::Surface::create(window);
         let adapter = wgpu::Adapter::request(
             &wgpu::RequestAdapterOptions { power_preference: wgpu::PowerPreference::Default,
@@ -250,6 +287,7 @@ impl Renderer {
         };
         let swap_chain = device.create_swap_chain(&surface, &sc_descriptor);
 
+        // from here 3D renderpipeline creation
         let vs_spirv = glsl_to_spirv::compile(include_str!("shader.vert"), glsl_to_spirv::ShaderType::Vertex)?;
         let fs_spirv = glsl_to_spirv::compile(include_str!("shader.frag"), glsl_to_spirv::ShaderType::Fragment)?;
         let vs_data = wgpu::read_spirv(vs_spirv)?;
@@ -357,6 +395,103 @@ impl Renderer {
             alpha_to_coverage_enabled: false,
         });
         let depth_texture = Texture::create_depth_texture(&device, &sc_descriptor);
+
+        // from here UI renderpipeline creation
+
+        let ui_vs_module = device.create_shader_module(&Vec::new());
+        let ui_fs_module = device.create_shader_module(&Vec::new());
+        let uniform_buffer_len = 64;
+        let uniform_buffer = device.create_buffer(&BufferDescriptor {
+            label: None,
+            size: uniform_buffer_len,
+            usage: BufferUsage::UNIFORM | BufferUsage::COPY_DST,
+        });
+        let ui_uniform_layout= device.create_bind_group_layout(&BindGroupLayoutDescriptor{
+            label: None,
+            bindings: &[BindGroupLayoutEntry{
+                binding: 0,
+                visibility: ShaderStage::VERTEX,
+                ty: wgpu::BindingType::UniformBuffer { dynamic: false},
+            }]
+        });
+
+        let uniform_bind_group = device.create_bind_group(&BindGroupDescriptor{
+            label: None,
+            layout: &ui_uniform_layout,
+            bindings: &[wgpu::Binding {
+                binding: 0,
+                resource: wgpu::BindingResource::Buffer {
+                    buffer: &uniform_buffer,
+                    range: 0..uniform_buffer_len,
+                }
+            }],
+        });
+
+        let ui_texture_layout = device.create_bind_group_layout(&BindGroupLayoutDescriptor{
+            label: None,
+            bindings: &[
+                BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStage::FRAGMENT,
+                    ty: wgpu::BindingType::SampledTexture {
+                        multisampled: false,
+                        component_type: wgpu::TextureComponentType::Float,
+                        dimension: TextureViewDimension::D2,
+                    },
+                },
+                BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStage::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler { comparison: false },
+                },
+            ]
+        });
+
+        let ui_pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
+            bind_group_layouts: &[&ui_uniform_layout, &ui_texture_layout],
+        });
+
+        let ui_render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor{
+            layout: &ui_pipeline_layout,
+            vertex_stage: wgpu::ProgrammableStageDescriptor {
+                module: &ui_vs_module,
+                entry_point: "main"
+            },
+            fragment_stage: Some(wgpu::ProgrammableStageDescriptor {
+                module: &ui_fs_module,
+                entry_point: "main",
+            }),
+            rasterization_state: Some(RasterizationStateDescriptor {
+                front_face: wgpu::FrontFace::Ccw,
+                cull_mode: CullMode::Back,
+                depth_bias: 0,
+                depth_bias_slope_scale: 0.0,
+                depth_bias_clamp: 0.0,
+            }),
+            primitive_topology: PrimitiveTopology::TriangleList,
+            color_states: &[ColorStateDescriptor {
+                format: TextureFormat::Rgba8Unorm,
+                color_blend: BlendDescriptor {
+                    src_factor: BlendFactor::SrcAlpha,
+                    dst_factor: BlendFactor::OneMinusSrcAlpha,
+                    operation: BlendOperation::Add,
+                },
+                alpha_blend: BlendDescriptor {
+                    src_factor: BlendFactor::OneMinusDstAlpha,
+                    dst_factor: BlendFactor::One,
+                    operation: BlendOperation::Add,
+                },
+                write_mask: ColorWrite::ALL,
+            }],
+            depth_stencil_state: None,
+            vertex_state: VertexStateDescriptor {
+                index_format: IndexFormat::Uint32,
+                vertex_buffers: &[UIVertex::desc()],
+            },
+            sample_count: 1,
+            sample_mask: !0,
+            alpha_to_coverage_enabled: false,
+        });
         Ok(Self {
             surface,
             device,
