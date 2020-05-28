@@ -10,8 +10,10 @@ uniform Uniforms {
     mat4 view;
 };
 
+const vec3 light = vec3(1.0, 1.0, -1.0);
+
 void main() {
-    vec3 light = mat3(view) * vec3(1.0, 1.0, 0.0);
-    float intensity = max(dot(in_normal, light), 0.01);
-    out_color = vec4(in_color * intensity, 1.0);
+    vec3 view_light = mat3(view) * light;
+    float lum = max(dot(normalize(in_normal), normalize(view_light)), 0.0);
+    out_color = vec4(in_color * (0.2 + 0.8 * lum), 1.0);
 }
