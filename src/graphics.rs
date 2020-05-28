@@ -41,7 +41,7 @@ pub fn ensure_unique_provoking_vertices(vertices: &[[f32; 3]], indices: &[u32]) 
 }
 
 pub fn enhance_provoking_vertices(vertices: &[[f32; 3]], indices: &[u32]) -> Vec<Vertex> {
-    let mut mesh_vertices: Vec<Vertex> = vertices.iter().map(|v| Vertex { position: *v, normal: [0.0, 1.0, 0.0], color_id: 2 } ).collect();
+    let mut mesh_vertices: Vec<Vertex> = vertices.iter().map(|v| Vertex { position: *v, normal: [0.0, 1.0, 0.0], color: [1.0, 0.0, 0.0] } ).collect();
     for face in indices.chunks(3) {
         let edge_0: Vec3 = make_vec3(&vertices[face[2] as usize]) - make_vec3(&vertices[face[0] as usize]);
         let edge_1: Vec3 = make_vec3(&vertices[face[1] as usize]) - make_vec3(&vertices[face[0] as usize]);
@@ -102,7 +102,7 @@ impl Texture {
 pub struct Vertex {
     pub position: [f32; 3],
     pub normal: [f32; 3],
-    pub color_id: u32, // check if this can be a byte (will index into a colormap)
+    pub color: [f32; 3],
 }
 
 impl From<&[f32; 3]> for Vertex {
@@ -110,7 +110,7 @@ impl From<&[f32; 3]> for Vertex {
         Self {
             position: *p,
             normal: [0.0, 1.0, 0.0],
-            color_id: 0,
+            color: [0.0, 0.0, 0.0],
         }
     }
 }
@@ -139,7 +139,7 @@ impl Vertex {
                 wgpu::VertexAttributeDescriptor {
                     offset: 2 * mem::size_of::<[f32;3]>() as wgpu::BufferAddress,
                     shader_location: 2,
-                    format: wgpu::VertexFormat::Uint,
+                    format: wgpu::VertexFormat::Float3,
                 },
             ]
         }
