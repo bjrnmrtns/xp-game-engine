@@ -34,6 +34,13 @@ pub fn create_mesh_from(obj_file_name: &str) -> graphics::Mesh {
     graphics::Mesh { vertices: graphics::enhance_provoking_vertices(vertices.as_slice(), indices.as_slice()), indices, }
 }
 
+/*
+pub fn create_mesh_from2(obj_file_name: &str) -> graphics::Mesh {
+
+}
+
+ */
+
 fn game(options: Options) {
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()
@@ -42,13 +49,15 @@ fn game(options: Options) {
     let camera = camera::CameraType::Follow;
     let mut player = entity::Entity::new();
 
-    let (models, materials) = tobj::load_obj("obj/axis.obj", true).expect("Could not open obj/axis.obj");
     let player_mesh = create_mesh_from("obj/arrow.obj");
     let terrain_mesh = create_mesh_from("obj/ground-plane-20x20.obj");
+    let axis_mesh = create_mesh_from("obj/axis.obj");
 
     let mut renderer = futures::executor::block_on(graphics::Renderer::new(&window)).expect("Could not create graphics renderer");
     renderer.create_drawable_from_mesh(&player_mesh);
     renderer.create_drawable_from_mesh(&terrain_mesh);
+    renderer.create_drawable_from_mesh(&axis_mesh);
+
 
     let mut previous_time = Instant::now();
 
@@ -89,7 +98,7 @@ fn game(options: Options) {
         match event {
             Event::RedrawRequested(_) => {
                 // first rotate all vertices on 0,0,0 (rotate around origin), then translate all points towards location.
-                renderer.update(player.pose(), identity());
+                renderer.update(player.pose(), identity(), identity());
                 // for the view matrix we can also use player_move and player_rotate, and use the inverse of the resulting matrix
                 let view = match camera {
                     camera::CameraType::FreeLook => simulation.freelook_camera.view(),
