@@ -53,7 +53,7 @@ pub fn make_mesh_from_flat_obj(vertices_flat: &[f32], indices: &[u32], in_color:
             new_indices.extend(face);
         }
     }
-    for face in indices.chunks(3) {
+    for face in new_indices.chunks(3) {
         let n = create_normal([vertices[face[0] as usize].position, vertices[face[1] as usize].position, vertices[face[2] as usize].position]);
         vertices[face[0] as usize].normal = n;
     }

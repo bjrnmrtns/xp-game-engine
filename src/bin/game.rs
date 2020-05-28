@@ -42,7 +42,7 @@ fn game(options: Options) {
     let window = WindowBuilder::new()
         .build(&event_loop).expect("Could not create window");
 
-    let camera = camera::CameraType::Follow;
+    let camera = camera::CameraType::FreeLook;
     let mut player = entity::Entity::new();
 
     let player_mesh = create_mesh_from("obj/arrow.obj");
