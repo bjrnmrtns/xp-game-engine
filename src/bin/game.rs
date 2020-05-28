@@ -1,10 +1,8 @@
-use std::fs::File;
-use std::io::BufReader;
 use std::time::{Instant};
 use std::path::PathBuf;
 use structopt::StructOpt;
 
-use xp::{*, command_queue::CommandQueue, obj};
+use xp::{*, command_queue::CommandQueue};
 use winit::event_loop::{EventLoop, ControlFlow};
 use winit::event::{WindowEvent, ElementState, VirtualKeyCode, Event, KeyboardInput};
 use winit::window::WindowBuilder;
@@ -22,24 +20,22 @@ pub struct Options {
     replay_path: Option<PathBuf>,
 }
 
-pub fn create_terrain() -> (Vec<[f32; 3]>, Vec<u32>) {
-
-    (Vec::new(), Vec::new())
-}
-
 pub fn create_mesh_from(obj_file_name: &str) -> graphics::Mesh {
-    let obj_file = &mut BufReader::new(File::open(obj_file_name).expect(format!("Could not open obj file: {}", obj_file_name).as_str()));
-    let (vertices, indices) = obj::parse_obj(obj_file).expect(format!("Could not parse obj file: {}", obj_file_name).as_str());
-    let (vertices, indices) = graphics::ensure_unique_provoking_vertices(vertices.as_slice(), indices.as_slice());
-    graphics::Mesh { vertices: graphics::enhance_provoking_vertices(vertices.as_slice(), indices.as_slice()), indices, }
+    let (models, materials) = tobj::load_obj(obj_file_name, true).expect(format!("Could not read obj file: {}", obj_file_name).as_str());
+    let mut mesh = graphics::Mesh { vertices: Vec::new(), indices: Vec::new() };
+    for model in models {
+        let color = if let Some(material_id) = model.mesh.material_id {
+            materials[material_id].diffuse
+        } else {
+            [0.8, 0.0, 0.8]
+        };
+        let model_mesh = graphics::make_mesh_from_flat_obj(model.mesh.positions.as_ref(), model.mesh.indices.as_ref(), &color);
+        let index_offset = mesh.vertices.len() as u32;
+        mesh.vertices.extend(model_mesh.vertices);
+        mesh.indices.extend(model_mesh.indices.iter().map(|i| i + index_offset ));
+    }
+    mesh
 }
-
-/*
-pub fn create_mesh_from2(obj_file_name: &str) -> graphics::Mesh {
-
-}
-
- */
 
 fn game(options: Options) {
     let event_loop = EventLoop::new();
