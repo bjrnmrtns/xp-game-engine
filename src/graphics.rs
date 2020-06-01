@@ -133,6 +133,43 @@ impl Texture {
 
         Self { texture, view, sampler }
     }
+
+    pub fn create_ui_texture(device: &wgpu::Device, sc_desc: &wgpu::SwapChainDescriptor) -> Self {
+        let texture = device.create_texture(&TextureDescriptor {
+            label: None,
+            size: Extent3d {
+                width: 100,
+                height: 100,
+                depth: 1,
+            },
+            array_layer_count: 1,
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: TextureDimension::D2,
+            format: TextureFormat::Rgba8Unorm,
+            usage: TextureUsage::SAMPLED | TextureUsage::COPY_DST,
+        });
+        //TODO: copy data into texture from argument
+
+        let view = texture.create_default_view();
+
+        let sampler = device.create_sampler(&SamplerDescriptor {
+            address_mode_u: AddressMode::ClampToEdge,
+            address_mode_v: AddressMode::ClampToEdge,
+            address_mode_w: AddressMode::ClampToEdge,
+            mag_filter: FilterMode::Linear,
+            min_filter: FilterMode::Linear,
+            mipmap_filter: FilterMode::Linear,
+            lod_min_clamp: -100.0,
+            lod_max_clamp: 100.0,
+            compare: CompareFunction::Always,
+        });
+        Self {
+            texture,
+            view,
+            sampler,
+        }
+    }
 }
 
 
@@ -398,8 +435,12 @@ impl Renderer {
 
         // from here UI renderpipeline creation
 
-        let ui_vs_module = device.create_shader_module(&Vec::new());
-        let ui_fs_module = device.create_shader_module(&Vec::new());
+        let vs_ui_spirv = glsl_to_spirv::compile(include_str!("shader_ui.vert"), glsl_to_spirv::ShaderType::Vertex)?;
+        let fs_ui_spirv = glsl_to_spirv::compile(include_str!("shader_ui.frag"), glsl_to_spirv::ShaderType::Fragment)?;
+        let vs_ui_data = wgpu::read_spirv(vs_ui_spirv)?;
+        let fs_ui_data = wgpu::read_spirv(fs_ui_spirv)?;
+        let ui_vs_module = device.create_shader_module(&vs_ui_data);
+        let ui_fs_module = device.create_shader_module(&fs_ui_data);
         let uniform_buffer_len = 64;
         let uniform_buffer = device.create_buffer(&BufferDescriptor {
             label: None,
