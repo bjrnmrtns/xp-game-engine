@@ -230,6 +230,9 @@ pub struct UIVertex {
     pub color: [u8; 4],
 }
 
+unsafe impl bytemuck::Pod for UIVertex {}
+unsafe impl bytemuck::Zeroable for UIVertex {}
+
 impl UIVertex {
     fn desc<'a>() -> wgpu::VertexBufferDescriptor<'a> {
         use std::mem;
@@ -294,6 +297,11 @@ pub struct Renderer {
     sc_descriptor: wgpu::SwapChainDescriptor,
     swap_chain: wgpu::SwapChain,
     render_pipeline: wgpu::RenderPipeline,
+    ui_vertex_buffer: wgpu::Buffer,
+    ui_index_buffer: wgpu::Buffer,
+    ui_uniform_bind_group: wgpu::BindGroup,
+    ui_uniform_buffer: wgpu::Buffer,
+    ui_render_pipeline: wgpu::RenderPipeline,
     drawables: Vec<Drawable>,
     uniform_buffer: wgpu::Buffer,
     instance_buffer: wgpu::Buffer,
@@ -468,7 +476,7 @@ impl Renderer {
             }],
         });
 
-        let ui_texture_layout = device.create_bind_group_layout(&BindGroupLayoutDescriptor{
+        /*let ui_texture_layout = device.create_bind_group_layout(&BindGroupLayoutDescriptor{
             label: None,
             bindings: &[
                 BindGroupLayoutEntry {
@@ -486,10 +494,10 @@ impl Renderer {
                     ty: wgpu::BindingType::Sampler { comparison: false },
                 },
             ]
-        });
+        });*/
 
         let ui_pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
-            bind_group_layouts: &[&ui_uniform_layout, &ui_texture_layout],
+            bind_group_layouts: &[&ui_uniform_layout,/* &ui_texture_layout*/],
         });
 
         let ui_render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor{
@@ -533,6 +541,25 @@ impl Renderer {
             sample_mask: !0,
             alpha_to_coverage_enabled: false,
         });
+        let ui_vertices = [UIVertex {
+            position: [0.5, 0.5],
+            uv: [0.0, 0.0],
+            color: [128, 0, 0, 255],
+        },
+            UIVertex {
+                position: [0.0, 0.5],
+                uv: [0.0, 0.0],
+                color: [128, 0, 0, 255],
+            },
+            UIVertex {
+                position: [0.0, 0.0],
+                uv: [0.0, 0.0],
+                color: [128, 0, 0, 255],
+            },];
+        let ui_indices: &[u32] = &[0, 1, 2];
+        let ui_vertex_buffer = device.create_buffer_with_data(bytemuck::cast_slice(&ui_vertices), wgpu::BufferUsage::VERTEX);
+        let ui_index_buffer = device.create_buffer_with_data(bytemuck::cast_slice(ui_indices), wgpu::BufferUsage::INDEX);
+
         Ok(Self {
             surface,
             device,
@@ -540,6 +567,11 @@ impl Renderer {
             sc_descriptor,
             swap_chain,
             render_pipeline,
+            ui_vertex_buffer,
+            ui_index_buffer,
+            ui_uniform_bind_group,
+            ui_uniform_buffer,
+            ui_render_pipeline,
             drawables: Vec::new(),
             uniform_buffer,
             instance_buffer,
@@ -625,6 +657,30 @@ impl Renderer {
             diffuse_scene_pass.set_index_buffer(&self.drawables[2].index_buffer, 0, 0);
             diffuse_scene_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
             diffuse_scene_pass.draw_indexed(0..self.drawables[2].index_buffer_len, 0, 2..3);
+        }
+        {
+            let mut ui_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                color_attachments: &[
+                    wgpu::RenderPassColorAttachmentDescriptor {
+                        attachment: &frame.view,
+                        resolve_target: None,
+                        load_op: wgpu::LoadOp::Load,
+                        store_op: wgpu::StoreOp::Store,
+                        clear_color: wgpu::Color {
+                            r: 0.0,
+                            g: 0.0,
+                            b: 0.0,
+                            a: 1.0,
+                        }
+                    }
+                ],
+                depth_stencil_attachment: None
+            });
+            ui_pass.set_pipeline(&self.ui_render_pipeline);
+            ui_pass.set_vertex_buffer(0, &self.ui_vertex_buffer, 0, 0);
+            ui_pass.set_index_buffer(&self.ui_index_buffer, 0, 0);
+            ui_pass.set_bind_group(0, &self.ui_uniform_bind_group, &[]);
+            ui_pass.draw_indexed(0..3, 0, 0..1);
         }
         self.queue.submit(&[encoder.finish()]);
     }
