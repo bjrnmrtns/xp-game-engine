@@ -441,10 +441,10 @@ impl Renderer {
         let fs_ui_data = wgpu::read_spirv(fs_ui_spirv)?;
         let ui_vs_module = device.create_shader_module(&vs_ui_data);
         let ui_fs_module = device.create_shader_module(&fs_ui_data);
-        let uniform_buffer_len = 64;
-        let uniform_buffer = device.create_buffer(&BufferDescriptor {
+        let ui_uniform_buffer_len = 64;
+        let ui_uniform_buffer = device.create_buffer(&BufferDescriptor {
             label: None,
-            size: uniform_buffer_len,
+            size: ui_uniform_buffer_len,
             usage: BufferUsage::UNIFORM | BufferUsage::COPY_DST,
         });
         let ui_uniform_layout= device.create_bind_group_layout(&BindGroupLayoutDescriptor{
@@ -456,14 +456,14 @@ impl Renderer {
             }]
         });
 
-        let uniform_bind_group = device.create_bind_group(&BindGroupDescriptor{
+        let ui_uniform_bind_group = device.create_bind_group(&BindGroupDescriptor{
             label: None,
             layout: &ui_uniform_layout,
             bindings: &[wgpu::Binding {
                 binding: 0,
                 resource: wgpu::BindingResource::Buffer {
                     buffer: &uniform_buffer,
-                    range: 0..uniform_buffer_len,
+                    range: 0..ui_uniform_buffer_len,
                 }
             }],
         });
