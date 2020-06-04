@@ -519,7 +519,7 @@ impl Renderer {
             }),
             primitive_topology: PrimitiveTopology::TriangleList,
             color_states: &[ColorStateDescriptor {
-                format: TextureFormat::Rgba8Unorm,
+                format: sc_descriptor.format,
                 color_blend: BlendDescriptor {
                     src_factor: BlendFactor::SrcAlpha,
                     dst_factor: BlendFactor::OneMinusSrcAlpha,
