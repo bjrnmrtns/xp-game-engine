@@ -100,10 +100,10 @@ fn game(options: Options) {
                     camera::CameraType::FreeLook => simulation.freelook_camera.view(),
                     camera::CameraType::Follow => player.follow(),
                 };
-                futures::executor::block_on(renderer.render(view));
                 let current_time = Instant::now();
-                println!("fps: {}", (current_time - previous_time).as_millis());
+                let fps = (1000.0 / (current_time - previous_time).as_millis() as f32) as u32;
                 previous_time = current_time;
+                futures::executor::block_on(renderer.render(view, fps));
             }
             Event::MainEventsCleared => {
                 window.request_redraw();

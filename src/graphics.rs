@@ -331,10 +331,17 @@ pub struct Renderer {
     instance_buffer: wgpu::Buffer,
     uniform_bind_group: wgpu::BindGroup,
     depth_texture: Texture,
+    glyph_brush: wgpu_glyph::GlyphBrush<()>,
     window_size: winit::dpi::PhysicalSize<u32>,
 }
 
 impl Renderer {
+    pub fn build_glyph_brush(device: &wgpu::Device, texture_format: wgpu::TextureFormat) -> wgpu_glyph::GlyphBrush<()> {
+        let font = wgpu_glyph::ab_glyph::FontArc::try_from_slice(include_bytes!("JetBrainsMono-Regular.ttf")).expect("Can not load font");
+        let mut glyph_brush = wgpu_glyph::GlyphBrushBuilder::using_font(font).build(&device, texture_format);
+        glyph_brush
+    }
+
     pub async fn new(window: &Window) -> Result<Self> {
         // from here device creation and surface swapchain
         let surface =  wgpu::Surface::create(window);
@@ -599,6 +606,7 @@ impl Renderer {
         let ui_indices: &[u32] = &[0, 1, 2];
         let ui_vertex_buffer = device.create_buffer_with_data(bytemuck::cast_slice(&ui_vertices), wgpu::BufferUsage::VERTEX);
         let ui_index_buffer = device.create_buffer_with_data(bytemuck::cast_slice(ui_indices), wgpu::BufferUsage::INDEX);
+        let glyph_brush = Renderer::build_glyph_brush(&device, wgpu::TextureFormat::Bgra8UnormSrgb);
 
         Ok(Self {
             surface,
@@ -619,6 +627,7 @@ impl Renderer {
             instance_buffer,
             uniform_bind_group,
             depth_texture,
+            glyph_brush,
             window_size: window.inner_size(),
         })
     }
@@ -648,7 +657,7 @@ impl Renderer {
         self.queue.submit(&[encoder.finish()]);
     }
 
-    pub async fn render(&mut self, view: Mat4) {
+    pub async fn render(&mut self, view: Mat4, fps: u32) {
         let projection = perspective(self.sc_descriptor.width as f32 / self.sc_descriptor.height as f32,45.0, 0.1, 100.0);
         let uniforms = Uniforms { projection: projection, view: view, };
         let buffer = self.device.create_buffer_with_data(bytemuck::cast_slice(&[uniforms]), wgpu::BufferUsage::COPY_SRC);
@@ -725,6 +734,13 @@ impl Renderer {
             ui_pass.set_bind_group(1, &self.ui_texture_bind_group, &[]);
             ui_pass.draw_indexed(0..3, 0, 0..1);
         }
+        let fps = format!("{}", fps);
+        let section = wgpu_glyph::Section {
+            screen_position: (10.0, 10.0),
+            text: vec![wgpu_glyph::Text::new(fps.as_str()).with_color([1.0, 0.0, 0.0, 1.0]).with_scale(wgpu_glyph::ab_glyph::PxScale{ x: 48.0, y: 48.0 })], ..wgpu_glyph::Section::default()
+        };
+        self.glyph_brush.queue(section);
+        self.glyph_brush.draw_queued(&self.device, &mut encoder, &frame.view, self.sc_descriptor.width, self.sc_descriptor.height,).expect("Cannot draw glyph_brush");
         self.queue.submit(&[encoder.finish()]);
     }
 }
