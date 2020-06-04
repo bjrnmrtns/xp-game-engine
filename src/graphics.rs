@@ -134,7 +134,7 @@ impl Texture {
         Self { texture, view, sampler }
     }
 
-    pub fn create_ui_texture(device: &wgpu::Device, sc_desc: &wgpu::SwapChainDescriptor) -> Self {
+    pub fn create_ui_texture(device: &wgpu::Device, sc_desc: &wgpu::SwapChainDescriptor, queue: &mut Queue) -> Self {
         let texture = device.create_texture(&TextureDescriptor {
             label: None,
             size: Extent3d {
@@ -150,7 +150,29 @@ impl Texture {
             usage: TextureUsage::SAMPLED | TextureUsage::COPY_DST,
         });
         //TODO: copy data into texture from argument
-
+        let data: Vec<u8> = vec![255;100 * 100 * 4]; // should be all white
+        let buffer = device.create_buffer_with_data(data.as_slice(), BufferUsage::COPY_SRC);
+        let mut encoder = device.create_command_encoder(&CommandEncoderDescriptor {label: None});
+        encoder.copy_buffer_to_texture(
+            BufferCopyView {
+                buffer: &buffer,
+                offset: 0,
+                bytes_per_row: 100 * 4,
+                rows_per_image: 100,
+            },
+            TextureCopyView {
+                texture: &texture,
+                mip_level: 0,
+                array_layer: 0,
+                origin: Origin3d { x: 0, y: 0, z: 0 },
+            },
+            Extent3d {
+                width: 100,
+                height: 100,
+                depth: 1,
+            }
+        );
+        queue.submit(&[encoder.finish()]);
         let view = texture.create_default_view();
 
         let sampler = device.create_sampler(&SamplerDescriptor {
@@ -302,6 +324,8 @@ pub struct Renderer {
     ui_uniform_bind_group: wgpu::BindGroup,
     ui_uniform_buffer: wgpu::Buffer,
     ui_render_pipeline: wgpu::RenderPipeline,
+    ui_texture: Texture,
+    ui_texture_bind_group: wgpu::BindGroup,
     drawables: Vec<Drawable>,
     uniform_buffer: wgpu::Buffer,
     instance_buffer: wgpu::Buffer,
@@ -321,7 +345,7 @@ impl Renderer {
             Some(adapter) => adapter,
             None => { return Err(GraphicsError::RequestAdapter); },
         };
-        let (device, queue) = adapter.request_device(&wgpu::DeviceDescriptor
+        let (device, mut queue) = adapter.request_device(&wgpu::DeviceDescriptor
         { extensions: wgpu::Extensions { anisotropic_filtering: false, }, limits: Default::default(), }).await;
         let sc_descriptor = wgpu::SwapChainDescriptor{
             usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
@@ -476,7 +500,7 @@ impl Renderer {
             }],
         });
 
-        /*let ui_texture_layout = device.create_bind_group_layout(&BindGroupLayoutDescriptor{
+        let ui_texture_layout = device.create_bind_group_layout(&BindGroupLayoutDescriptor{
             label: None,
             bindings: &[
                 BindGroupLayoutEntry {
@@ -494,10 +518,10 @@ impl Renderer {
                     ty: wgpu::BindingType::Sampler { comparison: false },
                 },
             ]
-        });*/
+        });
 
         let ui_pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
-            bind_group_layouts: &[&ui_uniform_layout,/* &ui_texture_layout*/],
+            bind_group_layouts: &[&ui_uniform_layout, &ui_texture_layout],
         });
 
         let ui_render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor{
@@ -543,12 +567,12 @@ impl Renderer {
         });
         let ui_vertices = [UIVertex {
             position: [0.5, 0.5],
-            uv: [0.0, 0.0],
+            uv: [1.0, 1.0],
             color: [128, 0, 0, 255],
         },
             UIVertex {
                 position: [0.0, 0.5],
-                uv: [0.0, 0.0],
+                uv: [0.0, 1.0],
                 color: [128, 0, 0, 255],
             },
             UIVertex {
@@ -556,6 +580,22 @@ impl Renderer {
                 uv: [0.0, 0.0],
                 color: [128, 0, 0, 255],
             },];
+        let ui_texture = Texture::create_ui_texture(&device, &sc_descriptor, &mut queue);
+        let ui_texture_bind_group = device.create_bind_group(&BindGroupDescriptor {
+            label: None,
+            layout: &ui_texture_layout,
+            bindings: &[
+                Binding {
+                    binding: 0,
+                    resource: BindingResource::TextureView(&ui_texture.view),
+                },
+                Binding {
+                    binding: 1,
+                    resource: BindingResource::Sampler(&ui_texture.sampler),
+                },
+            ],
+        });
+
         let ui_indices: &[u32] = &[0, 1, 2];
         let ui_vertex_buffer = device.create_buffer_with_data(bytemuck::cast_slice(&ui_vertices), wgpu::BufferUsage::VERTEX);
         let ui_index_buffer = device.create_buffer_with_data(bytemuck::cast_slice(ui_indices), wgpu::BufferUsage::INDEX);
@@ -572,6 +612,8 @@ impl Renderer {
             ui_uniform_bind_group,
             ui_uniform_buffer,
             ui_render_pipeline,
+            ui_texture,
+            ui_texture_bind_group,
             drawables: Vec::new(),
             uniform_buffer,
             instance_buffer,
@@ -680,6 +722,7 @@ impl Renderer {
             ui_pass.set_vertex_buffer(0, &self.ui_vertex_buffer, 0, 0);
             ui_pass.set_index_buffer(&self.ui_index_buffer, 0, 0);
             ui_pass.set_bind_group(0, &self.ui_uniform_bind_group, &[]);
+            ui_pass.set_bind_group(1, &self.ui_texture_bind_group, &[]);
             ui_pass.draw_indexed(0..3, 0, 0..1);
         }
         self.queue.submit(&[encoder.finish()]);
