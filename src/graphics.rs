@@ -294,6 +294,15 @@ unsafe impl bytemuck::Zeroable for Uniforms {}
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct UIUniforms {
+    projection: Mat4,
+}
+
+unsafe impl bytemuck::Pod for UIUniforms {}
+unsafe impl bytemuck::Zeroable for UIUniforms {}
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct Instance {
     model: Mat4,
 }
@@ -323,6 +332,7 @@ pub struct Renderer {
     ui_index_buffer: wgpu::Buffer,
     ui_uniform_bind_group: wgpu::BindGroup,
     ui_uniform_buffer: wgpu::Buffer,
+    ui_uniforms: UIUniforms,
     ui_render_pipeline: wgpu::RenderPipeline,
     ui_texture: Texture,
     ui_texture_bind_group: wgpu::BindGroup,
@@ -480,12 +490,12 @@ impl Renderer {
         let fs_ui_data = wgpu::read_spirv(fs_ui_spirv)?;
         let ui_vs_module = device.create_shader_module(&vs_ui_data);
         let ui_fs_module = device.create_shader_module(&fs_ui_data);
-        let ui_uniform_buffer_len = 64;
-        let ui_uniform_buffer = device.create_buffer(&BufferDescriptor {
-            label: None,
-            size: ui_uniform_buffer_len,
-            usage: BufferUsage::UNIFORM | BufferUsage::COPY_DST,
-        });
+
+        let ui_uniforms = UIUniforms { projection: identity(), };
+
+        let ui_uniform_buffer = device.create_buffer_with_data(bytemuck::cast_slice(&[ui_uniforms]),
+                                                               wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST);
+
         let ui_uniform_layout= device.create_bind_group_layout(&BindGroupLayoutDescriptor{
             label: None,
             bindings: &[BindGroupLayoutEntry{
@@ -501,8 +511,8 @@ impl Renderer {
             bindings: &[wgpu::Binding {
                 binding: 0,
                 resource: wgpu::BindingResource::Buffer {
-                    buffer: &uniform_buffer,
-                    range: 0..ui_uniform_buffer_len,
+                    buffer: &ui_uniform_buffer,
+                    range: 0..std::mem::size_of_val(&ui_uniforms) as wgpu::BufferAddress,
                 }
             }],
         });
@@ -573,12 +583,12 @@ impl Renderer {
             alpha_to_coverage_enabled: false,
         });
         let ui_vertices = [UIVertex {
-            position: [0.5, 0.5],
+            position: [100.0, 100.0],
             uv: [1.0, 1.0],
             color: [128, 0, 0, 255],
         },
             UIVertex {
-                position: [0.0, 0.5],
+                position: [0.0, 100.0],
                 uv: [0.0, 1.0],
                 color: [128, 0, 0, 255],
             },
@@ -619,6 +629,7 @@ impl Renderer {
             ui_index_buffer,
             ui_uniform_bind_group,
             ui_uniform_buffer,
+            ui_uniforms,
             ui_render_pipeline,
             ui_texture,
             ui_texture_bind_group,
@@ -709,6 +720,10 @@ impl Renderer {
             diffuse_scene_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
             diffuse_scene_pass.draw_indexed(0..self.drawables[2].index_buffer_len, 0, 2..3);
         }
+        // far and near plane are actually not used in UI rendering
+        let ui_uniforms = UIUniforms { projection: ortho(0.0, self.sc_descriptor.width as f32, 0.0, self.sc_descriptor.height as f32, -1.0, 1.0) };
+        let buffer = self.device.create_buffer_with_data(bytemuck::cast_slice(&[ui_uniforms]), wgpu::BufferUsage::COPY_SRC);
+        encoder.copy_buffer_to_buffer(&buffer, 0, &self.ui_uniform_buffer, 0, std::mem::size_of_val(&ui_uniforms) as u64);
         if render_ui
         {
             let mut ui_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
