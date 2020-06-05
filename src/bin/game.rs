@@ -37,7 +37,12 @@ pub fn create_mesh_from(obj_file_name: &str) -> graphics::Mesh {
     mesh
 }
 
+struct GameState {
+    pub ui_enabled: bool,
+}
+
 fn game(options: Options) {
+    let mut game_state = GameState { ui_enabled: false };
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()
         .build(&event_loop).expect("Could not create window");
@@ -103,7 +108,7 @@ fn game(options: Options) {
                 let current_time = Instant::now();
                 let fps = (1000.0 / (current_time - previous_time).as_millis() as f32) as u32;
                 previous_time = current_time;
-                futures::executor::block_on(renderer.render(view, fps));
+                futures::executor::block_on(renderer.render(view, fps, game_state.ui_enabled));
             }
             Event::MainEventsCleared => {
                 window.request_redraw();
@@ -132,12 +137,17 @@ fn game(options: Options) {
                     input,
                     ..
                 } => {
-                    match input {
-                        KeyboardInput {
+                    match (input, game_state.ui_enabled) {
+                        (KeyboardInput {
                             state: ElementState::Pressed,
                             virtual_keycode: Some(VirtualKeyCode::Escape),
                             ..
-                        } => *control_flow = ControlFlow::Exit,
+                        }, _) => game_state.ui_enabled = !game_state.ui_enabled,
+                        (KeyboardInput {
+                            state: ElementState::Pressed,
+                            virtual_keycode: Some(VirtualKeyCode::Q),
+                            ..
+                        }, true) => *control_flow = ControlFlow::Exit,
                         _ => inputs.push_keyboard_input(input),
                     }
                 }

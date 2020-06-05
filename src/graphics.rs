@@ -657,7 +657,7 @@ impl Renderer {
         self.queue.submit(&[encoder.finish()]);
     }
 
-    pub async fn render(&mut self, view: Mat4, fps: u32) {
+    pub async fn render(&mut self, view: Mat4, fps: u32, render_ui: bool) {
         let projection = perspective(self.sc_descriptor.width as f32 / self.sc_descriptor.height as f32,45.0, 0.1, 100.0);
         let uniforms = Uniforms { projection: projection, view: view, };
         let buffer = self.device.create_buffer_with_data(bytemuck::cast_slice(&[uniforms]), wgpu::BufferUsage::COPY_SRC);
@@ -709,6 +709,7 @@ impl Renderer {
             diffuse_scene_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
             diffuse_scene_pass.draw_indexed(0..self.drawables[2].index_buffer_len, 0, 2..3);
         }
+        if render_ui
         {
             let mut ui_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 color_attachments: &[
