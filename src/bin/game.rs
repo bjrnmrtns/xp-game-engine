@@ -127,7 +127,9 @@ fn game(options: Options) {
                 let current_time = Instant::now();
                 let fps = (1000.0 / (current_time - previous_time).as_millis() as f32) as u32;
                 previous_time = current_time;
-                futures::executor::block_on(renderer.render(view, fps, game_state.ui_enabled, None));
+                let mut ui = ui::create(window.inner_size().width, window.inner_size().height);
+                ui[0].text.text = format!("{}", fps);
+                futures::executor::block_on(renderer.render(view, fps, game_state.ui_enabled, None, &ui));
             }
             Event::MainEventsCleared => {
                 window.request_redraw();

@@ -3,6 +3,8 @@ use nalgebra_glm::*;
 use std::collections::HashSet;
 use std::convert::TryInto;
 use wgpu::*;
+use crate::ui;
+use crate::ui::Widget;
 
 pub type Result<T> = std::result::Result<T, GraphicsError>;
 
@@ -650,7 +652,7 @@ impl Renderer {
         self.queue.submit(&[encoder.finish()]);
     }
 
-    pub async fn render(&mut self, view: Mat4, fps: u32, render_ui: bool, ui_mesh: Option<Mesh<UIVertex>>) {
+    pub async fn render(&mut self, view: Mat4, fps: u32, render_ui: bool, ui_mesh: Option<Mesh<UIVertex>>, ui: &Vec<ui::Label>) {
         let projection = perspective(self.sc_descriptor.width as f32 / self.sc_descriptor.height as f32,45.0, 0.1, 100.0);
         let uniforms = Uniforms { projection: projection, view: view, };
         let buffer = self.device.create_buffer_with_data(bytemuck::cast_slice(&[uniforms]), wgpu::BufferUsage::COPY_SRC);
@@ -736,6 +738,7 @@ impl Renderer {
             ui_pass.set_bind_group(1, &self.ui_texture_bind_group, &[]);
             ui_pass.draw_indexed(0..3, 0, 0..1);
         }
+
         let fps = format!("{}", fps);
         let section = wgpu_glyph::Section {
             screen_position: (10.0, 10.0),
