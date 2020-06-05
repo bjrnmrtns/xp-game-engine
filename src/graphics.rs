@@ -41,7 +41,7 @@ pub fn ensure_unique_provoking_vertices(vertices: &[[f32; 3]], indices: &[u32]) 
     (new_vertices, new_indices)
 }
 
-pub fn make_mesh_from_flat_obj(vertices_flat: &[f32], indices: &[u32], in_color: &[f32; 3]) -> Mesh {
+pub fn make_mesh_from_flat_obj(vertices_flat: &[f32], indices: &[u32], in_color: &[f32; 3]) -> Mesh<Vertex> {
     let mut vertices: Vec<Vertex> = vertices_flat.chunks(3).map(|v| Vertex { position: [v[0], v[1], v[2]], normal: [0.0, 0.0, 0.0], color: *in_color }).collect();
     let mut new_indices: Vec<u32> = Vec::new();
     let mut used_as_provoking: HashSet<u32> = HashSet::new();
@@ -80,7 +80,7 @@ pub fn enhance_provoking_vertices(vertices: &[[f32; 3]], indices: &[u32]) -> Vec
     mesh_vertices
 }
 
-pub fn enhance_provoking_vertices2(mut mesh: Mesh) -> Mesh {
+pub fn enhance_provoking_vertices2(mut mesh: Mesh<Vertex>) -> Mesh<Vertex> {
     for face in mesh. indices.chunks(3) {
         let edge_0: Vec3 = make_vec3(&mesh.vertices[face[2] as usize].position) - make_vec3(&mesh.vertices[face[0] as usize].position);
         let edge_1: Vec3 = make_vec3(&mesh.vertices[face[1] as usize].position) - make_vec3(&mesh.vertices[face[0] as usize].position);
@@ -307,8 +307,8 @@ pub struct Instance {
     model: Mat4,
 }
 
-pub struct Mesh {
-    pub vertices: Vec<Vertex>,
+pub struct Mesh<T> {
+    pub vertices: Vec<T>,
     pub indices: Vec<u32>,
 }
 
@@ -352,7 +352,7 @@ impl Renderer {
         glyph_brush
     }
 
-    pub async fn new(window: &Window) -> Result<Self> {
+    pub async fn new(window: &Window, ui_mesh: Mesh<UIVertex>) -> Result<Self> {
         // from here device creation and surface swapchain
         let surface =  wgpu::Surface::create(window);
         let adapter = wgpu::Adapter::request(
@@ -582,21 +582,6 @@ impl Renderer {
             sample_mask: !0,
             alpha_to_coverage_enabled: false,
         });
-        let ui_vertices = [UIVertex {
-            position: [100.0, 100.0],
-            uv: [1.0, 1.0],
-            color: [128, 0, 0, 255],
-        },
-            UIVertex {
-                position: [0.0, 100.0],
-                uv: [0.0, 1.0],
-                color: [128, 0, 0, 255],
-            },
-            UIVertex {
-                position: [0.0, 0.0],
-                uv: [0.0, 0.0],
-                color: [128, 0, 0, 255],
-            },];
         let ui_texture = Texture::create_ui_texture(&device, &sc_descriptor, &mut queue);
         let ui_texture_bind_group = device.create_bind_group(&BindGroupDescriptor {
             label: None,
@@ -613,20 +598,17 @@ impl Renderer {
             ],
         });
 
-        let ui_indices: &[u32] = &[0, 1, 2];
-        let ui_vertex_buffer = device.create_buffer_with_data(bytemuck::cast_slice(&ui_vertices), wgpu::BufferUsage::VERTEX);
-        let ui_index_buffer = device.create_buffer_with_data(bytemuck::cast_slice(ui_indices), wgpu::BufferUsage::INDEX);
         let glyph_brush = Renderer::build_glyph_brush(&device, wgpu::TextureFormat::Bgra8UnormSrgb);
 
         Ok(Self {
             surface,
-            device,
             queue,
             sc_descriptor,
             swap_chain,
             render_pipeline,
-            ui_vertex_buffer,
-            ui_index_buffer,
+            ui_vertex_buffer: device.create_buffer_with_data(bytemuck::cast_slice(&ui_mesh.vertices), wgpu::BufferUsage::VERTEX),
+            ui_index_buffer: device.create_buffer_with_data(bytemuck::cast_slice(&ui_mesh.indices), wgpu::BufferUsage::INDEX),
+            device,
             ui_uniform_bind_group,
             ui_uniform_buffer,
             ui_uniforms,
@@ -651,7 +633,7 @@ impl Renderer {
         self.swap_chain = self.device.create_swap_chain(&self.surface, &self.sc_descriptor);
     }
 
-    pub fn create_drawable_from_mesh(&mut self, mesh: &Mesh) -> usize {
+    pub fn create_drawable_from_mesh(&mut self, mesh: &Mesh<Vertex>) -> usize {
         let vertex_buffer = self.device.create_buffer_with_data(bytemuck::cast_slice(&mesh.vertices), wgpu::BufferUsage::VERTEX);
         let index_buffer = self.device.create_buffer_with_data(bytemuck::cast_slice(&mesh.indices), wgpu::BufferUsage::INDEX);
         self.drawables.push(Drawable { vertex_buffer, index_buffer, index_buffer_len: mesh.indices.len() as u32, });
@@ -668,7 +650,7 @@ impl Renderer {
         self.queue.submit(&[encoder.finish()]);
     }
 
-    pub async fn render(&mut self, view: Mat4, fps: u32, render_ui: bool) {
+    pub async fn render(&mut self, view: Mat4, fps: u32, render_ui: bool, ui_mesh: Option<Mesh<UIVertex>>) {
         let projection = perspective(self.sc_descriptor.width as f32 / self.sc_descriptor.height as f32,45.0, 0.1, 100.0);
         let uniforms = Uniforms { projection: projection, view: view, };
         let buffer = self.device.create_buffer_with_data(bytemuck::cast_slice(&[uniforms]), wgpu::BufferUsage::COPY_SRC);
@@ -743,6 +725,10 @@ impl Renderer {
                 ],
                 depth_stencil_attachment: None
             });
+            if let Some(ui_mesh) = ui_mesh {
+                self.ui_vertex_buffer = self.device.create_buffer_with_data(bytemuck::cast_slice(&ui_mesh.vertices), wgpu::BufferUsage::VERTEX);
+                self.ui_index_buffer = self.device.create_buffer_with_data(bytemuck::cast_slice(&ui_mesh.indices), wgpu::BufferUsage::INDEX);
+            }
             ui_pass.set_pipeline(&self.ui_render_pipeline);
             ui_pass.set_vertex_buffer(0, &self.ui_vertex_buffer, 0, 0);
             ui_pass.set_index_buffer(&self.ui_index_buffer, 0, 0);

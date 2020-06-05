@@ -20,7 +20,7 @@ pub struct Options {
     replay_path: Option<PathBuf>,
 }
 
-pub fn create_mesh_from(obj_file_name: &str) -> graphics::Mesh {
+pub fn create_mesh_from(obj_file_name: &str) -> graphics::Mesh<graphics::Vertex> {
     let (models, materials) = tobj::load_obj(obj_file_name, true).expect(format!("Could not read obj file: {}", obj_file_name).as_str());
     let mut mesh = graphics::Mesh { vertices: Vec::new(), indices: Vec::new() };
     for model in models {
@@ -54,7 +54,27 @@ fn game(options: Options) {
     let terrain_mesh = create_mesh_from("obj/ground-plane-20x20.obj");
     let axis_mesh = create_mesh_from("obj/axis.obj");
 
-    let mut renderer = futures::executor::block_on(graphics::Renderer::new(&window)).expect("Could not create graphics renderer");
+    let ui_mesh = graphics::Mesh::<graphics::UIVertex>
+    {
+        vertices: [
+            graphics::UIVertex {
+                position: [100.0, 100.0],
+                uv: [1.0, 1.0],
+                color: [128, 0, 0, 255],
+            },
+            graphics::UIVertex {
+                position: [0.0, 100.0],
+                uv: [0.0, 1.0],
+                color: [128, 0, 0, 255],
+            },
+            graphics::UIVertex {
+                position: [0.0, 0.0],
+                uv: [0.0, 0.0],
+                color: [128, 0, 0, 255],
+            }, ].to_vec(),
+        indices: [0, 1, 2].to_vec(),
+    };
+    let mut renderer = futures::executor::block_on(graphics::Renderer::new(&window, ui_mesh)).expect("Could not create graphics renderer");
     renderer.create_drawable_from_mesh(&player_mesh);
     renderer.create_drawable_from_mesh(&terrain_mesh);
     renderer.create_drawable_from_mesh(&axis_mesh);
@@ -69,7 +89,6 @@ fn game(options: Options) {
     let mut record = recording::try_create_recorder(options.record_path);
     let replaying = options.replay_path != None;
     let mut replay = recording::try_create_replayer(options.replay_path);
-
 
     /* every client creates if possible for every frame its commands, if there are no commands then
        the server will do nothing. every client runs its own local simulation. when the server
@@ -108,7 +127,7 @@ fn game(options: Options) {
                 let current_time = Instant::now();
                 let fps = (1000.0 / (current_time - previous_time).as_millis() as f32) as u32;
                 previous_time = current_time;
-                futures::executor::block_on(renderer.render(view, fps, game_state.ui_enabled));
+                futures::executor::block_on(renderer.render(view, fps, game_state.ui_enabled, None));
             }
             Event::MainEventsCleared => {
                 window.request_redraw();
