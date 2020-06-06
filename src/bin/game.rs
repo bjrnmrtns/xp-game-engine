@@ -9,6 +9,7 @@ use winit::window::WindowBuilder;
 use winit::event::DeviceEvent::MouseMotion;
 use xp::entity::{Posable, Followable};
 use nalgebra_glm::identity;
+use xp::ui::Widget;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "options", about = "command line options")]
@@ -41,6 +42,36 @@ struct GameState {
     pub ui_enabled: bool,
 }
 
+fn create_game_ui_mesh(ui: &Vec<ui::Label>) -> graphics::Mesh::<graphics::UIVertex> {
+    let mut mesh = graphics::Mesh::<graphics::UIVertex> { vertices: Vec::new(), indices: Vec::new() };
+    for label in ui {
+        let top_left = graphics::UIVertex {
+            position: [label.top_left().x, label.top_left().y],
+            uv: [0.0, 0.0],
+            color: label.color(),
+        };
+        let bottom_left = graphics::UIVertex {
+            position: [label.top_left().x, label.top_left().y - label.size().height],
+            uv: [0.0, 0.0],
+            color: label.color(),
+        };
+        let top_right = graphics::UIVertex {
+            position: [label.top_left().x + label.size().width, label.top_left().y],
+            uv: [0.0, 0.0],
+            color: label.color(),
+        };
+        let bottom_right = graphics::UIVertex {
+            position: [label.top_left().x + label.size().width, label.top_left().y - label.size().height],
+            uv: [0.0, 0.0],
+            color: label.color(),
+        };
+        let offset = mesh.vertices.len() as u32;
+        mesh.indices.extend_from_slice(&[offset + 0, offset + 1, offset + 2, offset + 2, offset + 1, offset + 3]);
+        mesh.vertices.extend_from_slice(&[top_left, bottom_left, top_right, bottom_right]);
+    }
+    mesh
+}
+
 fn game(options: Options) {
     let mut game_state = GameState { ui_enabled: false };
     let event_loop = EventLoop::new();
@@ -54,26 +85,9 @@ fn game(options: Options) {
     let terrain_mesh = create_mesh_from("obj/ground-plane-20x20.obj");
     let axis_mesh = create_mesh_from("obj/axis.obj");
 
-    let ui_mesh = graphics::Mesh::<graphics::UIVertex>
-    {
-        vertices: [
-            graphics::UIVertex {
-                position: [100.0, 100.0],
-                uv: [1.0, 1.0],
-                color: [128, 0, 0, 255],
-            },
-            graphics::UIVertex {
-                position: [0.0, 100.0],
-                uv: [0.0, 1.0],
-                color: [128, 0, 0, 255],
-            },
-            graphics::UIVertex {
-                position: [0.0, 0.0],
-                uv: [0.0, 0.0],
-                color: [128, 0, 0, 255],
-            }, ].to_vec(),
-        indices: [0, 1, 2].to_vec(),
-    };
+    let mut ui = ui::create(window.inner_size().width, window.inner_size().height);
+    let ui_mesh = create_game_ui_mesh(&ui);
+
     let mut renderer = futures::executor::block_on(graphics::Renderer::new(&window, ui_mesh)).expect("Could not create graphics renderer");
     renderer.create_drawable_from_mesh(&player_mesh);
     renderer.create_drawable_from_mesh(&terrain_mesh);
@@ -127,9 +141,9 @@ fn game(options: Options) {
                 let current_time = Instant::now();
                 let fps = (1000.0 / (current_time - previous_time).as_millis() as f32) as u32;
                 previous_time = current_time;
-                let mut ui = ui::create(window.inner_size().width, window.inner_size().height);
+                let ui_mesh = create_game_ui_mesh(&ui);
                 ui[0].text.text = format!("{}", fps);
-                futures::executor::block_on(renderer.render(view, fps, game_state.ui_enabled, None, &ui));
+                futures::executor::block_on(renderer.render(view, fps, game_state.ui_enabled, Some(ui_mesh), &ui));
             }
             Event::MainEventsCleared => {
                 window.request_redraw();

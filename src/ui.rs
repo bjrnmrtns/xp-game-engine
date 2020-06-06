@@ -1,13 +1,13 @@
 #[derive(Debug, Copy, Clone)]
 pub struct Position {
-    x: f32,
-    y: f32,
+    pub x: f32,
+    pub y: f32,
 }
 
 #[derive(Debug, Copy, Clone)]
 pub struct Size {
-    width: f32,
-    height: f32,
+    pub width: f32,
+    pub height: f32,
 }
 
 #[derive(Debug, Clone)]
@@ -69,7 +69,7 @@ impl Label {
 
 pub fn create(width: u32, height: u32) -> Vec<Label> {
     let mut ui = Vec::new();
-    ui.push(Label::new(Position { x: 0.0, y: height as f32 }, Size { width: 100.0, height: 100.0 }, Text::new("fps").with_size_px(48).with_color([0, 0, 255, 255])));
+    ui.push(Label::new(Position { x: 0.0, y: height as f32 }, Size { width: 100.0, height: 100.0 }, Text::new("fps").with_size_px(48).with_color([0, 255, 0, 255])));
     ui.push(Label::new(Position { x: width as f32 - 300.0, y: height as f32 }, Size { width: 300.0, height: 40.0 }, Text::new("camera").with_size_px(32).with_color([0, 0, 255, 255])));
     ui
 }

@@ -330,8 +330,7 @@ pub struct Renderer {
     sc_descriptor: wgpu::SwapChainDescriptor,
     swap_chain: wgpu::SwapChain,
     render_pipeline: wgpu::RenderPipeline,
-    ui_vertex_buffer: wgpu::Buffer,
-    ui_index_buffer: wgpu::Buffer,
+    ui_drawable: Drawable,
     ui_uniform_bind_group: wgpu::BindGroup,
     ui_uniform_buffer: wgpu::Buffer,
     ui_uniforms: UIUniforms,
@@ -608,8 +607,9 @@ impl Renderer {
             sc_descriptor,
             swap_chain,
             render_pipeline,
-            ui_vertex_buffer: device.create_buffer_with_data(bytemuck::cast_slice(&ui_mesh.vertices), wgpu::BufferUsage::VERTEX),
-            ui_index_buffer: device.create_buffer_with_data(bytemuck::cast_slice(&ui_mesh.indices), wgpu::BufferUsage::INDEX),
+            ui_drawable: Drawable { vertex_buffer: device.create_buffer_with_data(bytemuck::cast_slice(&ui_mesh.vertices), wgpu::BufferUsage::VERTEX),
+                index_buffer: device.create_buffer_with_data(bytemuck::cast_slice(&ui_mesh.indices), wgpu::BufferUsage::INDEX),
+                index_buffer_len: ui_mesh.indices.len() as u32 },
             device,
             ui_uniform_bind_group,
             ui_uniform_buffer,
@@ -728,15 +728,16 @@ impl Renderer {
                 depth_stencil_attachment: None
             });
             if let Some(ui_mesh) = ui_mesh {
-                self.ui_vertex_buffer = self.device.create_buffer_with_data(bytemuck::cast_slice(&ui_mesh.vertices), wgpu::BufferUsage::VERTEX);
-                self.ui_index_buffer = self.device.create_buffer_with_data(bytemuck::cast_slice(&ui_mesh.indices), wgpu::BufferUsage::INDEX);
+                self.ui_drawable = Drawable { vertex_buffer: self.device.create_buffer_with_data(bytemuck::cast_slice(&ui_mesh.vertices), wgpu::BufferUsage::VERTEX),
+                    index_buffer: self.device.create_buffer_with_data(bytemuck::cast_slice(&ui_mesh.indices), wgpu::BufferUsage::INDEX),
+                    index_buffer_len: ui_mesh.indices.len() as u32 };
             }
             ui_pass.set_pipeline(&self.ui_render_pipeline);
-            ui_pass.set_vertex_buffer(0, &self.ui_vertex_buffer, 0, 0);
-            ui_pass.set_index_buffer(&self.ui_index_buffer, 0, 0);
+            ui_pass.set_vertex_buffer(0, &self.ui_drawable.vertex_buffer, 0, 0);
+            ui_pass.set_index_buffer(&self.ui_drawable.index_buffer, 0, 0);
             ui_pass.set_bind_group(0, &self.ui_uniform_bind_group, &[]);
             ui_pass.set_bind_group(1, &self.ui_texture_bind_group, &[]);
-            ui_pass.draw_indexed(0..3, 0, 0..1);
+            ui_pass.draw_indexed(0..self.ui_drawable.index_buffer_len, 0, 0..1);
         }
 
         let fps = format!("{}", fps);
