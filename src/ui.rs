@@ -91,7 +91,7 @@ impl Ui {
         self.cursor_position.y = std::cmp::max(self.cursor_position.y, window_size.height - 1);
     }
 
-    pub fn create_mesh(&mut self) -> graphics::Mesh::<graphics::UIVertex> {
+    pub fn create_mesh(&self) -> graphics::Mesh::<graphics::UIVertex> {
         let mut mesh = graphics::Mesh::<graphics::UIVertex> { vertices: Vec::new(), indices: Vec::new() };
         for label in &self.labels {
             let top_left = graphics::UIVertex {
@@ -118,6 +118,25 @@ impl Ui {
             mesh.indices.extend_from_slice(&[offset + 0, offset + 1, offset + 2, offset + 2, offset + 1, offset + 3]);
             mesh.vertices.extend_from_slice(&[top_left, bottom_left, top_right, bottom_right]);
         }
+        let cursor_top_left = graphics::UIVertex {
+            position: [self.cursor_position.x as f32, self.cursor_position.y as f32],
+            uv: [0.0, 0.0],
+            color: [128, 128, 128, 255],
+        };
+        let cursor_bottom_left = graphics::UIVertex {
+            position: [self.cursor_position.x as f32, self.cursor_position.y as f32 - 50.0],
+            uv: [0.0, 0.0],
+            color: [128, 128, 128, 255],
+        };
+        let cursor_bottom_right = graphics::UIVertex {
+            position: [self.cursor_position.x as f32 + 50.0, self.cursor_position.y as f32 - 50.0],
+            uv: [0.0, 0.0],
+            color: [128, 128, 128, 255],
+        };
+        let offset = mesh.vertices.len() as u32;
+        mesh.indices.extend_from_slice(&[offset + 0, offset + 1, offset + 2]);
+        mesh.vertices.extend_from_slice(&[cursor_top_left, cursor_bottom_left, cursor_bottom_right]);
+
         mesh
     }
 }
