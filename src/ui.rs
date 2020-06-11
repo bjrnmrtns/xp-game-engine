@@ -97,6 +97,11 @@ impl Ui {
         self.labels = Ui::create_labels(window_size);
     }
 
+    pub fn update_cursor_position(&mut self, diff: Position) {
+        self.cursor_position.x = clamp(self.cursor_position.x + diff.x, 0, self.window_size.width - 1);
+        self.cursor_position.y = clamp(self.cursor_position.y + diff.y, 0, self.window_size.height - 1);
+    }
+
     pub fn create_mesh(&self) -> graphics::Mesh::<graphics::UIVertex> {
         let mut mesh = graphics::Mesh::<graphics::UIVertex> { vertices: Vec::new(), indices: Vec::new() };
         for label in &self.labels {

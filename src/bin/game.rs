@@ -9,7 +9,7 @@ use winit::window::WindowBuilder;
 use winit::event::DeviceEvent::{MouseMotion, Button};
 use xp::entity::{Posable, Followable};
 use nalgebra_glm::identity;
-use xp::ui::Widget;
+use xp::ui::{Widget, Position};
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "options", about = "command line options")]
@@ -122,13 +122,15 @@ fn game(options: Options) {
                 ref event,
                 ..
             } =>
-            if !game_state.ui_enabled {
-                match event {
-                    MouseMotion { delta } => {
+            match event {
+                MouseMotion { delta } => {
+                    if !game_state.ui_enabled {
                         inputs.push_mouse_movement(delta);
-                    },
-                    _ => (),
-                }
+                    } else {
+                        ui.update_cursor_position(Position { x: delta.0 as i32 * 5, y: -delta.1 as i32 * 5 })
+                    }
+                },
+                _ => (),
             },
             Event::WindowEvent {
                 ref event,
