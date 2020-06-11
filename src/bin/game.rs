@@ -9,7 +9,7 @@ use winit::window::WindowBuilder;
 use winit::event::DeviceEvent::{MouseMotion, Button};
 use xp::entity::{Posable, Followable};
 use nalgebra_glm::identity;
-use xp::ui::{Position};
+use xp::ui::{Position, Size};
 use std::borrow::Borrow;
 
 #[derive(Debug, StructOpt)]
@@ -57,7 +57,8 @@ fn game(options: Options) {
     let terrain_mesh = create_mesh_from("obj/ground-plane-20x20.obj");
     let axis_mesh = create_mesh_from("obj/axis.obj");
 
-    let mut ui = ui::Ui::new(ui::Size { width: window.inner_size().width as i32, height: window.inner_size().height as i32 });
+    let mut ui = ui::Ui::<u32>::new(ui::Size { width: window.inner_size().width as i32, height: window.inner_size().height as i32 });
+    ui.create_labels(Size { width: window.inner_size().width as i32, height: window.inner_size().height as i32 });
     let ui_mesh = ui.create_mesh();
 
     let mut renderer = futures::executor::block_on(graphics::Renderer::new(&window, ui_mesh)).expect("Could not create graphics renderer");

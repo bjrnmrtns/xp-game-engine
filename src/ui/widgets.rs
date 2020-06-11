@@ -2,6 +2,7 @@ use std::hash::Hash;
 use std::fmt::Display;
 use std::ops::Index;
 use std::collections::HashMap;
+use std::collections::hash_map::Values;
 
 pub trait WidgetId: Clone + PartialEq + Eq + Hash + Send + Sync + Display + 'static {
     fn generate(last: &Option<Self>) -> Self;
@@ -28,7 +29,12 @@ impl<T, I> Widgets<T, I> where T: Widget, I: WidgetId, {
     pub fn add(&mut self, widget: T) -> I {
         let id = I::generate(&self.last_key);
         self.items.insert(id.clone(), widget);
+        self.last_key = Some(id.clone());
         id
+    }
+
+    pub fn widgets(&self) -> Values<'_, I, T> {
+        self.items.values()
     }
 }
 
