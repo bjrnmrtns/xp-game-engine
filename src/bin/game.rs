@@ -6,7 +6,7 @@ use xp::{*, command_queue::CommandQueue};
 use winit::event_loop::{EventLoop, ControlFlow};
 use winit::event::{WindowEvent, ElementState, VirtualKeyCode, Event, KeyboardInput};
 use winit::window::WindowBuilder;
-use winit::event::DeviceEvent::MouseMotion;
+use winit::event::DeviceEvent::{MouseMotion, Button};
 use xp::entity::{Posable, Followable};
 use nalgebra_glm::identity;
 use xp::ui::Widget;
@@ -42,35 +42,6 @@ struct GameState {
     pub ui_enabled: bool,
 }
 
-fn create_game_ui_mesh(ui: &Vec<ui::Label>) -> graphics::Mesh::<graphics::UIVertex> {
-    let mut mesh = graphics::Mesh::<graphics::UIVertex> { vertices: Vec::new(), indices: Vec::new() };
-    for label in ui {
-        let top_left = graphics::UIVertex {
-            position: [label.top_left().x, label.top_left().y],
-            uv: [0.0, 0.0],
-            color: label.color(),
-        };
-        let bottom_left = graphics::UIVertex {
-            position: [label.top_left().x, label.top_left().y - label.size().height],
-            uv: [0.0, 0.0],
-            color: label.color(),
-        };
-        let top_right = graphics::UIVertex {
-            position: [label.top_left().x + label.size().width, label.top_left().y],
-            uv: [0.0, 0.0],
-            color: label.color(),
-        };
-        let bottom_right = graphics::UIVertex {
-            position: [label.top_left().x + label.size().width, label.top_left().y - label.size().height],
-            uv: [0.0, 0.0],
-            color: label.color(),
-        };
-        let offset = mesh.vertices.len() as u32;
-        mesh.indices.extend_from_slice(&[offset + 0, offset + 1, offset + 2, offset + 2, offset + 1, offset + 3]);
-        mesh.vertices.extend_from_slice(&[top_left, bottom_left, top_right, bottom_right]);
-    }
-    mesh
-}
 
 fn game(options: Options) {
     let mut game_state = GameState { ui_enabled: false };
@@ -85,8 +56,8 @@ fn game(options: Options) {
     let terrain_mesh = create_mesh_from("obj/ground-plane-20x20.obj");
     let axis_mesh = create_mesh_from("obj/axis.obj");
 
-    let mut ui = ui::create(window.inner_size().width, window.inner_size().height);
-    let ui_mesh = create_game_ui_mesh(&ui);
+    let mut ui = ui::Ui::new(ui::Size { width: window.inner_size().width, height: window.inner_size().height });
+    let ui_mesh = ui.create_mesh();
 
     let mut renderer = futures::executor::block_on(graphics::Renderer::new(&window, ui_mesh)).expect("Could not create graphics renderer");
     renderer.create_drawable_from_mesh(&player_mesh);
@@ -141,9 +112,8 @@ fn game(options: Options) {
                 let current_time = Instant::now();
                 let fps = (1000.0 / (current_time - previous_time).as_millis() as f32) as u32;
                 previous_time = current_time;
-                let ui_mesh = create_game_ui_mesh(&ui);
-                ui[0].text.text = format!("{}", fps);
-                futures::executor::block_on(renderer.render(view, fps, game_state.ui_enabled, Some(ui_mesh), &ui));
+                let ui_mesh = ui.create_mesh();
+                futures::executor::block_on(renderer.render(view, fps, game_state.ui_enabled, Some(ui_mesh)));
             }
             Event::MainEventsCleared => {
                 window.request_redraw();
@@ -151,17 +121,21 @@ fn game(options: Options) {
             Event::DeviceEvent {
                 ref event,
                 ..
-            } => match event {
-                MouseMotion { delta} => {
-                    inputs.push_mouse_movement(delta);
-                },
-                _ => (),
+            } =>
+            if !game_state.ui_enabled {
+                match event {
+                    MouseMotion { delta } => {
+                        inputs.push_mouse_movement(delta);
+                    },
+                    _ => (),
+                }
             },
             Event::WindowEvent {
                 ref event,
                 window_id,
             } if window_id == window.id() => match event {
                 WindowEvent::Resized(physical_size) => {
+                    ui.update_window_size(ui::Size { width: physical_size.width, height: physical_size.height });
                     futures::executor::block_on(renderer.resize(*physical_size));
                 }
                 WindowEvent::ScaleFactorChanged { new_inner_size, ..} => {
