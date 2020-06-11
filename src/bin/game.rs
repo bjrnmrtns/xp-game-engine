@@ -9,7 +9,7 @@ use winit::window::WindowBuilder;
 use winit::event::DeviceEvent::{MouseMotion, Button};
 use xp::entity::{Posable, Followable};
 use nalgebra_glm::identity;
-use xp::ui::{Widget, Position};
+use xp::ui::{Position};
 use std::borrow::Borrow;
 
 #[derive(Debug, StructOpt)]

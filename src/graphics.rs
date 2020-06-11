@@ -4,7 +4,6 @@ use std::collections::HashSet;
 use std::convert::TryInto;
 use wgpu::*;
 use crate::ui;
-use crate::ui::Widget;
 
 pub type Result<T> = std::result::Result<T, GraphicsError>;
 

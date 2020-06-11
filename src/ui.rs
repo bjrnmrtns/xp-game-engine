@@ -1,5 +1,9 @@
 use crate::graphics;
 use image::math::utils::clamp;
+use std::fmt::Display;
+use std::hash::Hash;
+use std::collections::HashMap;
+use std::ops::Index;
 
 #[derive(Debug, Copy, Clone)]
 pub struct Position {
@@ -18,6 +22,42 @@ pub struct Text {
     pub text: String,
     pub size_px: i32,
     pub color: [u8; 4],
+}
+
+pub trait WidgetId: Clone + PartialEq + Eq + Hash + Send + Sync + Display + 'static {
+    fn generate(last: &Option<Self>) -> Self;
+}
+
+pub trait Widget {}
+
+impl WidgetId for u32 {
+    fn generate(last: &Option<Self>) -> Self { last.map(|last| last + 1).unwrap_or(0) }
+}
+
+pub struct Widgets<T: Widget, I: WidgetId = u32> {
+    items: HashMap<I, T>,
+    last_key: Option<I>,
+}
+
+impl<T, I> Widgets<T, I> where T: Widget, I: WidgetId, {
+    pub fn new() -> Self {
+        Self {
+            items: HashMap::new(),
+            last_key: None,
+        }
+    }
+    pub fn add(&mut self, widget: T) -> I {
+        let id = I::generate(&self.last_key);
+        self.items.insert(id.clone(), widget);
+        id
+    }
+}
+
+impl<T, I> Index<I> for Widgets<T, I>
+where T: Widget, I: WidgetId,
+{
+    type Output = T;
+    fn index(&self, id: I) -> &Self::Output { &self.items[&id] }
 }
 
 impl Text {
@@ -39,12 +79,6 @@ impl Text {
     }
 }
 
-pub trait Widget {
-    fn top_left(&self) -> Position;
-    fn size(&self) -> Size;
-    fn color(&self) -> [u8; 4];
-}
-
 pub struct Label {
     top_left: Position,
     size: Size,
@@ -52,26 +86,26 @@ pub struct Label {
     color: [u8; 4],
 }
 
-impl Widget for Label {
-    fn top_left(&self) -> Position {
-        self.top_left
-    }
-    fn size(&self) -> Size {
-        self.size
-    }
-    fn color(&self) -> [u8; 4] { self.color }
-}
-
 impl Label {
     pub fn new(top_left: Position, size: Size, text: Text, color: [u8; 4]) -> Label {
         Self { top_left, size, text, color, }
     }
+    pub fn top_left(&self) -> Position {
+        self.top_left
+    }
+    pub fn size(&self) -> Size {
+        self.size
+    }
+    pub fn color(&self) -> [u8; 4] { self.color }
 }
+
+impl Widget for Label {}
 
 pub struct Ui {
     cursor_position: Position,
     window_size: Size,
-    labels: Vec<Label>,
+    labels_old: Vec<Label>,
+    label_widgets: Widgets<Label>,
 }
 
 impl Ui {
@@ -79,7 +113,8 @@ impl Ui {
         Self {
             cursor_position: Position { x: (window_size.width - 1) / 2, y: (window_size.height - 1) / 2 },
             window_size,
-            labels: Ui::create_labels(window_size),
+            labels_old: Ui::create_labels(window_size),
+            label_widgets: Widgets::new(),
         }
     }
 
@@ -92,12 +127,14 @@ impl Ui {
 
     pub fn update_window_size(&mut self, window_size: Size) {
         self.window_size = window_size;
-        self.labels = Ui::create_labels(window_size);
+        self.labels_old = Ui::create_labels(window_size);
     }
 
     pub fn update_cursor_position(&mut self, position: Position) {
         self.cursor_position = Position { x: position.x, y: self.window_size.height - 1 - position.y };
     }
+
+
 
     pub fn click(&self) {
         println!("{} {}", self.cursor_position.x, self.cursor_position.y);
@@ -105,7 +142,7 @@ impl Ui {
 
     pub fn create_mesh(&self) -> graphics::Mesh::<graphics::UIVertex> {
         let mut mesh = graphics::Mesh::<graphics::UIVertex> { vertices: Vec::new(), indices: Vec::new() };
-        for label in &self.labels {
+        for label in &self.labels_old {
             let top_left = graphics::UIVertex {
                 position: [label.top_left().x as f32, label.top_left().y as f32],
                 uv: [0.0, 0.0],
