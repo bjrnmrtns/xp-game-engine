@@ -7,22 +7,15 @@ use std::ops::Index;
 
 mod widgets;
 mod layout;
+mod label;
+mod types;
 
 pub use self::{
     widgets::*,
+    label::*,
+    types::*,
 };
 
-#[derive(Debug, Copy, Clone)]
-pub struct Position {
-    pub x: i32,
-    pub y: i32,
-}
-
-#[derive(Debug, Copy, Clone)]
-pub struct Size {
-    pub width: i32,
-    pub height: i32,
-}
 
 #[derive(Debug, Clone)]
 pub struct Text {
@@ -49,24 +42,6 @@ impl Text {
         self
     }
 }
-
-pub struct Label {
-    size: Size,
-    pub text: Text,
-    color: [u8; 4],
-}
-
-impl Label {
-    pub fn new(size: Size, text: Text, color: [u8; 4]) -> Label {
-        Self { size, text, color, }
-    }
-    pub fn size(&self) -> Size {
-        self.size
-    }
-    pub fn color(&self) -> [u8; 4] { self.color }
-}
-
-impl Widget for Label {}
 
 pub struct Ui<I: WidgetId = u32> {
     cursor_position: Position,
