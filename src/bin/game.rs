@@ -4,12 +4,13 @@ use structopt::StructOpt;
 
 use xp::{*, command_queue::CommandQueue};
 use winit::event_loop::{EventLoop, ControlFlow};
-use winit::event::{WindowEvent, ElementState, VirtualKeyCode, Event, KeyboardInput};
+use winit::event::{WindowEvent, ElementState, VirtualKeyCode, Event, KeyboardInput, MouseButton};
 use winit::window::WindowBuilder;
 use winit::event::DeviceEvent::{MouseMotion, Button};
 use xp::entity::{Posable, Followable};
 use nalgebra_glm::identity;
 use xp::ui::{Widget, Position};
+use std::borrow::Borrow;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "options", about = "command line options")]
@@ -126,8 +127,6 @@ fn game(options: Options) {
                 MouseMotion { delta } => {
                     if !game_state.ui_enabled {
                         inputs.push_mouse_movement(delta);
-                    } else {
-                        ui.update_cursor_position(Position { x: delta.0 as i32 * 5, y: -delta.1 as i32 * 5 })
                     }
                 },
                 _ => (),
@@ -136,6 +135,19 @@ fn game(options: Options) {
                 ref event,
                 window_id,
             } if window_id == window.id() => match event {
+                WindowEvent::CursorMoved { device_id: _, position, modifiers: _ } => {
+                    ui.update_cursor_position(Position { x: position.x as i32, y: position.y as i32 });
+                }
+                WindowEvent::MouseInput { device_id: _, state, button, modifiers: _ } => {
+                    match (state, button) {
+                        (ElementState::Pressed, MouseButton::Left) => {
+                            if game_state.ui_enabled {
+                                ui.click();
+                            }
+                        }
+                        (_, _) => (),
+                    }
+                }
                 WindowEvent::Resized(physical_size) => {
                     ui.update_window_size(ui::Size { width: physical_size.width as i32, height: physical_size.height as i32 });
                     futures::executor::block_on(renderer.resize(*physical_size));

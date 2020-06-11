@@ -92,14 +92,15 @@ impl Ui {
 
     pub fn update_window_size(&mut self, window_size: Size) {
         self.window_size = window_size;
-        self.cursor_position.x = clamp(self.cursor_position.x, 0, window_size.width - 1);
-        self.cursor_position.y = clamp(self.cursor_position.y, 0, window_size.height - 1);
         self.labels = Ui::create_labels(window_size);
     }
 
-    pub fn update_cursor_position(&mut self, diff: Position) {
-        self.cursor_position.x = clamp(self.cursor_position.x + diff.x, 0, self.window_size.width - 1);
-        self.cursor_position.y = clamp(self.cursor_position.y + diff.y, 0, self.window_size.height - 1);
+    pub fn update_cursor_position(&mut self, position: Position) {
+        self.cursor_position = Position { x: position.x, y: self.window_size.height - 1 - position.y };
+    }
+
+    pub fn click(&self) {
+        println!("{} {}", self.cursor_position.x, self.cursor_position.y);
     }
 
     pub fn create_mesh(&self) -> graphics::Mesh::<graphics::UIVertex> {
@@ -129,25 +130,6 @@ impl Ui {
             mesh.indices.extend_from_slice(&[offset + 0, offset + 1, offset + 2, offset + 2, offset + 1, offset + 3]);
             mesh.vertices.extend_from_slice(&[top_left, bottom_left, top_right, bottom_right]);
         }
-        let cursor_top_left = graphics::UIVertex {
-            position: [self.cursor_position.x as f32, self.cursor_position.y as f32],
-            uv: [0.0, 0.0],
-            color: [128, 128, 128, 255],
-        };
-        let cursor_bottom_left = graphics::UIVertex {
-            position: [self.cursor_position.x as f32, self.cursor_position.y as f32 - 50.0],
-            uv: [0.0, 0.0],
-            color: [128, 128, 128, 255],
-        };
-        let cursor_bottom_right = graphics::UIVertex {
-            position: [self.cursor_position.x as f32 + 50.0, self.cursor_position.y as f32 - 50.0],
-            uv: [0.0, 0.0],
-            color: [128, 128, 128, 255],
-        };
-        let offset = mesh.vertices.len() as u32;
-        mesh.indices.extend_from_slice(&[offset + 0, offset + 1, offset + 2]);
-        mesh.vertices.extend_from_slice(&[cursor_top_left, cursor_bottom_left, cursor_bottom_right]);
-
         mesh
     }
 }
