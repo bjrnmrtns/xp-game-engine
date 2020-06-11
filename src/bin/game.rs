@@ -56,7 +56,7 @@ fn game(options: Options) {
     let terrain_mesh = create_mesh_from("obj/ground-plane-20x20.obj");
     let axis_mesh = create_mesh_from("obj/axis.obj");
 
-    let mut ui = ui::Ui::new(ui::Size { width: window.inner_size().width, height: window.inner_size().height });
+    let mut ui = ui::Ui::new(ui::Size { width: window.inner_size().width as i32, height: window.inner_size().height as i32 });
     let ui_mesh = ui.create_mesh();
 
     let mut renderer = futures::executor::block_on(graphics::Renderer::new(&window, ui_mesh)).expect("Could not create graphics renderer");
@@ -135,10 +135,11 @@ fn game(options: Options) {
                 window_id,
             } if window_id == window.id() => match event {
                 WindowEvent::Resized(physical_size) => {
-                    ui.update_window_size(ui::Size { width: physical_size.width, height: physical_size.height });
+                    ui.update_window_size(ui::Size { width: physical_size.width as i32, height: physical_size.height as i32 });
                     futures::executor::block_on(renderer.resize(*physical_size));
                 }
                 WindowEvent::ScaleFactorChanged { new_inner_size, ..} => {
+                    ui.update_window_size(ui::Size { width: new_inner_size.width as i32, height: new_inner_size.height as i32 });
                     futures::executor::block_on(renderer.resize(**new_inner_size));
                 }
                 WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,

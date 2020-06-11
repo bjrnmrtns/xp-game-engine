@@ -1,21 +1,22 @@
 use crate::graphics;
+use image::math::utils::clamp;
 
 #[derive(Debug, Copy, Clone)]
 pub struct Position {
-    pub x: u32,
-    pub y: u32,
+    pub x: i32,
+    pub y: i32,
 }
 
 #[derive(Debug, Copy, Clone)]
 pub struct Size {
-    pub width: u32,
-    pub height: u32,
+    pub width: i32,
+    pub height: i32,
 }
 
 #[derive(Debug, Clone)]
 pub struct Text {
     pub text: String,
-    pub size_px: u32,
+    pub size_px: i32,
     pub color: [u8; 4],
 }
 
@@ -27,7 +28,7 @@ impl Text {
             color: [255, 0, 0, 255],
         }
     }
-    pub fn with_size_px(mut self, size_px: u32) -> Text {
+    pub fn with_size_px(mut self, size_px: i32) -> Text {
         self.size_px = size_px;
         self
     }
@@ -75,20 +76,25 @@ pub struct Ui {
 
 impl Ui {
     pub fn new(window_size: Size) -> Self {
-        let mut labels = Vec::new();
-        labels.push(Label::new(Position { x: 0, y: window_size.height - 1 }, Size { width: 100, height: 100 }, Text::new("fps").with_size_px(48).with_color([0, 255, 0, 255]), [0, 255, 0, 255]));
-        labels.push(Label::new(Position { x: window_size.width  - 1 - 300, y: window_size.height - 1 }, Size { width: 300, height: 40 }, Text::new("camera").with_size_px(32).with_color([0, 0, 255, 255]), [0, 255, 0, 255]));
         Self {
             cursor_position: Position { x: (window_size.width - 1) / 2, y: (window_size.height - 1) / 2 },
             window_size,
-            labels,
+            labels: Ui::create_labels(window_size),
         }
+    }
+
+    fn create_labels(window_size: Size) -> Vec<Label> {
+        let mut labels = Vec::new();
+        labels.push(Label::new(Position { x: 0, y: window_size.height - 1 }, Size { width: 100, height: 100 }, Text::new("fps").with_size_px(48).with_color([0, 255, 0, 255]), [0, 255, 0, 255]));
+        labels.push(Label::new(Position { x: window_size.width  - 1 - 300, y: window_size.height - 1 }, Size { width: 300, height: 40 }, Text::new("camera").with_size_px(32).with_color([0, 0, 255, 255]), [0, 255, 0, 255]));
+        labels
     }
 
     pub fn update_window_size(&mut self, window_size: Size) {
         self.window_size = window_size;
-        self.cursor_position.x = std::cmp::max(self.cursor_position.x, window_size.width - 1);
-        self.cursor_position.y = std::cmp::max(self.cursor_position.y, window_size.height - 1);
+        self.cursor_position.x = clamp(self.cursor_position.x, 0, window_size.width - 1);
+        self.cursor_position.y = clamp(self.cursor_position.y, 0, window_size.height - 1);
+        self.labels = Ui::create_labels(window_size);
     }
 
     pub fn create_mesh(&self) -> graphics::Mesh::<graphics::UIVertex> {
