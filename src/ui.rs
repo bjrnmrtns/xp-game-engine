@@ -25,16 +25,14 @@ impl Text {
             color: [255, 0, 0, 255],
         }
     }
-    pub fn with_size_px(&self, size_px: u32) -> Text {
-        let mut ret = self.clone();
-        ret.size_px = size_px;
-        ret
+    pub fn with_size_px(mut self, size_px: u32) -> Text {
+        self.size_px = size_px;
+        self
     }
 
-    pub fn with_color(&self, color: [u8; 4]) -> Text {
-        let mut ret = self.clone();
-        ret.color = color;
-        ret
+    pub fn with_color(mut self, color: [u8; 4]) -> Text {
+        self.color = color;
+        self
     }
 }
 
@@ -62,14 +60,14 @@ impl Widget for Label {
 }
 
 impl Label {
-    pub fn new(top_left: Position, size: Size, text: Text) -> Label {
-        Self { top_left, size, text, color: [255, 0, 0, 255] }
+    pub fn new(top_left: Position, size: Size, text: Text, color: [u8; 4]) -> Label {
+        Self { top_left, size, text, color, }
     }
 }
 
 pub fn create(width: u32, height: u32) -> Vec<Label> {
     let mut ui = Vec::new();
-    ui.push(Label::new(Position { x: 0.0, y: height as f32 }, Size { width: 100.0, height: 100.0 }, Text::new("fps").with_size_px(48).with_color([0, 255, 0, 255])));
-    ui.push(Label::new(Position { x: width as f32 - 300.0, y: height as f32 }, Size { width: 300.0, height: 40.0 }, Text::new("camera").with_size_px(32).with_color([0, 0, 255, 255])));
+    ui.push(Label::new(Position { x: 0.0, y: height as f32 }, Size { width: 100.0, height: 100.0 }, Text::new("fps").with_size_px(48).with_color([0, 255, 0, 255]), [0, 255, 0, 255]));
+    ui.push(Label::new(Position { x: width as f32 - 300.0, y: height as f32 }, Size { width: 300.0, height: 40.0 }, Text::new("camera").with_size_px(32).with_color([0, 0, 255, 255]), [0, 255, 0, 255]));;
     ui
 }
