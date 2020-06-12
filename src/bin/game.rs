@@ -9,7 +9,7 @@ use winit::window::WindowBuilder;
 use winit::event::DeviceEvent::{MouseMotion, Button};
 use xp::entity::{Posable, Followable};
 use nalgebra_glm::identity;
-use xp::ui::{Position, Size};
+use xp::ui::{Label};
 use std::borrow::Borrow;
 
 #[derive(Debug, StructOpt)]
@@ -57,8 +57,10 @@ fn game(options: Options) {
     let terrain_mesh = create_mesh_from("obj/ground-plane-20x20.obj");
     let axis_mesh = create_mesh_from("obj/axis.obj");
 
-    let mut ui = ui::Ui::<u32>::new(ui::Size { width: window.inner_size().width as i32, height: window.inner_size().height as i32 });
-    ui.create_labels(Size { width: window.inner_size().width as i32, height: window.inner_size().height as i32 });
+    let mut ui = ui::UI::<u32>::new(window.inner_size().width as f32, window.inner_size().height as f32);
+    ui.add_label(Label::build("fps").with_color([255, 0, 0, 255]));
+    ui.add_label(Label::build("hoi").with_color([255, 255, 0, 255]));
+    ui.add_label(Label::build("something").with_color([0, 255, 255, 255]));
     let ui_mesh = ui.create_mesh();
 
     let mut renderer = futures::executor::block_on(graphics::Renderer::new(&window, ui_mesh)).expect("Could not create graphics renderer");
@@ -137,7 +139,7 @@ fn game(options: Options) {
                 window_id,
             } if window_id == window.id() => match event {
                 WindowEvent::CursorMoved { device_id: _, position, modifiers: _ } => {
-                    ui.update_cursor_position(Position { x: position.x as i32, y: position.y as i32 });
+                    ui.update_cursor_position(position.x as f32, position.y as f32);
                 }
                 WindowEvent::MouseInput { device_id: _, state, button, modifiers: _ } => {
                     match (state, button) {
@@ -150,11 +152,11 @@ fn game(options: Options) {
                     }
                 }
                 WindowEvent::Resized(physical_size) => {
-                    ui.update_window_size(ui::Size { width: physical_size.width as i32, height: physical_size.height as i32 });
+                    ui.update_window_size(physical_size.width as f32, physical_size.height as f32);
                     futures::executor::block_on(renderer.resize(*physical_size));
                 }
                 WindowEvent::ScaleFactorChanged { new_inner_size, ..} => {
-                    ui.update_window_size(ui::Size { width: new_inner_size.width as i32, height: new_inner_size.height as i32 });
+                    ui.update_window_size(new_inner_size.width as f32, new_inner_size.height as f32);
                     futures::executor::block_on(renderer.resize(**new_inner_size));
                 }
                 WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,

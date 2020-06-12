@@ -1,20 +1,25 @@
-use crate::ui::{Size, Text, Widget};
+use crate::ui::{Text, Widget};
+use crate::ui::layout::Anchor;
+
+const DEFAULT_LABEL_COLOR: [u8; 4] = [0, 255, 0, 255];
 
 pub struct Label {
-    pub(crate) size: Size,
     pub text: Text,
-    color: [u8; 4],
-}
-
-impl Label {
-    pub fn new(size: Size, text: Text, color: [u8; 4]) -> Label {
-        Self { size, text, color, }
-    }
-    pub fn size(&self) -> Size {
-        self.size
-    }
-    pub fn color(&self) -> [u8; 4] { self.color }
+    pub color: [u8; 4],
 }
 
 impl Widget for Label {}
+
+impl Label {
+    pub fn build(text: &str) -> Self {
+        Self {
+            text: Text::build(text),
+            color: DEFAULT_LABEL_COLOR,
+        }
+    }
+    pub fn with_color(mut self, color: [u8; 4]) -> Self {
+        self.color = color;
+        self
+    }
+}
 
