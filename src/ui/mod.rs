@@ -62,15 +62,35 @@ impl<I> UI<I> where I: WidgetId, {
         layout::layout_basic(self.label_widgets.widgets_mut(), self.window_size);
     }
 
+    fn inside(&self, layout: &Layout) -> bool {
+        let left = layout.position.x;
+        let right = layout.position.x + layout.size.width;
+        let up = layout.position.y;
+        let down = layout.position.y - layout.size.height;
+
+        left < self.cursor_position.0 && self.cursor_position.0 < right &&
+            down < self.cursor_position.1 && self.cursor_position.1 < up
+    }
+
     pub fn click(&self) {
-        println!("{} {}", self.cursor_position.0, self.cursor_position.1);
+        for (key, widget) in self.label_widgets.widgets() {
+            match (key, widget) {
+                (key, ui::Widget::LabelW(layout, _)) => {
+                    if self.inside(&layout) {
+                        println!("{}", key);
+                        return
+                    }
+                },
+                _ => (),
+            }
+        }
     }
 
     pub fn create_mesh(&mut self) -> (graphics::Mesh::<graphics::UIVertex>, Vec<graphics::Text>) {
         self.layout();
         let mut mesh = graphics::Mesh::<graphics::UIVertex> { vertices: Vec::new(), indices: Vec::new() };
         let mut text = Vec::new();
-        for widget in self.label_widgets.widgets() {
+        for (_, widget) in self.label_widgets.widgets() {
             match widget {
                ui::Widget::LabelW(layout, label) => {
                    let top_left = graphics::UIVertex {

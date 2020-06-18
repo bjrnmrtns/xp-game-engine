@@ -45,8 +45,8 @@ impl<I> Widgets<I> where I: WidgetId, {
         self.items.get_mut(&id)
     }
 
-    pub fn widgets(&self) -> Values<'_, I, Widget> {
-        self.items.values()
+    pub fn widgets(&self) -> &HashMap<I, Widget> {
+        &self.items
     }
 
     pub fn widgets_mut(&mut self) -> ValuesMut<'_, I, Widget> {
