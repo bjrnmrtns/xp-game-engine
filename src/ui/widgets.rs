@@ -2,16 +2,16 @@ use std::hash::Hash;
 use std::fmt::Display;
 use std::ops::Index;
 use std::collections::HashMap;
-use std::collections::hash_map::{Values, Keys};
-use crate::ui::{Label, Layout};
+use std::collections::hash_map::{Values, Keys, ValuesMut};
+use crate::ui::{Label, Layout, Button};
 
 pub trait WidgetId: Clone + PartialEq + Eq + Hash + Send + Sync + Display + 'static {
     fn generate(last: &Option<Self>) -> Self;
 }
 
-
 pub enum Widget {
     LabelW(Layout, Label),
+    ButtonW(Layout, Button)
 }
 
 impl WidgetId for u32 {
@@ -47,6 +47,10 @@ impl<I> Widgets<I> where I: WidgetId, {
 
     pub fn widgets(&self) -> Values<'_, I, Widget> {
         self.items.values()
+    }
+
+    pub fn widgets_mut(&mut self) -> ValuesMut<'_, I, Widget> {
+        self.items.values_mut()
     }
 
     pub fn ids(&self) -> Keys<'_, I, Widget> {

@@ -5,12 +5,14 @@ use std::hash::Hash;
 use std::collections::HashMap;
 use std::ops::Index;
 
+mod button;
 mod widgets;
 mod layout;
 mod label;
 mod text;
 
 pub use self::{
+    button::*,
     widgets::*,
     label::*,
     text::*,
@@ -56,50 +58,52 @@ impl<I> UI<I> where I: WidgetId, {
         self.cursor_position =  (x, self.window_size.1 - y);
     }
 
+    pub fn layout(&mut self) {
+        layout::layout_basic(self.label_widgets.widgets_mut(), self.window_size);
+    }
+
     pub fn click(&self) {
         println!("{} {}", self.cursor_position.0, self.cursor_position.1);
     }
 
-    pub fn create_mesh(&self) -> (graphics::Mesh::<graphics::UIVertex>, Vec<graphics::Text>) {
+    pub fn create_mesh(&mut self) -> (graphics::Mesh::<graphics::UIVertex>, Vec<graphics::Text>) {
+        self.layout();
         let mut mesh = graphics::Mesh::<graphics::UIVertex> { vertices: Vec::new(), indices: Vec::new() };
         let mut text = Vec::new();
-        let width: f32 = 300.0;
-        let height: f32 = 34.0;
-        let mut top_left_pos = (0.0, self.window_size.1);
         for widget in self.label_widgets.widgets() {
             match widget {
-               ui::Widget::LabelW(_, label) => {
+               ui::Widget::LabelW(layout, label) => {
                    let top_left = graphics::UIVertex {
-                       position: [top_left_pos.0, top_left_pos.1],
+                       position: [layout.position.x, layout.position.y],
                        uv: [0.0, 0.0],
                        color: label.color,
                    };
                    let bottom_left = graphics::UIVertex {
-                       position: [top_left_pos.0, top_left_pos.1 - height],
+                       position: [layout.position.x, layout.position.y - layout.size.height],
                        uv: [0.0, 0.0],
                        color: label.color,
                    };
                    let top_right = graphics::UIVertex {
-                       position: [top_left_pos.0 + width, top_left_pos.1],
+                       position: [layout.position.x + layout.size.width, layout.position.y],
                        uv: [0.0, 0.0],
                        color: label.color,
                    };
                    let bottom_right = graphics::UIVertex {
-                       position: [top_left_pos.0 + width, top_left_pos.1 - height],
+                       position: [layout.position.x + layout.size.width, layout.position.y - layout.size.height],
                        uv: [0.0, 0.0],
                        color: label.color,
                    };
                    text.push(graphics::Text{
-                       pos: (top_left_pos.0, top_left_pos.1 - self.window_size.1),
+                       pos: (layout.position.x, layout.position.y - self.window_size.1),
                        text: label.text.text.clone(),
                        font_size: label.text.font_size,
                        color: label.text.color,
                    });
-                   top_left_pos.0 += width;
                    let offset = mesh.vertices.len() as u32;
                    mesh.indices.extend_from_slice(&[offset + 0, offset + 1, offset + 2, offset + 2, offset + 1, offset + 3]);
                    mesh.vertices.extend_from_slice(&[top_left, bottom_left, top_right, bottom_right]);
                },
+               _ => (),
             }
         }
         (mesh, text)
