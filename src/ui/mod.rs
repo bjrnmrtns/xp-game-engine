@@ -1,4 +1,4 @@
-use crate::graphics;
+use crate::{graphics, ui};
 use image::math::utils::clamp;
 use std::fmt::Display;
 use std::hash::Hash;
@@ -20,7 +20,7 @@ pub use self::{
 pub struct UI<I: WidgetId = u32> {
     cursor_position: (f32, f32),
     window_size: (f32, f32),
-    label_widgets: Widgets<Label, I>,
+    label_widgets: Widgets<I>,
 }
 
 impl<I> UI<I> where I: WidgetId, {
@@ -33,7 +33,7 @@ impl<I> UI<I> where I: WidgetId, {
     }
 
     pub fn add_label(&mut self, label: Label) -> I {
-        self.label_widgets.add(label)
+        self.label_widgets.add(ui::Widget::Label(label))
     }
 
     pub fn update_window_size(&mut self, width: f32, height: f32) {
@@ -53,31 +53,36 @@ impl<I> UI<I> where I: WidgetId, {
         let width: f32 = 300.0;
         let height: f32 = 300.0;
         let mut top_left_pos = (0.0, self.window_size.1);
-        for label in self.label_widgets.widgets() {
-            let top_left = graphics::UIVertex {
-                position: [top_left_pos.0, top_left_pos.1],
-                uv: [0.0, 0.0],
-                color: label.color,
-            };
-            let bottom_left = graphics::UIVertex {
-                position: [top_left_pos.0, top_left_pos.1 - height],
-                uv: [0.0, 0.0],
-                color: label.color,
-            };
-            let top_right = graphics::UIVertex {
-                position: [top_left_pos.0 + width, top_left_pos.1],
-                uv: [0.0, 0.0],
-                color: label.color,
-            };
-            let bottom_right = graphics::UIVertex {
-                position: [top_left_pos.0 + width, top_left_pos.1 - height],
-                uv: [0.0, 0.0],
-                color: label.color,
-            };
-            top_left_pos.0 += width;
-            let offset = mesh.vertices.len() as u32;
-            mesh.indices.extend_from_slice(&[offset + 0, offset + 1, offset + 2, offset + 2, offset + 1, offset + 3]);
-            mesh.vertices.extend_from_slice(&[top_left, bottom_left, top_right, bottom_right]);
+        for widget in self.label_widgets.widgets() {
+            match widget {
+               ui::Widget::Label(label) => {
+                   let top_left = graphics::UIVertex {
+                       position: [top_left_pos.0, top_left_pos.1],
+                       uv: [0.0, 0.0],
+                       color: label.color,
+                   };
+                   let bottom_left = graphics::UIVertex {
+                       position: [top_left_pos.0, top_left_pos.1 - height],
+                       uv: [0.0, 0.0],
+                       color: label.color,
+                   };
+                   let top_right = graphics::UIVertex {
+                       position: [top_left_pos.0 + width, top_left_pos.1],
+                       uv: [0.0, 0.0],
+                       color: label.color,
+                   };
+                   let bottom_right = graphics::UIVertex {
+                       position: [top_left_pos.0 + width, top_left_pos.1 - height],
+                       uv: [0.0, 0.0],
+                       color: label.color,
+                   };
+                   top_left_pos.0 += width;
+                   let offset = mesh.vertices.len() as u32;
+                   mesh.indices.extend_from_slice(&[offset + 0, offset + 1, offset + 2, offset + 2, offset + 1, offset + 3]);
+                   mesh.vertices.extend_from_slice(&[top_left, bottom_left, top_right, bottom_right]);
+               },
+               _ => (),
+            }
         }
         mesh
     }

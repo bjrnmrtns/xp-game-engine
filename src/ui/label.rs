@@ -8,8 +8,6 @@ pub struct Label {
     pub color: [u8; 4],
 }
 
-impl Widget for Label {}
-
 impl Label {
     pub fn build(text: &str) -> Self {
         Self {
