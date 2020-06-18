@@ -11,6 +11,7 @@ use xp::entity::{Posable, Followable};
 use nalgebra_glm::identity;
 use xp::ui::{Label};
 use std::borrow::Borrow;
+use xp::ui::Widget::LabelW;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "options", about = "command line options")]
@@ -58,12 +59,10 @@ fn game(options: Options) {
     let axis_mesh = create_mesh_from("obj/axis.obj");
 
     let mut ui = ui::UI::<u32>::new(window.inner_size().width as f32, window.inner_size().height as f32);
-    ui.add_label(Label::build("fps").with_color([255, 0, 0, 255]));
-    ui.add_label(Label::build("hoi").with_color([255, 255, 0, 255]));
-    ui.add_label(Label::build("something").with_color([0, 255, 255, 255]));
-    let ui_mesh = ui.create_mesh();
+    let fps_label_id = ui.add(LabelW(Label::build("fps").with_color([255, 255, 0, 255])));
+    let camera_button_id = ui.add(LabelW(Label::build("camera").with_color([0, 0, 255, 255])));
 
-    let mut renderer = futures::executor::block_on(graphics::Renderer::new(&window, ui_mesh)).expect("Could not create graphics renderer");
+    let mut renderer = futures::executor::block_on(graphics::Renderer::new(&window, ui.create_mesh().0)).expect("Could not create graphics renderer");
     renderer.create_drawable_from_mesh(&player_mesh);
     renderer.create_drawable_from_mesh(&terrain_mesh);
     renderer.create_drawable_from_mesh(&axis_mesh);
@@ -115,9 +114,11 @@ fn game(options: Options) {
                 };
                 let current_time = Instant::now();
                 let fps = (1000.0 / (current_time - previous_time).as_millis() as f32) as u32;
+                if let Some(fps_label) = ui.try_get_mut_label(fps_label_id) {
+                    fps_label.text.text = fps.to_string();
+                }
                 previous_time = current_time;
-                let ui_mesh = ui.create_mesh();
-                futures::executor::block_on(renderer.render(view, fps, game_state.ui_enabled, Some(ui_mesh)));
+                futures::executor::block_on(renderer.render(view, game_state.ui_enabled, Some(ui.create_mesh())));
             }
             Event::MainEventsCleared => {
                 window.request_redraw();

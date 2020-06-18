@@ -10,7 +10,7 @@ pub trait WidgetId: Clone + PartialEq + Eq + Hash + Send + Sync + Display + 'sta
 }
 
 pub enum Widget {
-    Label(Label),
+    LabelW(Label),
 }
 
 impl WidgetId for u32 {

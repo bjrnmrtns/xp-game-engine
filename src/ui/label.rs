@@ -1,5 +1,4 @@
 use crate::ui::{Text, Widget};
-use crate::ui::layout::Anchor;
 
 const DEFAULT_LABEL_COLOR: [u8; 4] = [0, 255, 0, 255];
 

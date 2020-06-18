@@ -308,6 +308,14 @@ pub struct Instance {
     model: Mat4,
 }
 
+pub struct Text
+{
+    pub pos: (f32, f32),
+    pub text: String,
+    pub font_size: f32,
+    pub color: [u8; 4],
+}
+
 pub struct Mesh<T> {
     pub vertices: Vec<T>,
     pub indices: Vec<u32>,
@@ -651,7 +659,7 @@ impl Renderer {
         self.queue.submit(&[encoder.finish()]);
     }
 
-    pub async fn render(&mut self, view: Mat4, fps: u32, render_ui: bool, ui_mesh: Option<Mesh<UIVertex>>) {
+    pub async fn render(&mut self, view: Mat4, render_ui: bool, ui_mesh: Option<(Mesh<UIVertex>, Vec<Text>)>) {
         let projection = perspective(self.sc_descriptor.width as f32 / self.sc_descriptor.height as f32,45.0, 0.1, 100.0);
         let uniforms = Uniforms { projection: projection, view: view, };
         let buffer = self.device.create_buffer_with_data(bytemuck::cast_slice(&[uniforms]), wgpu::BufferUsage::COPY_SRC);
@@ -727,9 +735,17 @@ impl Renderer {
                 depth_stencil_attachment: None
             });
             if let Some(ui_mesh) = ui_mesh {
-                self.ui_drawable = Drawable { vertex_buffer: self.device.create_buffer_with_data(bytemuck::cast_slice(&ui_mesh.vertices), wgpu::BufferUsage::VERTEX),
-                    index_buffer: self.device.create_buffer_with_data(bytemuck::cast_slice(&ui_mesh.indices), wgpu::BufferUsage::INDEX),
-                    index_buffer_len: ui_mesh.indices.len() as u32 };
+                self.ui_drawable = Drawable { vertex_buffer: self.device.create_buffer_with_data(bytemuck::cast_slice(&ui_mesh.0.vertices), wgpu::BufferUsage::VERTEX),
+                    index_buffer: self.device.create_buffer_with_data(bytemuck::cast_slice(&ui_mesh.0.indices), wgpu::BufferUsage::INDEX),
+                    index_buffer_len: ui_mesh.0.indices.len() as u32 };
+
+                for text in &ui_mesh.1 {
+                    let section = wgpu_glyph::Section {
+                        screen_position: text.pos,
+                        text: vec![wgpu_glyph::Text::new(&text.text.as_str()).with_color([1.0, 0.0, 0.0, 1.0]).with_scale(wgpu_glyph::ab_glyph::PxScale{ x: text.font_size, y: text.font_size })], ..wgpu_glyph::Section::default()
+                    };
+                    self.glyph_brush.queue(section);
+                }
             }
             ui_pass.set_pipeline(&self.ui_render_pipeline);
             ui_pass.set_vertex_buffer(0, &self.ui_drawable.vertex_buffer, 0, 0);
@@ -739,12 +755,6 @@ impl Renderer {
             ui_pass.draw_indexed(0..self.ui_drawable.index_buffer_len, 0, 0..1);
         }
 
-        let fps = format!("{}", fps);
-        let section = wgpu_glyph::Section {
-            screen_position: (10.0, 10.0),
-            text: vec![wgpu_glyph::Text::new(fps.as_str()).with_color([1.0, 0.0, 0.0, 1.0]).with_scale(wgpu_glyph::ab_glyph::PxScale{ x: 48.0, y: 48.0 })], ..wgpu_glyph::Section::default()
-        };
-        self.glyph_brush.queue(section);
         self.glyph_brush.draw_queued(&self.device, &mut encoder, &frame.view, self.sc_descriptor.width, self.sc_descriptor.height,).expect("Cannot draw glyph_brush");
         self.queue.submit(&[encoder.finish()]);
     }
