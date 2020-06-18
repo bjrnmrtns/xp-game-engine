@@ -3,14 +3,15 @@ use std::fmt::Display;
 use std::ops::Index;
 use std::collections::HashMap;
 use std::collections::hash_map::{Values, Keys};
-use crate::ui::Label;
+use crate::ui::{Label, Layout};
 
 pub trait WidgetId: Clone + PartialEq + Eq + Hash + Send + Sync + Display + 'static {
     fn generate(last: &Option<Self>) -> Self;
 }
 
+
 pub enum Widget {
-    LabelW(Label),
+    LabelW(Layout, Label),
 }
 
 impl WidgetId for u32 {

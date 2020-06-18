@@ -42,7 +42,7 @@ impl<I> UI<I> where I: WidgetId, {
     }
 
     pub fn try_get_mut_label(&mut self, id: I) -> Option<&mut Label> {
-        if let Some(LabelW(data)) = self.label_widgets.get_mut(id) {
+        if let Some(LabelW(_, data)) = self.label_widgets.get_mut(id) {
             return Some(data)
         }
         None
@@ -68,7 +68,7 @@ impl<I> UI<I> where I: WidgetId, {
         let mut top_left_pos = (0.0, self.window_size.1);
         for widget in self.label_widgets.widgets() {
             match widget {
-               ui::Widget::LabelW(label) => {
+               ui::Widget::LabelW(_, label) => {
                    let top_left = graphics::UIVertex {
                        position: [top_left_pos.0, top_left_pos.1],
                        uv: [0.0, 0.0],
