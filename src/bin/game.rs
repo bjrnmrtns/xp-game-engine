@@ -9,7 +9,7 @@ use winit::window::WindowBuilder;
 use winit::event::DeviceEvent::{MouseMotion, Button};
 use xp::entity::{Posable, Followable};
 use nalgebra_glm::identity;
-use xp::ui::{Label, DEFAULT_LAYOUT};
+use xp::ui::{Label, DEFAULT_LAYOUT, ActionType};
 use std::borrow::Borrow;
 use xp::ui::Widget::LabelW;
 
@@ -61,6 +61,7 @@ fn game(options: Options) {
     let mut ui = ui::UI::<u32>::new(window.inner_size().width as f32, window.inner_size().height as f32);
     let fps_label_id = ui.add(LabelW(DEFAULT_LAYOUT, Label::build("fps").with_color([255, 255, 0, 255])));
     let camera_button_id = ui.add(LabelW(DEFAULT_LAYOUT, Label::build("camera").with_color([0, 0, 255, 255])));
+    ui.add_action_for_id(camera_button_id, ActionType::OnClick, "SayHello".to_string());
 
     let mut renderer = futures::executor::block_on(graphics::Renderer::new(&window, ui.create_mesh().0)).expect("Could not create graphics renderer");
     renderer.create_drawable_from_mesh(&player_mesh);

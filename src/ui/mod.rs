@@ -9,8 +9,10 @@ mod widgets;
 mod layout;
 mod label;
 mod text;
+mod action;
 
 pub use self::{
+    action::*,
     widgets::*,
     label::*,
     text::*,
@@ -22,6 +24,7 @@ pub struct UI<I: WidgetId = u32> {
     cursor_position: (f32, f32),
     window_size: (f32, f32),
     label_widgets: Widgets<I>,
+    actions: HashMap<(I, ActionType), String>,
 }
 
 impl<I> UI<I> where I: WidgetId, {
@@ -30,6 +33,7 @@ impl<I> UI<I> where I: WidgetId, {
             cursor_position: (width / 2.0, height / 2.0),
             window_size: (width, height),
             label_widgets: Widgets::new(),
+            actions: HashMap::new(),
         }
     }
 
@@ -60,6 +64,10 @@ impl<I> UI<I> where I: WidgetId, {
         layout::layout_basic(self.label_widgets.widgets_mut(), self.window_size);
     }
 
+    pub fn add_action_for_id(&mut self, id: I, action_type: ActionType, action: String) {
+        self.actions.insert((id, action_type), action);
+    }
+
     fn inside(&self, layout: &Layout) -> bool {
         let left = layout.position.x;
         let right = layout.position.x + layout.size.width;
@@ -71,15 +79,17 @@ impl<I> UI<I> where I: WidgetId, {
     }
 
     pub fn click(&self) {
-        for (key, widget) in self.label_widgets.widgets() {
-            match (key, widget) {
-                (key, ui::Widget::LabelW(layout, _)) => {
-                    if self.inside(&layout) {
-                        println!("{}", key);
-                        return
+        for ((id, action_type), action) in &self.actions {
+            match ((id, action_type), action) {
+                ((id, ActionType::OnClick), action) => {
+                    match &self.label_widgets.widgets()[id] {
+                        ui::Widget::LabelW(layout, _) => {
+                            if self.inside(layout) {
+                                println!("{}", action);
+                            }
+                        }
                     }
                 },
-                _ => (),
             }
         }
     }
