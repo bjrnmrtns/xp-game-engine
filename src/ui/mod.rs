@@ -5,14 +5,12 @@ use std::hash::Hash;
 use std::collections::HashMap;
 use std::ops::Index;
 
-mod button;
 mod widgets;
 mod layout;
 mod label;
 mod text;
 
 pub use self::{
-    button::*,
     widgets::*,
     label::*,
     text::*,

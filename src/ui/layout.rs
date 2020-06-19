@@ -1,6 +1,6 @@
 use crate::ui::Widget;
 use std::collections::hash_map::ValuesMut;
-use crate::ui::Widget::{LabelW, ButtonW};
+use crate::ui::Widget::{LabelW};
 
 #[derive(Debug, Clone)]
 pub struct Position {
@@ -28,7 +28,7 @@ pub fn layout_basic<I>(widgets: ValuesMut<'_, I, Widget>, window_size: (f32, f32
     let mut top_left_pos = Position { x: 0.0, y: window_size.1 };
     for widget in widgets {
         match widget {
-            LabelW(Layout { position, size }, _) | ButtonW (Layout { position, size }, _) => {
+            LabelW(Layout { position, size }, _) => {
                 *position = top_left_pos.clone();
                 *size = Size { width, height,}
             },
