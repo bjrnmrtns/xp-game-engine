@@ -40,28 +40,31 @@ pub fn create_mesh_from(obj_file_name: &str) -> graphics::Mesh<graphics::Vertex>
     mesh
 }
 
-struct GameState {
+struct UIContext {
     pub ui_enabled: bool,
+    pub camera: camera::CameraType,
 }
 
 
 fn game(options: Options) {
-    let mut game_state = GameState { ui_enabled: false };
+    let mut game_state = UIContext { ui_enabled: false, camera: camera::CameraType::Follow, };
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()
         .build(&event_loop).expect("Could not create window");
 
-    let camera = camera::CameraType::Follow;
     let mut player = entity::Entity::new();
 
     let player_mesh = create_mesh_from("obj/arrow.obj");
     let terrain_mesh = create_mesh_from("obj/ground-plane-20x20.obj");
     let axis_mesh = create_mesh_from("obj/axis.obj");
 
-    let mut ui = ui::UI::<u32>::new(window.inner_size().width as f32, window.inner_size().height as f32);
+    let mut ui = ui::UI::<UIContext, u32>::new(window.inner_size().width as f32, window.inner_size().height as f32);
     let fps_label_id = ui.add(LabelW(DEFAULT_LAYOUT, Label::build("fps").with_color([255, 255, 0, 255])));
     let camera_button_id = ui.add(LabelW(DEFAULT_LAYOUT, Label::build("camera").with_color([0, 0, 255, 255])));
-    ui.add_action_for_id(camera_button_id, ActionType::OnClick, "SayHello".to_string());
+    ui.add_action_for_id(camera_button_id, ActionType::OnClick, |context|{ match context.camera {
+        camera::CameraType::Follow => { context.camera = camera::CameraType::FreeLook },
+        camera::CameraType::FreeLook => { context.camera = camera::CameraType::Follow },
+    }});
 
     let mut renderer = futures::executor::block_on(graphics::Renderer::new(&window, ui.create_mesh().0)).expect("Could not create graphics renderer");
     renderer.create_drawable_from_mesh(&player_mesh);
@@ -101,7 +104,7 @@ fn game(options: Options) {
         let commands_received = client::receive(&mut client,frame_counter.count());
         client::send(&mut *record, commands_received.as_slice());
         for frame in &commands_received {
-            let _ = simulation.handle_frame(frame, &camera, &mut player);
+            let _ = simulation.handle_frame(frame, &game_state.camera, &mut player);
         }
 
         match event {
@@ -109,7 +112,7 @@ fn game(options: Options) {
                 // first rotate all vertices on 0,0,0 (rotate around origin), then translate all points towards location.
                 renderer.update(player.pose(), identity(), identity());
                 // for the view matrix we can also use player_move and player_rotate, and use the inverse of the resulting matrix
-                let view = match camera {
+                let view = match game_state.camera {
                     camera::CameraType::FreeLook => simulation.freelook_camera.view(),
                     camera::CameraType::Follow => player.follow(),
                 };
@@ -147,7 +150,7 @@ fn game(options: Options) {
                     match (state, button) {
                         (ElementState::Pressed, MouseButton::Left) => {
                             if game_state.ui_enabled {
-                                ui.click();
+                                ui.click(&mut game_state);
                             }
                         }
                         (_, _) => (),

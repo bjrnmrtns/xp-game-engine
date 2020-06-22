@@ -20,33 +20,33 @@ pub use self::{
 };
 use crate::ui::Widget::LabelW;
 
-pub struct UI<I: WidgetId = u32> {
+pub struct UI<'closure_lifetime, ClosureContext, I: WidgetId = u32> {
     cursor_position: (f32, f32),
     window_size: (f32, f32),
-    label_widgets: Widgets<I>,
-    actions: HashMap<(I, ActionType), String>,
+    widgets: Widgets<I>,
+    actions: HashMap<(I, ActionType), Box<dyn Fn(&mut ClosureContext) + 'closure_lifetime>>,
 }
 
-impl<I> UI<I> where I: WidgetId, {
+impl<'closure_lifetime, ClosureContext, I> UI<'closure_lifetime, ClosureContext, I> where I: WidgetId, {
     pub fn new(width: f32, height: f32) -> Self {
         Self {
             cursor_position: (width / 2.0, height / 2.0),
             window_size: (width, height),
-            label_widgets: Widgets::new(),
+            widgets: Widgets::new(),
             actions: HashMap::new(),
         }
     }
 
     pub fn add(&mut self, widget: Widget) -> I {
-        self.label_widgets.add(widget)
+        self.widgets.add(widget)
     }
 
     pub fn try_get(&mut self, id: I) -> Option<&Widget> {
-        self.label_widgets.get(id)
+        self.widgets.get(id)
     }
 
     pub fn try_get_mut_label(&mut self, id: I) -> Option<&mut Label> {
-        if let Some(LabelW(_, data)) = self.label_widgets.get_mut(id) {
+        if let Some(LabelW(_, data)) = self.widgets.get_mut(id) {
             return Some(data)
         }
         None
@@ -61,11 +61,11 @@ impl<I> UI<I> where I: WidgetId, {
     }
 
     pub fn layout(&mut self) {
-        layout::layout_basic(self.label_widgets.widgets_mut(), self.window_size);
+        layout::layout_basic(self.widgets.widgets_mut(), self.window_size);
     }
 
-    pub fn add_action_for_id(&mut self, id: I, action_type: ActionType, action: String) {
-        self.actions.insert((id, action_type), action);
+    pub fn add_action_for_id<Closure: Fn(&mut ClosureContext) + 'closure_lifetime>(&mut self, id: I, action_type: ActionType, action: Closure) {
+        self.actions.insert((id, action_type), Box::new(action));
     }
 
     fn inside(&self, layout: &Layout) -> bool {
@@ -78,14 +78,14 @@ impl<I> UI<I> where I: WidgetId, {
             down < self.cursor_position.1 && self.cursor_position.1 < up
     }
 
-    pub fn click(&self) {
+    pub fn click(&self, context: &mut ClosureContext) {
         for ((id, action_type), action) in &self.actions {
             match ((id, action_type), action) {
                 ((id, ActionType::OnClick), action) => {
-                    match &self.label_widgets.widgets()[id] {
+                    match &self.widgets.widgets()[id] {
                         ui::Widget::LabelW(layout, _) => {
                             if self.inside(layout) {
-                                println!("{}", action);
+                                action(context);
                             }
                         }
                     }
@@ -98,7 +98,7 @@ impl<I> UI<I> where I: WidgetId, {
         self.layout();
         let mut mesh = graphics::Mesh::<graphics::UIVertex> { vertices: Vec::new(), indices: Vec::new() };
         let mut text = Vec::new();
-        for (_, widget) in self.label_widgets.widgets() {
+        for (_, widget) in self.widgets.widgets() {
             match widget {
                ui::Widget::LabelW(layout, label) => {
                    let top_left = graphics::UIVertex {
