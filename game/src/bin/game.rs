@@ -5,9 +5,8 @@ use structopt::StructOpt;
 use winit::event_loop::{EventLoop, ControlFlow};
 use winit::event::{WindowEvent, ElementState, VirtualKeyCode, Event, KeyboardInput, MouseButton};
 use winit::window::WindowBuilder;
-use winit::event::DeviceEvent::{MouseMotion, Button};
+use winit::event::DeviceEvent::{MouseMotion};
 use nalgebra_glm::identity;
-use std::borrow::Borrow;
 use game::*;
 use game::command_queue::CommandQueue;
 use game::entity::{Posable, Followable};
@@ -185,9 +184,11 @@ fn game(options: Options) {
                 ref event,
                 window_id,
             } if window_id == window.id() => match event {
+                #[allow(deprecated)]
                 WindowEvent::CursorMoved { device_id: _, position, modifiers: _ } => {
                     ui.update_cursor_position(position.x as f32, position.y as f32);
                 }
+                #[allow(deprecated)]
                 WindowEvent::MouseInput { device_id: _, state, button, modifiers: _ } => {
                     match (state, button) {
                         (ElementState::Pressed, MouseButton::Left) => {

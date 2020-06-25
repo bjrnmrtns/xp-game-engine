@@ -134,7 +134,7 @@ impl Texture {
         Self { texture, view, sampler }
     }
 
-    pub fn create_ui_texture(device: &wgpu::Device, sc_desc: &wgpu::SwapChainDescriptor, queue: &mut Queue) -> Self {
+    pub fn create_ui_texture(device: &wgpu::Device, queue: &mut Queue) -> Self {
         let texture = device.create_texture(&TextureDescriptor {
             label: None,
             size: Extent3d {
@@ -339,8 +339,10 @@ pub struct Renderer {
     ui_drawable: Drawable,
     ui_uniform_bind_group: wgpu::BindGroup,
     ui_uniform_buffer: wgpu::Buffer,
+    #[allow(unused)]
     ui_uniforms: UIUniforms,
     ui_render_pipeline: wgpu::RenderPipeline,
+    #[allow(unused)]
     ui_texture: Texture,
     ui_texture_bind_group: wgpu::BindGroup,
     drawables: Vec<Drawable>,
@@ -355,7 +357,7 @@ pub struct Renderer {
 impl Renderer {
     pub fn build_glyph_brush(device: &wgpu::Device, texture_format: wgpu::TextureFormat) -> wgpu_glyph::GlyphBrush<()> {
         let font = wgpu_glyph::ab_glyph::FontArc::try_from_slice(include_bytes!("JetBrainsMono-Regular.ttf")).expect("Can not load font");
-        let mut glyph_brush = wgpu_glyph::GlyphBrushBuilder::using_font(font).build(&device, texture_format);
+        let glyph_brush = wgpu_glyph::GlyphBrushBuilder::using_font(font).build(&device, texture_format);
         glyph_brush
     }
 
@@ -589,7 +591,7 @@ impl Renderer {
             sample_mask: !0,
             alpha_to_coverage_enabled: false,
         });
-        let ui_texture = Texture::create_ui_texture(&device, &sc_descriptor, &mut queue);
+        let ui_texture = Texture::create_ui_texture(&device, &mut queue);
         let ui_texture_bind_group = device.create_bind_group(&BindGroupDescriptor {
             label: None,
             layout: &ui_texture_layout,

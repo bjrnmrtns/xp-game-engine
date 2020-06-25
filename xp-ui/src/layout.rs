@@ -32,7 +32,6 @@ pub fn layout_basic<I>(widgets: ValuesMut<'_, I, Widget>, window_size: (f32, f32
                 *position = top_left_pos.clone();
                 *size = Size { width, height,}
             },
-            _ => (),
         }
         top_left_pos.x += width;
     }
