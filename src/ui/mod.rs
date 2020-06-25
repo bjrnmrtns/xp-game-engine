@@ -1,4 +1,3 @@
-use crate::{graphics, ui};
 use image::math::utils::clamp;
 use std::fmt::Display;
 use std::hash::Hash;
@@ -19,10 +18,11 @@ pub use self::{
     layout::*,
 };
 use crate::ui::Widget::LabelW;
+use crate::ui;
 
 pub struct UI<'closure_lifetime, ClosureContext, I: WidgetId = u32> {
     cursor_position: (f32, f32),
-    window_size: (f32, f32),
+    pub window_size: (f32, f32),
     widgets: Widgets<I>,
     actions: HashMap<(I, ActionType), Box<dyn Fn(&mut ClosureContext) + 'closure_lifetime>>,
 }
@@ -94,47 +94,9 @@ impl<'closure_lifetime, ClosureContext, I> UI<'closure_lifetime, ClosureContext,
         }
     }
 
-    pub fn create_mesh(&mut self) -> (graphics::Mesh::<graphics::UIVertex>, Vec<graphics::Text>) {
-        self.layout();
-        let mut mesh = graphics::Mesh::<graphics::UIVertex> { vertices: Vec::new(), indices: Vec::new() };
-        let mut text = Vec::new();
-        for (_, widget) in self.widgets.widgets() {
-            match widget {
-               ui::Widget::LabelW(layout, label) => {
-                   let top_left = graphics::UIVertex {
-                       position: [layout.position.x, layout.position.y],
-                       uv: [0.0, 0.0],
-                       color: label.color,
-                   };
-                   let bottom_left = graphics::UIVertex {
-                       position: [layout.position.x, layout.position.y - layout.size.height],
-                       uv: [0.0, 0.0],
-                       color: label.color,
-                   };
-                   let top_right = graphics::UIVertex {
-                       position: [layout.position.x + layout.size.width, layout.position.y],
-                       uv: [0.0, 0.0],
-                       color: label.color,
-                   };
-                   let bottom_right = graphics::UIVertex {
-                       position: [layout.position.x + layout.size.width, layout.position.y - layout.size.height],
-                       uv: [0.0, 0.0],
-                       color: label.color,
-                   };
-                   text.push(graphics::Text{
-                       pos: (layout.position.x, layout.position.y - self.window_size.1),
-                       text: label.text.text.clone(),
-                       font_size: label.text.font_size,
-                       color: label.text.color,
-                   });
-                   let offset = mesh.vertices.len() as u32;
-                   mesh.indices.extend_from_slice(&[offset + 0, offset + 1, offset + 2, offset + 2, offset + 1, offset + 3]);
-                   mesh.vertices.extend_from_slice(&[top_left, bottom_left, top_right, bottom_right]);
-               },
-               _ => (),
-            }
-        }
-        (mesh, text)
+    pub fn widgets(&self) -> &HashMap<I, Widget> {
+        self.widgets.widgets()
     }
+
 }
 

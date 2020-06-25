@@ -9,7 +9,7 @@ use winit::window::WindowBuilder;
 use winit::event::DeviceEvent::{MouseMotion, Button};
 use xp::entity::{Posable, Followable};
 use nalgebra_glm::identity;
-use xp::ui::{Label, DEFAULT_LAYOUT, ActionType};
+use xp::ui::{Label, DEFAULT_LAYOUT, ActionType, UI};
 use std::borrow::Borrow;
 use xp::ui::Widget::LabelW;
 
@@ -40,11 +40,51 @@ pub fn create_mesh_from(obj_file_name: &str) -> graphics::Mesh<graphics::Vertex>
     mesh
 }
 
-struct UIContext {
+pub struct UIContext {
     pub ui_enabled: bool,
     pub camera: camera::CameraType,
 }
 
+pub fn create_mesh(ui: &UI<UIContext, u32>) -> (graphics::Mesh::<graphics::UIVertex>, Vec<graphics::Text>) {
+    let mut mesh = graphics::Mesh::<graphics::UIVertex> { vertices: Vec::new(), indices: Vec::new() };
+    let mut text = Vec::new();
+    for (_, widget) in ui.widgets() {
+        match widget {
+            ui::Widget::LabelW(layout, label) => {
+                let top_left = graphics::UIVertex {
+                    position: [layout.position.x, layout.position.y],
+                    uv: [0.0, 0.0],
+                    color: label.color,
+                };
+                let bottom_left = graphics::UIVertex {
+                    position: [layout.position.x, layout.position.y - layout.size.height],
+                    uv: [0.0, 0.0],
+                    color: label.color,
+                };
+                let top_right = graphics::UIVertex {
+                    position: [layout.position.x + layout.size.width, layout.position.y],
+                    uv: [0.0, 0.0],
+                    color: label.color,
+                };
+                let bottom_right = graphics::UIVertex {
+                    position: [layout.position.x + layout.size.width, layout.position.y - layout.size.height],
+                    uv: [0.0, 0.0],
+                    color: label.color,
+                };
+                text.push(graphics::Text{
+                    pos: (layout.position.x, layout.position.y - ui.window_size.1),
+                    text: label.text.text.clone(),
+                    font_size: label.text.font_size,
+                    color: label.text.color,
+                });
+                let offset = mesh.vertices.len() as u32;
+                mesh.indices.extend_from_slice(&[offset + 0, offset + 1, offset + 2, offset + 2, offset + 1, offset + 3]);
+                mesh.vertices.extend_from_slice(&[top_left, bottom_left, top_right, bottom_right]);
+            },
+        }
+    }
+    (mesh, text)
+}
 
 fn game(options: Options) {
     let mut game_state = UIContext { ui_enabled: false, camera: camera::CameraType::Follow, };
@@ -65,8 +105,8 @@ fn game(options: Options) {
         camera::CameraType::Follow => { context.camera = camera::CameraType::FreeLook },
         camera::CameraType::FreeLook => { context.camera = camera::CameraType::Follow },
     }});
-
-    let mut renderer = futures::executor::block_on(graphics::Renderer::new(&window, ui.create_mesh().0)).expect("Could not create graphics renderer");
+    ui.layout();
+    let mut renderer = futures::executor::block_on(graphics::Renderer::new(&window, create_mesh(&ui).0)).expect("Could not create graphics renderer");
     renderer.create_drawable_from_mesh(&player_mesh);
     renderer.create_drawable_from_mesh(&terrain_mesh);
     renderer.create_drawable_from_mesh(&axis_mesh);
@@ -122,7 +162,8 @@ fn game(options: Options) {
                     fps_label.text.text = fps.to_string();
                 }
                 previous_time = current_time;
-                futures::executor::block_on(renderer.render(view, game_state.ui_enabled, Some(ui.create_mesh())));
+                ui.layout();
+                futures::executor::block_on(renderer.render(view, game_state.ui_enabled, Some(create_mesh(&ui))));
             }
             Event::MainEventsCleared => {
                 window.request_redraw();
