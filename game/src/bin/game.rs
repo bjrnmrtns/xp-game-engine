@@ -2,16 +2,17 @@ use std::time::{Instant};
 use std::path::PathBuf;
 use structopt::StructOpt;
 
-use xp::{*, command_queue::CommandQueue};
 use winit::event_loop::{EventLoop, ControlFlow};
 use winit::event::{WindowEvent, ElementState, VirtualKeyCode, Event, KeyboardInput, MouseButton};
 use winit::window::WindowBuilder;
 use winit::event::DeviceEvent::{MouseMotion, Button};
-use xp::entity::{Posable, Followable};
 use nalgebra_glm::identity;
-use xp::ui::{Label, DEFAULT_LAYOUT, ActionType, UI};
+use game::ui::*;
 use std::borrow::Borrow;
-use xp::ui::Widget::LabelW;
+use game::*;
+use game::command_queue::CommandQueue;
+use game::entity::{Posable, Followable};
+use game::ui::Widget::LabelW;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "options", about = "command line options")]
