@@ -22,3 +22,5 @@ futures = "0.3.4"
 glsl-to-spirv = "0.1.7"
 bytemuck = "1.2.0"
 
+xp-ui = { path = "../xp-ui" }
+

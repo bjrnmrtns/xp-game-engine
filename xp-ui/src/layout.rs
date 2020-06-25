@@ -1,6 +1,6 @@
-use crate::ui::Widget;
 use std::collections::hash_map::ValuesMut;
-use crate::ui::Widget::{LabelW};
+use crate::Widget;
+use crate::Widget::LabelW;
 
 #[derive(Debug, Clone)]
 pub struct Position {

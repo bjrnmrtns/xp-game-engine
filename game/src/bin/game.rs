@@ -7,12 +7,12 @@ use winit::event::{WindowEvent, ElementState, VirtualKeyCode, Event, KeyboardInp
 use winit::window::WindowBuilder;
 use winit::event::DeviceEvent::{MouseMotion, Button};
 use nalgebra_glm::identity;
-use game::ui::*;
 use std::borrow::Borrow;
 use game::*;
 use game::command_queue::CommandQueue;
 use game::entity::{Posable, Followable};
-use game::ui::Widget::LabelW;
+use xp_ui::{UI, Widget, DEFAULT_LAYOUT, Label, ActionType};
+use xp_ui::Widget::LabelW;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "options", about = "command line options")]
@@ -51,7 +51,7 @@ pub fn create_mesh(ui: &UI<UIContext, u32>) -> (graphics::Mesh::<graphics::UIVer
     let mut text = Vec::new();
     for (_, widget) in ui.widgets() {
         match widget {
-            ui::Widget::LabelW(layout, label) => {
+            Widget::LabelW(layout, label) => {
                 let top_left = graphics::UIVertex {
                     position: [layout.position.x, layout.position.y],
                     uv: [0.0, 0.0],
@@ -99,9 +99,9 @@ fn game(options: Options) {
     let terrain_mesh = create_mesh_from("obj/ground-plane-20x20.obj");
     let axis_mesh = create_mesh_from("obj/axis.obj");
 
-    let mut ui = ui::UI::<UIContext, u32>::new(window.inner_size().width as f32, window.inner_size().height as f32);
+    let mut ui = UI::<UIContext, u32>::new(window.inner_size().width as f32, window.inner_size().height as f32);
     let fps_label_id = ui.add(LabelW(DEFAULT_LAYOUT, Label::build("fps").with_color([255, 255, 0, 255])));
-    let camera_button_id = ui.add(LabelW(DEFAULT_LAYOUT, Label::build("camera").with_color([0, 0, 255, 255])));
+    let camera_button_id =ui.add(LabelW(DEFAULT_LAYOUT, Label::build("camera").with_color([0, 0, 255, 255])));
     ui.add_action_for_id(camera_button_id, ActionType::OnClick, |context|{ match context.camera {
         camera::CameraType::Follow => { context.camera = camera::CameraType::FreeLook },
         camera::CameraType::FreeLook => { context.camera = camera::CameraType::Follow },

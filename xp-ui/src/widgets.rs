@@ -3,7 +3,7 @@ use std::fmt::Display;
 use std::ops::Index;
 use std::collections::HashMap;
 use std::collections::hash_map::{Values, Keys, ValuesMut};
-use crate::ui::{Label, Layout};
+use crate::{Layout, Label};
 
 pub trait WidgetId: Clone + PartialEq + Eq + Hash + Send + Sync + Display + 'static {
     fn generate(last: &Option<Self>) -> Self;

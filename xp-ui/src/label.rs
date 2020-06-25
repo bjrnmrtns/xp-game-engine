@@ -1,4 +1,4 @@
-use crate::ui::{Text, Widget};
+use crate::Text;
 
 const DEFAULT_LABEL_COLOR: [u8; 4] = [0, 255, 0, 255];
 

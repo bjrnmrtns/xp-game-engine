@@ -1,4 +1,3 @@
-use image::math::utils::clamp;
 use std::fmt::Display;
 use std::hash::Hash;
 use std::collections::HashMap;
@@ -17,8 +16,7 @@ pub use self::{
     text::*,
     layout::*,
 };
-use crate::ui::Widget::LabelW;
-use crate::ui;
+use crate::Widget::LabelW;
 
 pub struct UI<'closure_lifetime, ClosureContext, I: WidgetId = u32> {
     cursor_position: (f32, f32),
@@ -83,7 +81,7 @@ impl<'closure_lifetime, ClosureContext, I> UI<'closure_lifetime, ClosureContext,
             match ((id, action_type), action) {
                 ((id, ActionType::OnClick), action) => {
                     match &self.widgets.widgets()[id] {
-                        ui::Widget::LabelW(layout, _) => {
+                        Widget::LabelW(layout, _) => {
                             if self.inside(layout) {
                                 action(context);
                             }
@@ -93,10 +91,8 @@ impl<'closure_lifetime, ClosureContext, I> UI<'closure_lifetime, ClosureContext,
             }
         }
     }
-
     pub fn widgets(&self) -> &HashMap<I, Widget> {
         self.widgets.widgets()
     }
-
 }
 

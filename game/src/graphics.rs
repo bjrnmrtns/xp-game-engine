@@ -3,7 +3,6 @@ use nalgebra_glm::*;
 use std::collections::HashSet;
 use std::convert::TryInto;
 use wgpu::*;
-use crate::ui;
 
 pub type Result<T> = std::result::Result<T, GraphicsError>;
 
