@@ -49,6 +49,7 @@ impl<'closure_lifetime, ClosureContext, I> UI<'closure_lifetime, ClosureContext,
 
     pub fn update_window_size(&mut self, width: f32, height: f32) {
         self.window_size = (width, height);
+        self.layout();
     }
 
     pub fn update_cursor_position(&mut self, x: f32, y: f32) {

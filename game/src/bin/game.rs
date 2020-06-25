@@ -162,7 +162,6 @@ fn game(options: Options) {
                     fps_label.text.text = fps.to_string();
                 }
                 previous_time = current_time;
-                ui.layout();
                 futures::executor::block_on(renderer.render(view, game_state.ui_enabled, Some(create_mesh(&ui))));
             }
             Event::MainEventsCleared => {
