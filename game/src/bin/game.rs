@@ -23,6 +23,54 @@ pub struct Options {
     replay_path: Option<PathBuf>,
 }
 
+pub fn create_terrain_mesh() -> graphics::Mesh<graphics::Vertex> {
+    let mut terrain = graphics::Mesh { vertices: Vec::new(), indices: Vec::new() };
+    const S: u32 = 2000;
+    const S_MIN_1: u32 = S - 1;
+    for x in 0..S {
+        for z in 0..S {
+            let x = x as f32 - (S as f32 / 2.0);
+            let z = z as f32 - (S as f32 / 2.0);
+            let y = x.sin();
+            terrain.vertices.push(graphics::Vertex {
+                position: [x, y, z],
+                normal: [0.0, 1.0, 0.0],
+                color: [1.0, 0.0, 0.0],
+            });
+        }
+    }
+    for x in 0..S {
+        for z in 0..S {
+            let index = x + z * S;
+            match z {
+                0 => {
+                    terrain.indices.push(index);
+                    terrain.indices.push(index + S);
+                    terrain.indices.push(index + 1);
+                },
+                S_MIN_1 => {
+                    terrain.indices.push(index);
+                    terrain.indices.push(index + 1);
+                    terrain.indices.push(index - S + 1);
+                },
+                _ => {
+
+                    terrain.indices.push(index);
+                    terrain.indices.push(index + S);
+                    terrain.indices.push(index + 1);
+
+                    // duplicate this vertex, as provoking vertices cannot be re-used
+                    terrain.vertices.push(terrain.vertices[index as usize]);
+                    terrain.indices.push(terrain.vertices.len() as u32 - 1);
+                    terrain.indices.push(index + 1);
+                    terrain.indices.push(index - S + 1);
+                }
+            }
+        }
+    }
+    terrain
+}
+
 pub fn create_mesh_from(obj_file_name: &str) -> graphics::Mesh<graphics::Vertex> {
     let (models, materials) = tobj::load_obj(obj_file_name, true).expect(format!("Could not read obj file: {}", obj_file_name).as_str());
     let mut mesh = graphics::Mesh { vertices: Vec::new(), indices: Vec::new() };
@@ -95,7 +143,7 @@ fn game(options: Options) {
     let mut player = entity::Entity::new();
 
     let player_mesh = create_mesh_from("obj/arrow.obj");
-    let terrain_mesh = create_mesh_from("obj/ground-plane-20x20.obj");
+    let terrain_mesh = create_terrain_mesh();//create_mesh_from("obj/ground-plane-20x20.obj");
     let axis_mesh = create_mesh_from("obj/axis.obj");
 
     let mut ui = UI::<UIContext, u32>::new(window.inner_size().width as f32, window.inner_size().height as f32);
