@@ -63,10 +63,7 @@ pub fn make_mesh_from_flat_obj(vertices_flat: &[f32], indices: &[u32], in_color:
 }
 
 fn create_normal(in_positions: [[f32; 3]; 3]) -> [f32; 3] {
-    let edge_0: Vec3 = make_vec3(&in_positions[2]) - make_vec3(&in_positions[0]);
-    let edge_1: Vec3 = make_vec3(&in_positions[1]) - make_vec3(&in_positions[0]);
-    let n: Vec3 = cross(&edge_1, &edge_0).normalize();
-    n.as_slice().try_into().unwrap()
+    triangle_normal(&make_vec3(&in_positions[0]), &make_vec3(&in_positions[1]), &make_vec3(&in_positions[2])).as_slice().try_into().unwrap()
 }
 
 pub fn enhance_provoking_vertices(vertices: &[[f32; 3]], indices: &[u32]) -> Vec<Vertex> {

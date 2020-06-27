@@ -6,12 +6,13 @@ use winit::event_loop::{EventLoop, ControlFlow};
 use winit::event::{WindowEvent, ElementState, VirtualKeyCode, Event, KeyboardInput, MouseButton};
 use winit::window::WindowBuilder;
 use winit::event::DeviceEvent::{MouseMotion};
-use nalgebra_glm::identity;
+use nalgebra_glm::{identity, triangle_normal, make_vec3};
 use game::*;
 use game::command_queue::CommandQueue;
 use game::entity::{Posable, Followable};
 use xp_ui::{UI, Widget, DEFAULT_LAYOUT, Label, ActionType};
 use xp_ui::Widget::LabelW;
+use std::convert::TryInto;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "options", about = "command line options")]
@@ -25,13 +26,13 @@ pub struct Options {
 
 pub fn create_terrain_mesh() -> graphics::Mesh<graphics::Vertex> {
     let mut terrain = graphics::Mesh { vertices: Vec::new(), indices: Vec::new() };
-    const S: u32 = 2000;
+    const S: u32 = 20;
     const S_MIN_1: u32 = S - 1;
-    for x in 0..S {
-        for z in 0..S {
+    for z in 0..S {
+        for x in 0..S {
             let x = x as f32 - (S as f32 / 2.0);
             let z = z as f32 - (S as f32 / 2.0);
-            let y = x.sin();
+            let y = (x.sin() + z.sin()) / 5.0;
             terrain.vertices.push(graphics::Vertex {
                 position: [x, y, z],
                 normal: [0.0, 1.0, 0.0],
@@ -39,31 +40,47 @@ pub fn create_terrain_mesh() -> graphics::Mesh<graphics::Vertex> {
             });
         }
     }
-    for x in 0..S {
+    for x in 0..S_MIN_1 {
         for z in 0..S {
             let index = x + z * S;
             match z {
                 0 => {
-                    terrain.indices.push(index);
-                    terrain.indices.push(index + S);
-                    terrain.indices.push(index + 1);
+                    let p1 = index;
+                    let p2 = index + S;
+                    let p3 = index + 1;
+                    terrain.indices.push(p1);
+                    terrain.indices.push(p2);
+                    terrain.indices.push(p3);
+                    terrain.vertices[index as usize].normal = triangle_normal(&make_vec3(&terrain.vertices[p1 as usize].position), &make_vec3(&terrain.vertices[p2 as usize].position), &make_vec3(&terrain.vertices[p3 as usize].position)).as_slice().try_into().unwrap();
                 },
                 S_MIN_1 => {
-                    terrain.indices.push(index);
-                    terrain.indices.push(index + 1);
-                    terrain.indices.push(index - S + 1);
+                    let p1 = index;
+                    let p2 = index + 1;
+                    let p3 = index - S + 1;
+                    terrain.indices.push(p1);
+                    terrain.indices.push(p2);
+                    terrain.indices.push(p3);
+                    terrain.vertices[index as usize].normal = triangle_normal(&make_vec3(&terrain.vertices[p1 as usize].position), &make_vec3(&terrain.vertices[p2 as usize].position), &make_vec3(&terrain.vertices[p3 as usize].position)).as_slice().try_into().unwrap();
                 },
                 _ => {
 
-                    terrain.indices.push(index);
-                    terrain.indices.push(index + S);
-                    terrain.indices.push(index + 1);
+                    let p1 = index;
+                    let p2 = index + S;
+                    let p3 = index + 1;
+                    terrain.indices.push(p1);
+                    terrain.indices.push(p2);
+                    terrain.indices.push(p3);
+                    terrain.vertices[index as usize].normal = triangle_normal(&make_vec3(&terrain.vertices[p1 as usize].position), &make_vec3(&terrain.vertices[p2 as usize].position), &make_vec3(&terrain.vertices[p3 as usize].position)).as_slice().try_into().unwrap();
 
                     // duplicate this vertex, as provoking vertices cannot be re-used
                     terrain.vertices.push(terrain.vertices[index as usize]);
-                    terrain.indices.push(terrain.vertices.len() as u32 - 1);
-                    terrain.indices.push(index + 1);
-                    terrain.indices.push(index - S + 1);
+                    let p4 = terrain.vertices.len() as u32 - 1;
+                    let p5 = index + 1;
+                    let p6 = index - S + 1;
+                    terrain.indices.push(p4);
+                    terrain.indices.push(p5);
+                    terrain.indices.push(p6);
+                    terrain.vertices[p4 as usize].normal = triangle_normal(&make_vec3(&terrain.vertices[p4 as usize].position), &make_vec3(&terrain.vertices[p5 as usize].position), &make_vec3(&terrain.vertices[p6 as usize].position)).as_slice().try_into().unwrap();
                 }
             }
         }
@@ -135,7 +152,7 @@ pub fn create_mesh(ui: &UI<UIContext, u32>) -> (graphics::Mesh::<graphics::UIVer
 }
 
 fn game(options: Options) {
-    let mut game_state = UIContext { ui_enabled: false, camera: camera::CameraType::Follow, };
+    let mut game_state = UIContext { ui_enabled: false, camera: camera::CameraType::FreeLook, };
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()
         .build(&event_loop).expect("Could not create window");
