@@ -13,6 +13,7 @@ use game::entity::{Posable, Followable};
 use xp_ui::{UI, Widget, DEFAULT_LAYOUT, Label, ActionType};
 use xp_ui::Widget::LabelW;
 use std::convert::TryInto;
+use noise::NoiseFn;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "options", about = "command line options")]
@@ -26,13 +27,14 @@ pub struct Options {
 
 pub fn create_terrain_mesh() -> graphics::Mesh<graphics::Vertex> {
     let mut terrain = graphics::Mesh { vertices: Vec::new(), indices: Vec::new() };
-    const S: u32 = 20;
+    const S: u32 = 200;
     const S_MIN_1: u32 = S - 1;
+    let fbm = noise::Fbm::new();
     for z in 0..S {
         for x in 0..S {
             let x = x as f32 - (S as f32 / 2.0);
             let z = z as f32 - (S as f32 / 2.0);
-            let y = (x.sin() + z.sin()) / 5.0;
+            let y = fbm.get([x as f64 / 10.0, z as f64 / 10.0]) as f32 * 10.0;
             terrain.vertices.push(graphics::Vertex {
                 position: [x, y, z],
                 normal: [0.0, 1.0, 0.0],
