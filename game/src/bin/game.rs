@@ -24,17 +24,16 @@ pub struct Options {
     #[structopt(long = "replay", parse(from_os_str))]
     replay_path: Option<PathBuf>,
 }
-
 pub fn create_terrain_mesh() -> graphics::Mesh<graphics::Vertex> {
     let mut terrain = graphics::Mesh { vertices: Vec::new(), indices: Vec::new() };
-    const S: u32 = 200;
+    const S: u32 = 64;
     const S_MIN_1: u32 = S - 1;
     let fbm = noise::Fbm::new();
     for z in 0..S {
         for x in 0..S {
             let x = x as f32 - (S as f32 / 2.0);
             let z = z as f32 - (S as f32 / 2.0);
-            let y = fbm.get([x as f64 / 10.0, z as f64 / 10.0]) as f32 * 10.0;
+            let y = fbm.get([x as f64 / 10.0, z as f64 / 10.0]) as f32;
             terrain.vertices.push(graphics::Vertex {
                 position: [x, y, z],
                 normal: [0.0, 1.0, 0.0],
