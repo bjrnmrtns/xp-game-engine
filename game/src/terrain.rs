@@ -5,13 +5,13 @@ struct TileGenerator {
     lod_size: i32,
 }
 
-fn to_index_of_lod(index: i32, lod: u32) -> i32 {
+fn to_index_of_lod(index: i32, lod: u32, lod_size: i32) -> i32 {
     assert!(lod > 0);
     if index < 0 {
-        let pos_value_mapped = (index * -1 - 1) / 2_i32.pow(lod);
+        let pos_value_mapped = (index * -1 - 1) / lod_size.pow(lod);
         return (pos_value_mapped + 1) * -1;
     } else {
-        return index / 2_i32.pow(lod);
+        return index / lod_size.pow(lod);
     }
 }
 
@@ -35,13 +35,26 @@ impl TileGenerator {
         }
         grid
     }
-    pub fn which_tiles(&self, tile_position: [i32; 3]) -> Vec<[i32; 3]> {
+    fn tiles_around_tile(&self, tile: &[i32; 3]) -> [[i32; 3]; 9] {
+         [[tile[0] - 1, tile[1], tile[2] - 1],
+          [tile[0] - 1, tile[1], tile[2]],
+          [tile[0] - 1, tile[1], tile[2] + 1],
+          [tile[0], tile[1], tile[2] - 1],
+          [tile[0], tile[1], tile[2]],
+          [tile[0], tile[1], tile[2] + 1],
+          [tile[0] + 1, tile[1], tile[2] - 1],
+          [tile[0] + 1, tile[1], tile[2]],
+          [tile[0] + 1, tile[1], tile[2] + 1]]
+    }
+    pub fn which_tiles(&self, tile: [i32; 3]) -> Vec<[i32; 3]> {
+        assert_eq!(tile[1], 0);
         let mut tiles = Vec::new();
+        tiles.extend(self.tiles_around_tile(&tile).iter());
         tiles
     }
 }
 
-//#[test]
+#[test]
 fn test_which_tiles() {
     let tiles = TileGenerator::new().which_tiles([0, 0, 0]);
     assert_eq!(tiles.len(), 9);
@@ -56,52 +69,39 @@ fn test_which_tiles() {
     assert!(tiles.contains(&[1, 0, 1]));
 }
 
-/*#[test]
-fn test_within_tile_of_lod() {
-    let tile_gen = TileGenerator::new();
-    assert_eq!(tile_gen.within_tile_of_lod(2, [0, 3, 0]), None);
-    assert_eq!(tile_gen.within_tile_of_lod(0, [0, 0, 0]), Some([0, 0, 0]));
-    assert_eq!(tile_gen.within_tile_of_lod(1, [1, 0, 0]), Some([0, 1, 0]));
-    assert_eq!(tile_gen.within_tile_of_lod(1, [2, 0, 0]), Some([1, 1, 0]));
-    assert_eq!(tile_gen.within_tile_of_lod(1, [-1, 0, 0]), Some([-1, 1, 0]));
-    assert_eq!(tile_gen.within_tile_of_lod(2, [-4, 0, 0]), Some([-1, 2, 0]));
-    assert_eq!(tile_gen.within_tile_of_lod(2, [-5, 0, 0]), Some([-2, 2, 0]));
-}
-*/
-
 #[test]
 fn test_to_index_of_lod1() {
-    assert_eq!(to_index_of_lod(0, 1), 0);
-    assert_eq!(to_index_of_lod(1, 1), 0);
-    assert_eq!(to_index_of_lod(2, 1), 1);
-    assert_eq!(to_index_of_lod(3, 1), 1);
-    assert_eq!(to_index_of_lod(4, 1), 2);
-    assert_eq!(to_index_of_lod(5, 1), 2);
-    assert_eq!(to_index_of_lod(6, 1), 3);
-    assert_eq!(to_index_of_lod(-3, 1), -2);
-    assert_eq!(to_index_of_lod(-2, 1), -1);
-    assert_eq!(to_index_of_lod(-1, 1), -1);
+    assert_eq!(to_index_of_lod(0, 1, 2), 0);
+    assert_eq!(to_index_of_lod(1, 1, 2), 0);
+    assert_eq!(to_index_of_lod(2, 1, 2), 1);
+    assert_eq!(to_index_of_lod(3, 1, 2), 1);
+    assert_eq!(to_index_of_lod(4, 1, 2), 2);
+    assert_eq!(to_index_of_lod(5, 1, 2), 2);
+    assert_eq!(to_index_of_lod(6, 1, 2), 3);
+    assert_eq!(to_index_of_lod(-3, 1, 2), -2);
+    assert_eq!(to_index_of_lod(-2, 1, 2), -1);
+    assert_eq!(to_index_of_lod(-1, 1, 2), -1);
 
 }
 
 #[test]
 fn test_to_index_of_lod2() {
-    assert_eq!(to_index_of_lod(0, 2), 0);
-    assert_eq!(to_index_of_lod(1, 2), 0);
-    assert_eq!(to_index_of_lod(2, 2), 0);
-    assert_eq!(to_index_of_lod(3, 2), 0);
-    assert_eq!(to_index_of_lod(4, 2), 1);
-    assert_eq!(to_index_of_lod(-5, 2), -2);
-    assert_eq!(to_index_of_lod(-4, 2), -1);
-    assert_eq!(to_index_of_lod(-3, 2), -1);
-    assert_eq!(to_index_of_lod(-2, 2), -1);
-    assert_eq!(to_index_of_lod(-1, 2), -1);
+    assert_eq!(to_index_of_lod(0, 2, 2), 0);
+    assert_eq!(to_index_of_lod(1, 2, 2), 0);
+    assert_eq!(to_index_of_lod(2, 2, 2), 0);
+    assert_eq!(to_index_of_lod(3, 2, 2), 0);
+    assert_eq!(to_index_of_lod(4, 2, 2), 1);
+    assert_eq!(to_index_of_lod(-5, 2, 2), -2);
+    assert_eq!(to_index_of_lod(-4, 2, 2), -1);
+    assert_eq!(to_index_of_lod(-3, 2, 2), -1);
+    assert_eq!(to_index_of_lod(-2, 2, 2), -1);
+    assert_eq!(to_index_of_lod(-1, 2, 2), -1);
 }
 
 #[test]
 fn test_to_index_of_lod3() {
-    assert_eq!(to_index_of_lod(7, 3), 0);
-    assert_eq!(to_index_of_lod(8, 3), 1);
-    assert_eq!(to_index_of_lod(-8, 3), -1);
-    assert_eq!(to_index_of_lod(-9, 3), -2);
+    assert_eq!(to_index_of_lod(7, 3, 2), 0);
+    assert_eq!(to_index_of_lod(8, 3, 2), 1);
+    assert_eq!(to_index_of_lod(-8, 3, 2), -1);
+    assert_eq!(to_index_of_lod(-9, 3, 2), -2);
 }
