@@ -7,24 +7,11 @@ struct TileGenerator {
 
 fn to_index_of_lod(index: i32, lod: u32) -> i32 {
     assert!(lod > 0);
-   /* if index < 0 {
-        return  (-1 * (-(index + 1) / (lod + 1)) - 1;
-        //return -1 + (-index / (lod + 1)) * -1;
-    } else {
-        return index / (lod + 1)
-    }*/
-
-    let neg = index < 0;
-    let index = if neg {
-        (index * -1) - 1
-    } else {
-        index
-    };
-    let pos_value_mapped = index / 2_i32.pow(lod);
-    if neg {
+    if index < 0 {
+        let pos_value_mapped = (index * -1 - 1) / 2_i32.pow(lod);
         return (pos_value_mapped + 1) * -1;
     } else {
-        return pos_value_mapped;
+        return index / 2_i32.pow(lod);
     }
 }
 
