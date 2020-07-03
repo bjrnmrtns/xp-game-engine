@@ -1,18 +1,18 @@
+use noise::NoiseFn;
+
 const TILE_SIZE: usize = 64;
+const TILE_PITCH_PER_LOD: [f64; 10] = [0.1, 0.2, 0.4, 0.8, 1.6, 3.2, 6.4, 12.8, 25.6, 51.2];
+const TILE_SIZE_PER_LOD: [f64; 10] = [6.4, 12.8, 25.6, 51.2, 102.4, 204.8, 409.6, 819.2, 1638.4, 3276.8];
 
 #[derive(Clone)]
 pub struct Element {
-    x: i32,
-    y: i32,
-    z: i32,
+    y: f32,
 }
 
 impl Element {
-    pub fn new(x: i32, y: i32, z: i32) -> Self {
+    pub fn new(y: f32) -> Self {
         Self {
-            x,
             y,
-            z,
         }
     }
 }
@@ -20,21 +20,30 @@ impl Element {
 pub struct Tile {
     x: i32,
     z: i32,
+    lod: usize,
     elements: Vec<Element>,
 }
 
+fn noise(tile_x: i32, tile_z: i32, x: usize, z: usize, lod: usize, fbm: &noise::Fbm) -> f64 {
+    let x = tile_x as f64 * TILE_SIZE_PER_LOD[lod] + x as f64 * TILE_PITCH_PER_LOD[lod];
+    let z = tile_z as f64 * TILE_SIZE_PER_LOD[lod] + z as f64 * TILE_PITCH_PER_LOD[lod];
+    fbm.get([x / 10.0, z / 10.0])
+}
+
+
 impl Tile {
-    pub fn new() -> Self {
-        let mut elements = vec!(Element::new(0, 0, 0); (TILE_SIZE + 1) * (TILE_SIZE + 1));
-        let pitch = 1;
+    pub fn new(tile_x: i32, tile_z: i32, lod: usize) -> Self {
+        let fbm = noise::Fbm::new();
+        let mut elements = vec!(Element::new(0.0); (TILE_SIZE + 1) * (TILE_SIZE + 1));
         for z in 0..TILE_SIZE + 1 {
             for x in 0..TILE_SIZE + 1 {
-                elements[z * (TILE_SIZE + 1) + x] = Element::new(x as i32 * pitch, 0, z as i32 * pitch);
+                elements[z * (TILE_SIZE + 1) + x] = Element::new(noise(tile_x, tile_z, x, z, lod, &fbm) as f32);
             }
         }
         Self {
             x: 0,
             z: 0,
+            lod,
             elements,
         }
     }
