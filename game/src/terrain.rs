@@ -6,7 +6,6 @@ struct TileGenerator {
 }
 
 fn to_index_of_lod(index: i32, lod: u32, lod_size: i32) -> i32 {
-    assert!(lod > 0);
     if index < 0 {
         let pos_value_mapped = (index * -1 - 1) / lod_size.pow(lod);
         return (pos_value_mapped + 1) * -1;
@@ -46,17 +45,20 @@ impl TileGenerator {
           [tile[0] + 1, tile[1], tile[2]],
           [tile[0] + 1, tile[1], tile[2] + 1]]
     }
-    pub fn which_tiles(&self, tile: [i32; 3]) -> Vec<[i32; 3]> {
+    pub fn which_tiles(&self, tile: [i32; 3], max_lod: u32) -> Vec<[i32; 3]> {
         assert_eq!(tile[1], 0);
         let mut tiles = Vec::new();
-        tiles.extend(self.tiles_around_tile(&tile).iter());
+        for lod in 0..max_lod + 1 {
+            let lod_tile = [to_index_of_lod(tile[0], lod, 2), lod as i32, to_index_of_lod(tile[2], lod, 2)];
+            tiles.extend(self.tiles_around_tile(&lod_tile).iter());
+        }
         tiles
     }
 }
 
 #[test]
-fn test_which_tiles() {
-    let tiles = TileGenerator::new().which_tiles([0, 0, 0]);
+fn test_which_tiles_1() {
+    let tiles = TileGenerator::new().which_tiles([0, 0, 0], 0);
     assert_eq!(tiles.len(), 9);
     assert!(tiles.contains(&[-1, 0, -1]));
     assert!(tiles.contains(&[0, 0, -1]));
@@ -68,6 +70,42 @@ fn test_which_tiles() {
     assert!(tiles.contains(&[0, 0, 1]));
     assert!(tiles.contains(&[1, 0, 1]));
 }
+
+#[test]
+fn test_which_tiles_2() {
+    let tiles = TileGenerator::new().which_tiles([-7, 0, 5], 2);
+    assert_eq!(tiles.len(), 27);
+    assert!(tiles.contains(&[-8, 0, 4]));
+    assert!(tiles.contains(&[-7, 0, 4]));
+    assert!(tiles.contains(&[-6, 0, 4]));
+    assert!(tiles.contains(&[-8, 0, 5]));
+    assert!(tiles.contains(&[-7, 0, 5]));
+    assert!(tiles.contains(&[-6, 0, 5]));
+    assert!(tiles.contains(&[-8, 0, 6]));
+    assert!(tiles.contains(&[-7, 0, 6]));
+    assert!(tiles.contains(&[-6, 0, 6]));
+
+    assert!(tiles.contains(&[-4, 1, 2]));
+    assert!(tiles.contains(&[-4, 1, 2]));
+    assert!(tiles.contains(&[-3, 1, 2]));
+    assert!(tiles.contains(&[-4, 1, 2]));
+    assert!(tiles.contains(&[-4, 1, 2]));
+    assert!(tiles.contains(&[-3, 1, 2]));
+    assert!(tiles.contains(&[-4, 1, 3]));
+    assert!(tiles.contains(&[-4, 1, 3]));
+    assert!(tiles.contains(&[-3, 1, 3]));
+
+    assert!(tiles.contains(&[-2, 2, 1]));
+    assert!(tiles.contains(&[-2, 2, 1]));
+    assert!(tiles.contains(&[-2, 2, 1]));
+    assert!(tiles.contains(&[-2, 2, 1]));
+    assert!(tiles.contains(&[-2, 2, 1]));
+    assert!(tiles.contains(&[-2, 2, 1]));
+    assert!(tiles.contains(&[-2, 2, 1]));
+    assert!(tiles.contains(&[-2, 2, 1]));
+    assert!(tiles.contains(&[-2, 2, 1]));
+}
+
 
 #[test]
 fn test_to_index_of_lod1() {
