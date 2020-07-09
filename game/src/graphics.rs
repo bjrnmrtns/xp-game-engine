@@ -317,7 +317,7 @@ pub struct Mesh<T> {
     pub indices: Vec<u32>,
 }
 
-struct Drawable {
+pub struct Drawable {
     pub vertex_buffer: wgpu::Buffer,
     pub index_buffer: wgpu::Buffer,
     pub index_buffer_len: u32,
@@ -647,6 +647,12 @@ impl Renderer {
         self.drawables.len() - 1
     }
 
+    pub fn create_drawable_from_mesh2(&mut self, mesh: &Mesh<Vertex>) -> Drawable {
+        let vertex_buffer = self.device.create_buffer_with_data(bytemuck::cast_slice(&mesh.vertices), wgpu::BufferUsage::VERTEX);
+        let index_buffer = self.device.create_buffer_with_data(bytemuck::cast_slice(&mesh.indices), wgpu::BufferUsage::INDEX);
+        Drawable { vertex_buffer, index_buffer, index_buffer_len: mesh.indices.len() as u32, }
+    }
+
     pub fn update(&mut self, model_player: Mat4, model_terrain: Mat4, model_axis: Mat4) {
         let instances = [Instance { model: model_player }, Instance { model: model_terrain }, Instance {model: model_axis }];
         let buffer = self.device.create_buffer_with_data(bytemuck::cast_slice(&instances), wgpu::BufferUsage::COPY_SRC);
@@ -657,7 +663,7 @@ impl Renderer {
         self.queue.submit(&[encoder.finish()]);
     }
 
-    pub async fn render(&mut self, view: Mat4, render_ui: bool, ui_mesh: Option<(Mesh<UIVertex>, Vec<Text>)>) {
+    pub async fn render(&mut self, terrain: &[Drawable], view: Mat4, render_ui: bool, ui_mesh: Option<(Mesh<UIVertex>, Vec<Text>)>) {
         let projection = perspective(self.sc_descriptor.width as f32 / self.sc_descriptor.height as f32,45.0, 0.1, 100.0);
         let uniforms = Uniforms { projection: projection, view: view, };
         let buffer = self.device.create_buffer_with_data(bytemuck::cast_slice(&[uniforms]), wgpu::BufferUsage::COPY_SRC);
@@ -704,10 +710,12 @@ impl Renderer {
             diffuse_scene_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
             diffuse_scene_pass.draw_indexed(0..self.drawables[1].index_buffer_len, 0, 1..2);
 
-            diffuse_scene_pass.set_vertex_buffer(0, &self.drawables[2].vertex_buffer, 0, 0);
-            diffuse_scene_pass.set_index_buffer(&self.drawables[2].index_buffer, 0, 0);
-            diffuse_scene_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
-            diffuse_scene_pass.draw_indexed(0..self.drawables[2].index_buffer_len, 0, 2..3);
+            for drawable in terrain {
+                diffuse_scene_pass.set_vertex_buffer(0, &drawable.vertex_buffer, 0, 0);
+                diffuse_scene_pass.set_index_buffer(&drawable.index_buffer, 0, 0);
+                diffuse_scene_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
+                diffuse_scene_pass.draw_indexed(0..drawable.index_buffer_len, 0, 2..3);
+            }
         }
         // far and near plane are actually not used in UI rendering
         let ui_uniforms = UIUniforms { projection: ortho(0.0, self.sc_descriptor.width as f32, 0.0, self.sc_descriptor.height as f32, -1.0, 1.0) };

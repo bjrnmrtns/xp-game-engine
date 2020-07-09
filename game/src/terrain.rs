@@ -28,14 +28,19 @@ fn noise(x: f64, z: f64, fbm: &noise::Fbm) -> f64 {
     fbm.get([x / 10.0, z / 10.0])
 }
 
+pub fn tile_and_index_to_coord(tile_x: i32, tile_z: i32, x_index: usize, z_index: usize, lod: usize) -> (f64, f64) {
+    let x = tile_x as f64 * TILE_SIZE_PER_LOD[lod] + x_index as f64 * TILE_PITCH_PER_LOD[lod];
+    let z = tile_z as f64 * TILE_SIZE_PER_LOD[lod] + z_index as f64 * TILE_PITCH_PER_LOD[lod];
+    (x, z)
+}
+
 impl Tile {
     pub fn new(tile_x: i32, tile_z: i32, lod: usize) -> Self {
         let fbm = noise::Fbm::new();
         let mut elements = vec!(Element::new(0.0, 0.0, 0.0); TILE_SIZE * TILE_SIZE);
         for z_index in 0..TILE_SIZE {
             for x_index in 0..TILE_SIZE {
-                let x = tile_x as f64 * TILE_SIZE_PER_LOD[lod] + x_index as f64 * TILE_PITCH_PER_LOD[lod];
-                let z = tile_z as f64 * TILE_SIZE_PER_LOD[lod] + z_index as f64 * TILE_PITCH_PER_LOD[lod];
+                let (x, z) = tile_and_index_to_coord(tile_x, tile_z, x_index, z_index, lod);
                 elements[z_index * TILE_SIZE + x_index] = Element::new(x as f32,noise(x, z, &fbm) as f32, z as f32);
             }
         }

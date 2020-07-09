@@ -24,15 +24,16 @@ pub struct Options {
     replay_path: Option<PathBuf>,
 }
 
-pub fn create_terrain_mesh_from_tile() -> graphics::Mesh<graphics::Vertex> {
+pub fn create_terrain_mesh_from_tile(tile_x: i32, tile_z: i32, lod: usize) -> graphics::Mesh<graphics::Vertex> {
+    const LOD_COLOR: [[f32; 3]; 3] = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
     let mut terrain = graphics::Mesh { vertices: Vec::new(), indices: Vec::new() };
-    let grid_0_0_0 = terrain::Tile::new(0, 0, 0);
+    let grid_0_0_0 = terrain::Tile::new(tile_x, tile_z, lod);
     for z in 0..terrain::TILE_SIZE {
         for x in 0..terrain::TILE_SIZE {
             terrain.vertices.push(graphics::Vertex {
                 position: grid_0_0_0.get_element(x, z).p.clone(),
                 normal: [0.0, 1.0, 0.0],
-                color: [1.0, 0.0, 0.0],
+                color: LOD_COLOR[lod],
             });
         }
     }
@@ -41,8 +42,8 @@ pub fn create_terrain_mesh_from_tile() -> graphics::Mesh<graphics::Vertex> {
     for x in 0..S_MIN_1 {
         for z in 0..S {
             let index = x + z * S;
-            match z {
-                0 => {
+            match (x, z) {
+                (_, 0) => {
                     let p1 = index;
                     let p2 = index + S;
                     let p3 = index + 1;
@@ -51,7 +52,7 @@ pub fn create_terrain_mesh_from_tile() -> graphics::Mesh<graphics::Vertex> {
                     terrain.indices.push(p3);
                     terrain.vertices[index as usize].normal = triangle_normal(&make_vec3(&terrain.vertices[p1 as usize].position), &make_vec3(&terrain.vertices[p2 as usize].position), &make_vec3(&terrain.vertices[p3 as usize].position)).as_slice().try_into().unwrap();
                 },
-                S_MIN_1 => {
+                (_, S_MIN_1) => {
                     let p1 = index;
                     let p2 = index + 1;
                     let p3 = index - S + 1;
@@ -60,7 +61,7 @@ pub fn create_terrain_mesh_from_tile() -> graphics::Mesh<graphics::Vertex> {
                     terrain.indices.push(p3);
                     terrain.vertices[index as usize].normal = triangle_normal(&make_vec3(&terrain.vertices[p1 as usize].position), &make_vec3(&terrain.vertices[p2 as usize].position), &make_vec3(&terrain.vertices[p3 as usize].position)).as_slice().try_into().unwrap();
                 },
-                _ => {
+                (_, _) => {
 
                     let p1 = index;
                     let p2 = index + S;
@@ -158,7 +159,6 @@ fn game(options: Options) {
     let mut player = entity::Entity::new();
 
     let player_mesh = create_mesh_from("obj/arrow.obj");
-    let terrain_mesh = create_terrain_mesh_from_tile();
     let axis_mesh = create_mesh_from("obj/axis.obj");
 
     let mut ui = UI::<UIContext, u32>::new(window.inner_size().width as f32, window.inner_size().height as f32);
@@ -171,7 +171,10 @@ fn game(options: Options) {
     ui.layout();
     let mut renderer = futures::executor::block_on(graphics::Renderer::new(&window, create_mesh(&ui).0)).expect("Could not create graphics renderer");
     renderer.create_drawable_from_mesh(&player_mesh);
-    renderer.create_drawable_from_mesh(&terrain_mesh);
+    let mut terrain = Vec::new();
+    terrain.push(renderer.create_drawable_from_mesh2(&create_terrain_mesh_from_tile(0, 0, 0)));
+    terrain.push(renderer.create_drawable_from_mesh2(&create_terrain_mesh_from_tile(0, 0, 1)));
+    terrain.push(renderer.create_drawable_from_mesh2(&create_terrain_mesh_from_tile(0, 0, 2)));
     renderer.create_drawable_from_mesh(&axis_mesh);
 
 
@@ -225,7 +228,7 @@ fn game(options: Options) {
                     fps_label.text.text = fps.to_string();
                 }
                 previous_time = current_time;
-                futures::executor::block_on(renderer.render(view, game_state.ui_enabled, Some(create_mesh(&ui))));
+                futures::executor::block_on(renderer.render(terrain.as_slice(), view, game_state.ui_enabled, Some(create_mesh(&ui))));
             }
             Event::MainEventsCleared => {
                 window.request_redraw();
