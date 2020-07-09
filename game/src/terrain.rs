@@ -1,43 +1,42 @@
 use noise::NoiseFn;
 
-const TILE_SIZE: usize = 64;
+pub const TILE_SIZE: usize = 65;
 const TILE_PITCH_PER_LOD: [f64; 10] = [0.1, 0.2, 0.4, 0.8, 1.6, 3.2, 6.4, 12.8, 25.6, 51.2];
 const TILE_SIZE_PER_LOD: [f64; 10] = [6.4, 12.8, 25.6, 51.2, 102.4, 204.8, 409.6, 819.2, 1638.4, 3276.8];
 
 #[derive(Clone)]
 pub struct Element {
-    y: f32,
+    pub p: [f32; 3],
 }
 
 impl Element {
-    pub fn new(y: f32) -> Self {
+    pub fn new(x: f32, y: f32, z: f32) -> Self {
         Self {
-            y,
+            p: [x, y, z],
         }
     }
 }
 
 pub struct Tile {
-    x: i32,
-    z: i32,
-    lod: usize,
-    elements: Vec<Element>,
+    pub x: i32,
+    pub z: i32,
+    pub lod: usize,
+    pub elements: Vec<Element>,
 }
 
-fn noise(tile_x: i32, tile_z: i32, x: usize, z: usize, lod: usize, fbm: &noise::Fbm) -> f64 {
-    let x = tile_x as f64 * TILE_SIZE_PER_LOD[lod] + x as f64 * TILE_PITCH_PER_LOD[lod];
-    let z = tile_z as f64 * TILE_SIZE_PER_LOD[lod] + z as f64 * TILE_PITCH_PER_LOD[lod];
+fn noise(x: f64, z: f64, fbm: &noise::Fbm) -> f64 {
     fbm.get([x / 10.0, z / 10.0])
 }
-
 
 impl Tile {
     pub fn new(tile_x: i32, tile_z: i32, lod: usize) -> Self {
         let fbm = noise::Fbm::new();
-        let mut elements = vec!(Element::new(0.0); (TILE_SIZE + 1) * (TILE_SIZE + 1));
-        for z in 0..TILE_SIZE + 1 {
-            for x in 0..TILE_SIZE + 1 {
-                elements[z * (TILE_SIZE + 1) + x] = Element::new(noise(tile_x, tile_z, x, z, lod, &fbm) as f32);
+        let mut elements = vec!(Element::new(0.0, 0.0, 0.0); TILE_SIZE * TILE_SIZE);
+        for z_index in 0..TILE_SIZE {
+            for x_index in 0..TILE_SIZE {
+                let x = tile_x as f64 * TILE_SIZE_PER_LOD[lod] + x_index as f64 * TILE_PITCH_PER_LOD[lod];
+                let z = tile_z as f64 * TILE_SIZE_PER_LOD[lod] + z_index as f64 * TILE_PITCH_PER_LOD[lod];
+                elements[z_index * TILE_SIZE + x_index] = Element::new(x as f32,noise(x, z, &fbm) as f32, z as f32);
             }
         }
         Self {
@@ -46,6 +45,12 @@ impl Tile {
             lod,
             elements,
         }
+    }
+    pub fn get_element(&self, x_index: usize, z_index: usize) -> &Element {
+        &self.elements[z_index * TILE_SIZE + x_index]
+    }
+    pub fn set_height(&mut self, x_index: usize, z_index: usize, height: f32) {
+        self.elements[z_index * TILE_SIZE + x_index].p[1] = height;
     }
 }
 

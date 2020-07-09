@@ -13,7 +13,6 @@ use game::entity::{Posable, Followable};
 use xp_ui::{UI, Widget, DEFAULT_LAYOUT, Label, ActionType};
 use xp_ui::Widget::LabelW;
 use std::convert::TryInto;
-use noise::NoiseFn;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "options", about = "command line options")]
@@ -24,23 +23,21 @@ pub struct Options {
     #[structopt(long = "replay", parse(from_os_str))]
     replay_path: Option<PathBuf>,
 }
-pub fn create_terrain_mesh() -> graphics::Mesh<graphics::Vertex> {
+
+pub fn create_terrain_mesh_from_tile() -> graphics::Mesh<graphics::Vertex> {
     let mut terrain = graphics::Mesh { vertices: Vec::new(), indices: Vec::new() };
-    const S: u32 = 64;
-    const S_MIN_1: u32 = S - 1;
-    let fbm = noise::Fbm::new();
-    for z in 0..S {
-        for x in 0..S {
-            let x = x as f32 - (S as f32 / 2.0);
-            let z = z as f32 - (S as f32 / 2.0);
-            let y = fbm.get([x as f64 / 10.0, z as f64 / 10.0]) as f32;
+    let grid_0_0_0 = terrain::Tile::new(0, 0, 0);
+    for z in 0..terrain::TILE_SIZE {
+        for x in 0..terrain::TILE_SIZE {
             terrain.vertices.push(graphics::Vertex {
-                position: [x, y, z],
+                position: grid_0_0_0.get_element(x, z).p.clone(),
                 normal: [0.0, 1.0, 0.0],
                 color: [1.0, 0.0, 0.0],
             });
         }
     }
+    const S: u32 = terrain::TILE_SIZE as u32;
+    const S_MIN_1: u32 = S - 1;
     for x in 0..S_MIN_1 {
         for z in 0..S {
             let index = x + z * S;
@@ -161,7 +158,7 @@ fn game(options: Options) {
     let mut player = entity::Entity::new();
 
     let player_mesh = create_mesh_from("obj/arrow.obj");
-    let terrain_mesh = create_terrain_mesh();//create_mesh_from("obj/ground-plane-20x20.obj");
+    let terrain_mesh = create_terrain_mesh_from_tile();
     let axis_mesh = create_mesh_from("obj/axis.obj");
 
     let mut ui = UI::<UIContext, u32>::new(window.inner_size().width as f32, window.inner_size().height as f32);
