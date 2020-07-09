@@ -717,7 +717,7 @@ impl Renderer {
                 diffuse_scene_pass.draw_indexed(0..drawable.index_buffer_len, 0, 2..3);
             }
         }
-        // far and near plane are actually not used in UI rendering
+        // far and near plane are not used in UI rendering
         let ui_uniforms = UIUniforms { projection: ortho(0.0, self.sc_descriptor.width as f32, 0.0, self.sc_descriptor.height as f32, -1.0, 1.0) };
         let buffer = self.device.create_buffer_with_data(bytemuck::cast_slice(&[ui_uniforms]), wgpu::BufferUsage::COPY_SRC);
         encoder.copy_buffer_to_buffer(&buffer, 0, &self.ui_uniform_buffer, 0, std::mem::size_of_val(&ui_uniforms) as u64);
