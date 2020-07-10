@@ -173,12 +173,12 @@ fn game(options: Options) {
     renderer.create_drawable_from_mesh(&player_mesh);
     let mut terrain = Vec::new();
     terrain.push(renderer.create_drawable_from_mesh2(&create_terrain_mesh_from_tile(0, 0, 0)));
-    terrain.push(renderer.create_drawable_from_mesh2(&create_terrain_mesh_from_tile(0, 0, 1)));
-    terrain.push(renderer.create_drawable_from_mesh2(&create_terrain_mesh_from_tile(0, 0, 2)));
+    let mut generated_tile = (0, 0);
     renderer.create_drawable_from_mesh(&axis_mesh);
 
 
     let mut previous_time = Instant::now();
+
 
     let mut inputs = input::InputQueue::new();
     let mut commands_queue = CommandQueue::new();
@@ -211,6 +211,13 @@ fn game(options: Options) {
         client::send(&mut *record, commands_received.as_slice());
         for frame in &commands_received {
             let _ = simulation.handle_frame(frame, &game_state.camera, &mut player);
+        }
+
+        let current_tile = terrain::pos_to_tile_nr(player.position.as_slice().try_into().unwrap(), 0);
+        if generated_tile != current_tile {
+            terrain.clear();
+            terrain.push(renderer.create_drawable_from_mesh2(&create_terrain_mesh_from_tile(current_tile.0, current_tile.1, 0)));
+            generated_tile = current_tile;
         }
 
         match event {

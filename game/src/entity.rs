@@ -11,8 +11,8 @@ pub trait Followable {
 
 pub struct Entity
 {
-    position: Vec3,
-    orientation: Quat,
+    pub position: Vec3,
+    pub orientation: Quat,
 }
 
 impl Entity {

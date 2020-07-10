@@ -1,8 +1,21 @@
 use noise::NoiseFn;
+use std::collections::HashMap;
 
 pub const TILE_SIZE: usize = 65;
 const TILE_PITCH_PER_LOD: [f64; 10] = [0.1, 0.2, 0.4, 0.8, 1.6, 3.2, 6.4, 12.8, 25.6, 51.2];
 const TILE_SIZE_PER_LOD: [f64; 10] = [6.4, 12.8, 25.6, 51.2, 102.4, 204.8, 409.6, 819.2, 1638.4, 3276.8];
+
+pub struct TileCache {
+    data: HashMap<TileHeader, Tile>,
+}
+
+impl TileCache {
+    pub fn new() -> Self {
+        Self {
+            data: HashMap::new(),
+        }
+    }
+}
 
 #[derive(Clone)]
 pub struct Element {
@@ -17,10 +30,15 @@ impl Element {
     }
 }
 
-pub struct Tile {
+#[derive(PartialEq, Eq, Hash)]
+struct TileHeader {
     pub x: i32,
     pub z: i32,
     pub lod: usize,
+}
+
+pub struct Tile {
+    header: TileHeader,
     pub elements: Vec<Element>,
 }
 
@@ -34,6 +52,21 @@ pub fn tile_and_index_to_coord(tile_x: i32, tile_z: i32, x_index: usize, z_index
     (x, z)
 }
 
+fn value_to_tile_nr(value: f32, lod: usize) -> i32 {
+    let tile_size = TILE_SIZE_PER_LOD[lod] as f32;
+    if value < 0.0 {
+        -1 + (value / tile_size) as i32
+    } else {
+        (value / tile_size) as i32
+    }
+}
+
+pub fn pos_to_tile_nr(pos: &[f32; 3], lod: usize) -> (i32, i32) {
+    let x = pos[0];
+    let z = pos[2];
+    (value_to_tile_nr(x, lod), value_to_tile_nr(z, lod))
+}
+
 impl Tile {
     pub fn new(tile_x: i32, tile_z: i32, lod: usize) -> Self {
         let fbm = noise::Fbm::new();
@@ -45,9 +78,11 @@ impl Tile {
             }
         }
         Self {
-            x: 0,
-            z: 0,
-            lod,
+            header: TileHeader {
+                x: tile_x,
+                z: tile_z,
+                lod,
+            },
             elements,
         }
     }
@@ -87,6 +122,20 @@ pub fn which_tiles(tile: [i32; 3], max_lod: u32) -> Vec<[i32; 3]> {
         tiles.extend(tiles_around_tile(&lod_tile).iter());
     }
     tiles
+}
+
+#[test]
+fn test_value_to_tile_nr() {
+    assert_eq!(value_to_tile_nr(5.0, 0), 0);
+    assert_eq!(value_to_tile_nr(6.4, 0), 1);
+    assert_eq!(value_to_tile_nr(6.3, 0), 0);
+    assert_eq!(value_to_tile_nr(12.8, 1), 1);
+    assert_eq!(value_to_tile_nr(12.7, 1), 0);
+    assert_eq!(value_to_tile_nr(-0.01, 0), -1);
+    assert_eq!(value_to_tile_nr(-6.3, 0), -1);
+    assert_eq!(value_to_tile_nr(-6.4, 0), -2);
+    assert_eq!(value_to_tile_nr(-12.7, 1), -1);
+    assert_eq!(value_to_tile_nr(-12.8, 1), -2);
 }
 
 #[test]
