@@ -170,6 +170,10 @@ fn game(options: Options) {
     let mut renderer = futures::executor::block_on(graphics::Renderer::new(&window, create_mesh(&ui).0)).expect("Could not create graphics renderer");
     renderer.create_drawable_from_mesh(&player_mesh);
     let mut tile_cache: terrain::TileCache<graphics::Drawable> = terrain::TileCache::new();
+    let mut tiles = Vec::new();
+    for tile_header in tile_cache.what_needs_update(player.position.as_slice().try_into().unwrap()) {
+        tiles.push((tile_header.clone(), renderer.create_drawable_from_mesh2(&create_terrain_mesh_from_tile(&terrain::Tile::new_from_header(tile_header)))));
+    }
     let tile = terrain::Tile::new(0, 0, 0);
     tile_cache.add(&tile, renderer.create_drawable_from_mesh2(&create_terrain_mesh_from_tile(&tile)));
     renderer.create_drawable_from_mesh(&axis_mesh);
@@ -224,7 +228,7 @@ fn game(options: Options) {
                     fps_label.text.text = fps.to_string();
                 }
                 previous_time = current_time;
-                futures::executor::block_on(renderer.render(&[tile_cache.view()], view, game_state.ui_enabled, Some(create_mesh(&ui))));
+                futures::executor::block_on(renderer.render(tile_cache.view().as_slice(), view, game_state.ui_enabled, Some(create_mesh(&ui))));
             }
             Event::MainEventsCleared => {
                 window.request_redraw();

@@ -1,30 +1,34 @@
 use noise::NoiseFn;
-use std::collections::HashMap;
-use std::borrow::Borrow;
+use std::collections::{HashMap, HashSet};
 
 pub const TILE_SIZE: usize = 65;
 const TILE_PITCH_PER_LOD: [f64; 10] = [0.1, 0.2, 0.4, 0.8, 1.6, 3.2, 6.4, 12.8, 25.6, 51.2];
 const TILE_SIZE_PER_LOD: [f64; 10] = [6.4, 12.8, 25.6, 51.2, 102.4, 204.8, 409.6, 819.2, 1638.4, 3276.8];
 
 pub struct TileCache<T> {
+    generated: HashSet<TileHeader>,
     tiles: HashMap<TileHeader, T>,
 }
 
 impl<T> TileCache<T> {
     pub fn new() -> Self {
         Self {
+            generated: HashSet::new(),
             tiles: HashMap::new(),
         }
     }
     pub fn add(&mut self, tile: &Tile, data: T) {
         self.tiles.insert(tile.header.clone(), data);
     }
-    pub fn view(&self) -> &T {
-        self.tiles.get(&TileHeader{
-            x: 0,
-            z: 0,
-            lod: 0
-        }).borrow().unwrap()
+    pub fn update(&self) {
+    }
+    pub fn what_needs_update(&self, pos: [f32; 3]) -> HashSet<TileHeader> {
+        let tile_nr = pos_to_tile_nr(&pos, 0);
+        let current = TileHeader::new(tile_nr.0, tile_nr.1, 0);
+        current.around().intersection(&self.generated).map(|v| v.clone()).collect()
+    }
+    pub fn view(&self) -> Vec<&T> {
+        self.tiles.values().collect()
     }
 }
 
@@ -42,15 +46,33 @@ impl Element {
 }
 
 #[derive(Clone, PartialEq, Eq, Hash)]
-struct TileHeader {
+pub struct TileHeader {
     pub x: i32,
     pub z: i32,
     pub lod: usize,
 }
 
-pub struct Tile {
-    header: TileHeader,
-    pub elements: Vec<Element>,
+impl TileHeader {
+    pub fn new(x: i32, z: i32, lod: usize) -> Self {
+        Self {
+            x,
+            z,
+            lod
+        }
+    }
+    pub fn around(&self) -> HashSet<TileHeader> {
+        let mut around = HashSet::new();
+        around.insert(Self::new(self.x - 1, self.z - 1, self.lod));
+        around.insert(Self::new(self.x - 1, self.z, self.lod));
+        around.insert(Self::new(self.x - 1, self.z + 1, self.lod));
+        around.insert(Self::new(self.x, self.z - 1, self.lod));
+        around.insert(self.clone());
+        around.insert(Self::new(self.x, self.z + 1, self.lod));
+        around.insert(Self::new(self.x + 1, self.z - 1, self.lod));
+        around.insert(Self::new(self.x + 1, self.z, self.lod));
+        around.insert(Self::new(self.x + 1, self.z + 1, self.lod));
+        around
+    }
 }
 
 fn noise(x: f64, z: f64, fbm: &noise::Fbm) -> f64 {
@@ -78,7 +100,15 @@ pub fn pos_to_tile_nr(pos: &[f32; 3], lod: usize) -> (i32, i32) {
     (value_to_tile_nr(x, lod), value_to_tile_nr(z, lod))
 }
 
+pub struct Tile {
+    header: TileHeader,
+    pub elements: Vec<Element>,
+}
+
 impl Tile {
+    pub fn new_from_header(tile_header: TileHeader) -> Self {
+        Self::new(tile_header.x, tile_header.z, tile_header.lod)
+    }
     pub fn new(tile_x: i32, tile_z: i32, lod: usize) -> Self {
         let fbm = noise::Fbm::new();
         let mut elements = vec!(Element::new(0.0, 0.0, 0.0); TILE_SIZE * TILE_SIZE);

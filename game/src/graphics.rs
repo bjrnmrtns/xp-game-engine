@@ -663,7 +663,7 @@ impl Renderer {
         self.queue.submit(&[encoder.finish()]);
     }
 
-    pub async fn render(&mut self, terrain: &[&Drawable], view: Mat4, render_ui: bool, ui_mesh: Option<(Mesh<UIVertex>, Vec<Text>)>) {
+    pub async fn render(&mut self, drawables: &[&Drawable], view: Mat4, render_ui: bool, ui_mesh: Option<(Mesh<UIVertex>, Vec<Text>)>) {
         let projection = perspective(self.sc_descriptor.width as f32 / self.sc_descriptor.height as f32,45.0, 0.1, 100.0);
         let uniforms = Uniforms { projection: projection, view: view, };
         let buffer = self.device.create_buffer_with_data(bytemuck::cast_slice(&[uniforms]), wgpu::BufferUsage::COPY_SRC);
@@ -710,7 +710,7 @@ impl Renderer {
             diffuse_scene_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
             diffuse_scene_pass.draw_indexed(0..self.drawables[1].index_buffer_len, 0, 1..2);
 
-            for drawable in terrain {
+            for drawable in drawables {
                 diffuse_scene_pass.set_vertex_buffer(0, &drawable.vertex_buffer, 0, 0);
                 diffuse_scene_pass.set_index_buffer(&drawable.index_buffer, 0, 0);
                 diffuse_scene_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
