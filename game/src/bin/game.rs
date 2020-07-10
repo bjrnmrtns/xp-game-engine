@@ -24,16 +24,14 @@ pub struct Options {
     replay_path: Option<PathBuf>,
 }
 
-pub fn create_terrain_mesh_from_tile(tile_x: i32, tile_z: i32, lod: usize) -> graphics::Mesh<graphics::Vertex> {
-    const LOD_COLOR: [[f32; 3]; 3] = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
+pub fn create_terrain_mesh_from_tile(tile: &terrain::Tile) -> graphics::Mesh<graphics::Vertex> {
     let mut terrain = graphics::Mesh { vertices: Vec::new(), indices: Vec::new() };
-    let grid_0_0_0 = terrain::Tile::new(tile_x, tile_z, lod);
     for z in 0..terrain::TILE_SIZE {
         for x in 0..terrain::TILE_SIZE {
             terrain.vertices.push(graphics::Vertex {
-                position: grid_0_0_0.get_element(x, z).p.clone(),
+                position: tile.get_element(x, z).p.clone(),
                 normal: [0.0, 1.0, 0.0],
-                color: LOD_COLOR[lod],
+                color: tile.color(),
             });
         }
     }
@@ -171,14 +169,12 @@ fn game(options: Options) {
     ui.layout();
     let mut renderer = futures::executor::block_on(graphics::Renderer::new(&window, create_mesh(&ui).0)).expect("Could not create graphics renderer");
     renderer.create_drawable_from_mesh(&player_mesh);
-    let mut terrain = Vec::new();
-    terrain.push(renderer.create_drawable_from_mesh2(&create_terrain_mesh_from_tile(0, 0, 0)));
-    let mut generated_tile = (0, 0);
+    let mut tile_cache: terrain::TileCache<graphics::Drawable> = terrain::TileCache::new();
+    let tile = terrain::Tile::new(0, 0, 0);
+    tile_cache.add(&tile, renderer.create_drawable_from_mesh2(&create_terrain_mesh_from_tile(&tile)));
     renderer.create_drawable_from_mesh(&axis_mesh);
 
-
     let mut previous_time = Instant::now();
-
 
     let mut inputs = input::InputQueue::new();
     let mut commands_queue = CommandQueue::new();
@@ -213,13 +209,6 @@ fn game(options: Options) {
             let _ = simulation.handle_frame(frame, &game_state.camera, &mut player);
         }
 
-        let current_tile = terrain::pos_to_tile_nr(player.position.as_slice().try_into().unwrap(), 0);
-        if generated_tile != current_tile {
-            terrain.clear();
-            terrain.push(renderer.create_drawable_from_mesh2(&create_terrain_mesh_from_tile(current_tile.0, current_tile.1, 0)));
-            generated_tile = current_tile;
-        }
-
         match event {
             Event::RedrawRequested(_) => {
                 // first rotate all vertices on 0,0,0 (rotate around origin), then translate all points towards location.
@@ -235,7 +224,7 @@ fn game(options: Options) {
                     fps_label.text.text = fps.to_string();
                 }
                 previous_time = current_time;
-                futures::executor::block_on(renderer.render(terrain.as_slice(), view, game_state.ui_enabled, Some(create_mesh(&ui))));
+                futures::executor::block_on(renderer.render(&[tile_cache.view()], view, game_state.ui_enabled, Some(create_mesh(&ui))));
             }
             Event::MainEventsCleared => {
                 window.request_redraw();

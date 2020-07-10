@@ -1,19 +1,30 @@
 use noise::NoiseFn;
 use std::collections::HashMap;
+use std::borrow::Borrow;
 
 pub const TILE_SIZE: usize = 65;
 const TILE_PITCH_PER_LOD: [f64; 10] = [0.1, 0.2, 0.4, 0.8, 1.6, 3.2, 6.4, 12.8, 25.6, 51.2];
 const TILE_SIZE_PER_LOD: [f64; 10] = [6.4, 12.8, 25.6, 51.2, 102.4, 204.8, 409.6, 819.2, 1638.4, 3276.8];
 
-pub struct TileCache {
-    data: HashMap<TileHeader, Tile>,
+pub struct TileCache<T> {
+    tiles: HashMap<TileHeader, T>,
 }
 
-impl TileCache {
+impl<T> TileCache<T> {
     pub fn new() -> Self {
         Self {
-            data: HashMap::new(),
+            tiles: HashMap::new(),
         }
+    }
+    pub fn add(&mut self, tile: &Tile, data: T) {
+        self.tiles.insert(tile.header.clone(), data);
+    }
+    pub fn view(&self) -> &T {
+        self.tiles.get(&TileHeader{
+            x: 0,
+            z: 0,
+            lod: 0
+        }).borrow().unwrap()
     }
 }
 
@@ -30,7 +41,7 @@ impl Element {
     }
 }
 
-#[derive(PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 struct TileHeader {
     pub x: i32,
     pub z: i32,
@@ -85,6 +96,10 @@ impl Tile {
             },
             elements,
         }
+    }
+    pub fn color(&self) -> [f32; 3] {
+        const LOD_COLOR: [[f32; 3]; 3] = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
+        LOD_COLOR[self.header.lod]
     }
     pub fn get_element(&self, x_index: usize, z_index: usize) -> &Element {
         &self.elements[z_index * TILE_SIZE + x_index]

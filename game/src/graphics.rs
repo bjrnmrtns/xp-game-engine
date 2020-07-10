@@ -663,7 +663,7 @@ impl Renderer {
         self.queue.submit(&[encoder.finish()]);
     }
 
-    pub async fn render(&mut self, terrain: &[Drawable], view: Mat4, render_ui: bool, ui_mesh: Option<(Mesh<UIVertex>, Vec<Text>)>) {
+    pub async fn render(&mut self, terrain: &[&Drawable], view: Mat4, render_ui: bool, ui_mesh: Option<(Mesh<UIVertex>, Vec<Text>)>) {
         let projection = perspective(self.sc_descriptor.width as f32 / self.sc_descriptor.height as f32,45.0, 0.1, 100.0);
         let uniforms = Uniforms { projection: projection, view: view, };
         let buffer = self.device.create_buffer_with_data(bytemuck::cast_slice(&[uniforms]), wgpu::BufferUsage::COPY_SRC);
