@@ -20,12 +20,24 @@ impl<T> TileCache<T> {
     pub fn add(&mut self, tile: &Tile, data: T) {
         self.tiles.insert(tile.header.clone(), data);
     }
-    pub fn update(&self) {
+    pub fn update(&mut self, pos: [f32; 3], mut tiles: Vec<(TileHeader, T)>) {
+        let tile_nr = pos_to_tile_nr(&pos, 0);
+        let current = TileHeader::new(tile_nr.0, tile_nr.1, 0).around();
+        let to_replace: Vec<TileHeader> = self.generated.difference(&current).map(|v| v.clone()).collect();
+        for r in to_replace {
+            self.tiles.remove(&r);
+            self.generated.remove(&r);
+        }
+        while !tiles.is_empty() {
+            let t = tiles.remove(tiles.len() - 1);
+            self.generated.insert(t.0.clone());
+            self.tiles.insert(t.0, t.1);
+        }
     }
     pub fn what_needs_update(&self, pos: [f32; 3]) -> HashSet<TileHeader> {
         let tile_nr = pos_to_tile_nr(&pos, 0);
         let current = TileHeader::new(tile_nr.0, tile_nr.1, 0);
-        current.around().intersection(&self.generated).map(|v| v.clone()).collect()
+        current.around().difference(&self.generated).map(|v| v.clone()).collect()
     }
     pub fn view(&self) -> Vec<&T> {
         self.tiles.values().collect()
