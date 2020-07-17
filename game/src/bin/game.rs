@@ -208,7 +208,9 @@ fn game(options: Options) {
         }
         let mut tiles = Vec::new();
         for tile_header in tile_cache.what_needs_update(player.position.as_slice().try_into().unwrap()) {
-            tiles.push((tile_header.clone(), renderer.create_drawable_from_mesh2(&create_terrain_mesh_from_tile(&terrain::Tile::new_from_header(tile_header)))));
+            let tile = terrain::Tile::new_from_header(tile_header.clone());
+            let terrain_mesh = create_terrain_mesh_from_tile(&tile);
+            tiles.push((tile_header, renderer.create_drawable_from_mesh2(&terrain_mesh)));
         }
         tile_cache.update(player.position.as_slice().try_into().unwrap(), tiles);
 
