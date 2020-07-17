@@ -208,9 +208,16 @@ fn game(options: Options) {
         }
         let mut tiles = Vec::new();
         for tile_header in tile_cache.what_needs_update(player.position.as_slice().try_into().unwrap()) {
+            let time_start = Instant::now();
             let tile = terrain::Tile::new_from_header(tile_header.clone());
+            let time_after_tile_gen = Instant::now();
+            println!("tile-gen time: {}", (time_after_tile_gen - time_start).as_millis());
             let terrain_mesh = create_terrain_mesh_from_tile(&tile);
+            let time_after_vb_create = Instant::now();
+            println!("vb-gen time: {}", (time_after_vb_create - time_start).as_millis());
             tiles.push((tile_header, renderer.create_drawable_from_mesh2(&terrain_mesh)));
+            let time_after_drawable_create = Instant::now();
+            println!("create-drawable time: {}", (time_after_drawable_create - time_start).as_millis());
         }
         tile_cache.update(player.position.as_slice().try_into().unwrap(), tiles);
 
@@ -229,7 +236,7 @@ fn game(options: Options) {
                     fps_label.text.text = fps.to_string();
                 }
                 previous_time = current_time;
-                futures::executor::block_on(renderer.render(tile_cache.view().as_slice(), view, game_state.ui_enabled, Some(create_mesh(&ui))));
+                futures::executor::block_on(renderer.render(tile_cache.view(player.position.as_slice().try_into().unwrap()).as_slice(), view, game_state.ui_enabled, Some(create_mesh(&ui))));
             }
             Event::MainEventsCleared => {
                 window.request_redraw();
