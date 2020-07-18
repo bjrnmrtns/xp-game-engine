@@ -18,8 +18,8 @@ impl<T> TileCache<T> {
         }
     }
     pub fn update(&mut self, pos: [f32; 3], mut tiles: Vec<(TileHeader, T)>) {
-        let tile_nr = pos_to_tile_nr(&pos, 0);
-        let current = TileHeader::new(tile_nr, 0).around(1);
+        let mut current = TileHeader::new(pos.to_tile_index(0), 0).around(1);
+        current.extend(TileHeader::new(pos.to_tile_index(1), 1).around(1));
         let to_replace: Vec<TileHeader> = self.generated.difference(&current).map(|v| v.clone()).collect();
         for r in to_replace {
             self.tiles.remove(&r);
@@ -32,13 +32,13 @@ impl<T> TileCache<T> {
         }
     }
     pub fn what_needs_update(&self, pos: [f32; 3]) -> HashSet<TileHeader> {
-        let tile_nr = pos_to_tile_nr(&pos, 0);
-        let current = TileHeader::new(tile_nr, 0);
-        current.around(1).difference(&self.generated).map(|v| v.clone()).collect()
+        let mut current = TileHeader::new(pos.to_tile_index(0), 0).around(1);
+        current.extend(TileHeader::new(pos.to_tile_index(1), 1).around(1));
+        current.difference(&self.generated).map(|v| v.clone()).collect()
     }
     pub fn view(&self, pos: [f32; 3]) -> Vec<&T> {
-        let tile_nr = pos_to_tile_nr(&pos, 0);
-        let current = TileHeader::new(tile_nr, 0).around(1);
+        let mut current = TileHeader::new(pos.to_tile_index(0), 0).around(1);
+        current.extend(TileHeader::new(pos.to_tile_index(1), 1).around(1));
         self.tiles.iter().filter(|v| current.contains(v.0)).map(|v| v.1).collect()
     }
 }
@@ -71,7 +71,7 @@ impl TileHeader {
     }
 
     pub fn around(&self, offset: usize) -> HashSet<TileHeader> {
-        (self.tile_nr).gen_range(offset, self.lod).iter().map(|v| TileHeader {
+        (self.tile_nr).to_tile_indices(offset, self.lod).iter().map(|v| TileHeader {
             tile_nr: v.clone(),
             lod: self.lod
         }).collect::<HashSet<_>>()
@@ -97,28 +97,32 @@ fn value_to_tile_nr(value: f32, lod: usize) -> i32 {
     }
 }
 
-pub fn pos_to_tile_nr(pos: &[f32; 3], lod: usize) -> (i32, i32) {
-    let x = pos[0];
-    let z = pos[2];
-    (value_to_tile_nr(x, lod), value_to_tile_nr(z, lod))
+trait ToTileIndex {
+    fn to_tile_index(self, lod: usize) -> (i32, i32);
 }
 
-pub trait TileIndexGen {
-    fn gen_range(&self, offset: usize, lod: usize) -> Vec<Self> where Self: Sized;
+impl ToTileIndex for [f32; 3] {
+    fn to_tile_index(self, lod: usize) -> (i32, i32) {
+        (value_to_tile_nr(self[0], lod), value_to_tile_nr(self[2], lod))
+    }
 }
 
-impl TileIndexGen for i32 {
-    fn gen_range(&self, offset: usize, lod: usize) -> Vec<Self> {
+trait ToTileIndices {
+    fn to_tile_indices(self, offset: usize, lod: usize) -> Vec<Self> where Self: Sized;
+}
+
+impl ToTileIndices for i32 {
+    fn to_tile_indices(self, offset: usize, lod: usize) -> Vec<Self> {
         let offset = offset as i32;
         let step_size = (lod + 1).pow(2) as i32;
         (-offset..=offset).map(|v| v * step_size + self).collect()
     }
 }
-impl TileIndexGen for (i32, i32) {
-    fn gen_range(&self, offset: usize, lod: usize) -> Vec<Self> where Self: Sized {
+impl ToTileIndices for (i32, i32) {
+    fn to_tile_indices(self, offset: usize, lod: usize) -> Vec<Self> where Self: Sized {
         let mut output = Vec::new();
-        for z in self.1.gen_range(offset, lod) {
-            for x in self.0.gen_range(offset, lod) {
+        for z in self.1.to_tile_indices(offset, lod) {
+            for x in self.0.to_tile_indices(offset, lod) {
                 output.push((x, z));
             }
         }
