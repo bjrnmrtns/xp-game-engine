@@ -149,7 +149,7 @@ pub fn create_mesh(ui: &UI<UIContext, u32>) -> (graphics::Mesh::<graphics::UIVer
 }
 
 fn game(options: Options) {
-    let mut game_state = UIContext { ui_enabled: false, camera: camera::CameraType::FreeLook, };
+    let mut game_state = UIContext { ui_enabled: false, camera: camera::CameraType::Follow, };
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()
         .build(&event_loop).expect("Could not create window");
