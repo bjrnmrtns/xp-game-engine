@@ -73,17 +73,11 @@ impl TileHeader {
     }
 
     pub fn view_around(&self) -> HashSet<TileHeader> {
-        let mut around = HashSet::new();
-        around.insert(Self::new(self.x - 1, self.z - 1, self.lod));
-        around.insert(Self::new(self.x - 1, self.z, self.lod));
-        around.insert(Self::new(self.x - 1, self.z + 1, self.lod));
-        around.insert(Self::new(self.x, self.z - 1, self.lod));
-        around.insert(self.clone());
-        around.insert(Self::new(self.x, self.z + 1, self.lod));
-        around.insert(Self::new(self.x + 1, self.z - 1, self.lod));
-        around.insert(Self::new(self.x + 1, self.z, self.lod));
-        around.insert(Self::new(self.x + 1, self.z + 1, self.lod));
-        around
+        (self.x, self.z).gen_range(1, 0).iter().map(|v| TileHeader {
+            x: v.0,
+            z: v.1,
+            lod: 0
+        }).collect::<HashSet<_>>()
     }
 }
 
