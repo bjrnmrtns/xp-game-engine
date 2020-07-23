@@ -1,6 +1,6 @@
-use crate::graphics::{texture, Drawable};
-use wgpu::*;
+use crate::graphics::{Drawable, texture};
 use nalgebra_glm::{Mat4, identity};
+use wgpu::Device;
 use crate::graphics::error::GraphicsError;
 
 type Result<T> = std::result::Result<T, GraphicsError>;
@@ -8,19 +8,7 @@ type Result<T> = std::result::Result<T, GraphicsError>;
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub struct Vertex {
-    pub position: [f32; 3],
-    pub normal: [f32; 3],
-    pub color: [f32; 3],
-}
-
-impl From<&[f32; 3]> for Vertex {
-    fn from(p: &[f32; 3]) -> Self {
-        Self {
-            position: *p,
-            normal: [0.0, 1.0, 0.0],
-            color: [0.0, 0.0, 0.0],
-        }
-    }
+    pub p: [f32; 2],
 }
 
 unsafe impl bytemuck::Pod for Vertex {}
@@ -36,17 +24,7 @@ impl Vertex {
                 wgpu::VertexAttributeDescriptor {
                     offset: 0,
                     shader_location: 0,
-                    format: wgpu::VertexFormat::Float3,
-                },
-                wgpu::VertexAttributeDescriptor {
-                    offset: mem::size_of::<[f32;3]>() as wgpu::BufferAddress,
-                    shader_location: 1,
-                    format: wgpu::VertexFormat::Float3,
-                },
-                wgpu::VertexAttributeDescriptor {
-                    offset: 2 * mem::size_of::<[f32;3]>() as wgpu::BufferAddress,
-                    shader_location: 2,
-                    format: wgpu::VertexFormat::Float3,
+                    format: wgpu::VertexFormat::Float2,
                 },
             ]
         }
@@ -80,11 +58,12 @@ pub struct Renderer {
     pub uniform_bind_group: wgpu::BindGroup,
     pub render_pipeline: wgpu::RenderPipeline,
 }
+
 impl Renderer {
     pub async fn new(device: &Device, sc_descriptor: &wgpu::SwapChainDescriptor) -> Result<Self> {
         // from here 3D renderpipeline creation
-        let vs_spirv = glsl_to_spirv::compile(include_str!("../shader.vert"), glsl_to_spirv::ShaderType::Vertex)?;
-        let fs_spirv = glsl_to_spirv::compile(include_str!("../shader.frag"), glsl_to_spirv::ShaderType::Fragment)?;
+        let vs_spirv = glsl_to_spirv::compile(include_str!("../shader_clipmap.vert"), glsl_to_spirv::ShaderType::Vertex)?;
+        let fs_spirv = glsl_to_spirv::compile(include_str!("../shader_clipmap.frag"), glsl_to_spirv::ShaderType::Fragment)?;
         let vs_data = wgpu::read_spirv(vs_spirv)?;
         let fs_data = wgpu::read_spirv(fs_spirv)?;
         let vs_module = device.create_shader_module(&vs_data);

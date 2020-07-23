@@ -7,25 +7,25 @@ type Result<T> = std::result::Result<T, GraphicsError>;
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct UIUniforms {
-    pub(crate) projection: Mat4,
+pub struct Uniforms {
+    pub projection: Mat4,
 }
 
-unsafe impl bytemuck::Pod for UIUniforms {}
-unsafe impl bytemuck::Zeroable for UIUniforms {}
+unsafe impl bytemuck::Pod for Uniforms {}
+unsafe impl bytemuck::Zeroable for Uniforms {}
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
-pub struct UIVertex {
+pub struct Vertex {
     pub position: [f32; 2],
     pub uv: [f32; 2],
     pub color: [u8; 4],
 }
 
-unsafe impl bytemuck::Pod for UIVertex {}
-unsafe impl bytemuck::Zeroable for UIVertex {}
+unsafe impl bytemuck::Pod for Vertex {}
+unsafe impl bytemuck::Zeroable for Vertex {}
 
-impl UIVertex {
+impl Vertex {
     fn desc<'a>() -> wgpu::VertexBufferDescriptor<'a> {
         use std::mem;
         wgpu::VertexBufferDescriptor {
@@ -52,7 +52,7 @@ impl UIVertex {
     }
 }
 
-pub struct UIRenderer {
+pub struct Renderer {
     pub drawable: Drawable,
     pub uniform_bind_group: wgpu::BindGroup,
     pub uniform_buffer: wgpu::Buffer,
@@ -60,8 +60,8 @@ pub struct UIRenderer {
     pub texture_bind_group: wgpu::BindGroup,
 }
 
-impl UIRenderer {
-    pub async fn new(device: &Device, sc_descriptor: &wgpu::SwapChainDescriptor, queue: &wgpu::Queue, ui_mesh: Mesh<UIVertex>) -> Result<Self> {
+impl Renderer {
+    pub async fn new(device: &Device, sc_descriptor: &wgpu::SwapChainDescriptor, queue: &wgpu::Queue, ui_mesh: Mesh<Vertex>) -> Result<Self> {
         let vs_ui_spirv = glsl_to_spirv::compile(include_str!("../shader_ui.vert"), glsl_to_spirv::ShaderType::Vertex)?;
         let fs_ui_spirv = glsl_to_spirv::compile(include_str!("../shader_ui.frag"), glsl_to_spirv::ShaderType::Fragment)?;
         let vs_ui_data = wgpu::read_spirv(vs_ui_spirv)?;
@@ -69,7 +69,7 @@ impl UIRenderer {
         let ui_vs_module = device.create_shader_module(&vs_ui_data);
         let ui_fs_module = device.create_shader_module(&fs_ui_data);
 
-        let ui_uniforms = UIUniforms { projection: identity(), };
+        let ui_uniforms = Uniforms { projection: identity(), };
 
         let uniform_buffer = device.create_buffer_with_data(bytemuck::cast_slice(&[ui_uniforms]),
                                                             wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST);
@@ -154,7 +154,7 @@ impl UIRenderer {
             depth_stencil_state: None,
             vertex_state: VertexStateDescriptor {
                 index_format: IndexFormat::Uint32,
-                vertex_buffers: &[UIVertex::desc()],
+                vertex_buffers: &[Vertex::desc()],
             },
             sample_count: 1,
             sample_mask: !0,

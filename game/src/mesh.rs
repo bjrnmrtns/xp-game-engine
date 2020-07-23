@@ -81,28 +81,28 @@ pub fn create_mesh_from(obj_file_name: &str) -> graphics::Mesh<graphics::regular
     mesh
 }
 
-pub fn create_mesh<T>(ui: &UI<T, u32>) -> (graphics::Mesh::<graphics::ui::UIVertex>, Vec<graphics::Text>) {
-    let mut mesh = graphics::Mesh::<graphics::ui::UIVertex> { vertices: Vec::new(), indices: Vec::new() };
+pub fn create_mesh<T>(ui: &UI<T, u32>) -> (graphics::Mesh::<graphics::ui::Vertex>, Vec<graphics::Text>) {
+    let mut mesh = graphics::Mesh::<graphics::ui::Vertex> { vertices: Vec::new(), indices: Vec::new() };
     let mut text = Vec::new();
     for (_, widget) in ui.widgets() {
         match widget {
             Widget::LabelW(layout, label) => {
-                let top_left = graphics::ui::UIVertex {
+                let top_left = graphics::ui::Vertex {
                     position: [layout.position.x, layout.position.y],
                     uv: [0.0, 0.0],
                     color: label.color,
                 };
-                let bottom_left = graphics::ui::UIVertex {
+                let bottom_left = graphics::ui::Vertex {
                     position: [layout.position.x, layout.position.y - layout.size.height],
                     uv: [0.0, 0.0],
                     color: label.color,
                 };
-                let top_right = graphics::ui::UIVertex {
+                let top_right = graphics::ui::Vertex {
                     position: [layout.position.x + layout.size.width, layout.position.y],
                     uv: [0.0, 0.0],
                     color: label.color,
                 };
-                let bottom_right = graphics::ui::UIVertex {
+                let bottom_right = graphics::ui::Vertex {
                     position: [layout.position.x + layout.size.width, layout.position.y - layout.size.height],
                     uv: [0.0, 0.0],
                     color: label.color,

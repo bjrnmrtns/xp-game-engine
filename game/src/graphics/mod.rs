@@ -8,6 +8,7 @@ pub mod ui;
 pub mod texture;
 pub mod error;
 pub mod helpers;
+pub mod clipmap;
 
 type Result<T> = std::result::Result<T, GraphicsError>;
 
@@ -38,7 +39,7 @@ pub struct Graphics {
     queue: wgpu::Queue,
     sc_descriptor: wgpu::SwapChainDescriptor,
     swap_chain: wgpu::SwapChain,
-    ui_renderer: ui::UIRenderer,
+    ui_renderer: ui::Renderer,
     renderer: regular::Renderer,
     depth_texture: texture::Texture,
     glyph_brush: wgpu_glyph::GlyphBrush<()>,
@@ -52,7 +53,7 @@ impl Graphics {
         glyph_brush
     }
 
-    pub async fn new(window: &Window, ui_mesh: Mesh<ui::UIVertex>) -> Result<Self> {
+    pub async fn new(window: &Window, ui_mesh: Mesh<ui::Vertex>) -> Result<Self> {
         // from here device creation and surface swapchain
         let surface =  wgpu::Surface::create(window);
         let adapter = wgpu::Adapter::request(
@@ -74,7 +75,7 @@ impl Graphics {
         let swap_chain = device.create_swap_chain(&surface, &sc_descriptor);
         let depth_texture = texture::Texture::create_depth_texture(&device, &sc_descriptor);
         let renderer= regular::Renderer::new(&device, &sc_descriptor).await?;
-        let ui_renderer = ui::UIRenderer::new(&device, &sc_descriptor, &queue, ui_mesh).await?;
+        let ui_renderer = ui::Renderer::new(&device, &sc_descriptor, &queue, ui_mesh).await?;
         let glyph_brush = Graphics::build_glyph_brush(&device, wgpu::TextureFormat::Bgra8UnormSrgb);
 
         Ok(Self {
@@ -122,7 +123,7 @@ impl Graphics {
         self.queue.submit(&[encoder.finish()]);
     }
 
-    pub async fn render(&mut self, view: Mat4, render_ui: bool, ui_mesh: Option<(Mesh<ui::UIVertex>, Vec<Text>)>) {
+    pub async fn render(&mut self, view: Mat4, render_ui: bool, ui_mesh: Option<(Mesh<ui::Vertex>, Vec<Text>)>) {
         let projection = perspective(self.sc_descriptor.width as f32 / self.sc_descriptor.height as f32,45.0, 0.1, 100.0);
         let uniforms = Uniforms { projection: projection, view: view, };
         let buffer = self.device.create_buffer_with_data(bytemuck::cast_slice(&[uniforms]), wgpu::BufferUsage::COPY_SRC);
@@ -170,7 +171,7 @@ impl Graphics {
             diffuse_scene_pass.draw_indexed(0..self.renderer.drawables[1].index_buffer_len, 0, 1..2);
         }
         // far and near plane are not used in UI rendering
-        let ui_uniforms = ui::UIUniforms { projection: ortho(0.0, self.sc_descriptor.width as f32, 0.0, self.sc_descriptor.height as f32, -1.0, 1.0) };
+        let ui_uniforms = ui::Uniforms { projection: ortho(0.0, self.sc_descriptor.width as f32, 0.0, self.sc_descriptor.height as f32, -1.0, 1.0) };
         let buffer = self.device.create_buffer_with_data(bytemuck::cast_slice(&[ui_uniforms]), wgpu::BufferUsage::COPY_SRC);
         encoder.copy_buffer_to_buffer(&buffer, 0, &self.ui_renderer.uniform_buffer, 0, std::mem::size_of_val(&ui_uniforms) as u64);
         if render_ui
