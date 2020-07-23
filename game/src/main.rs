@@ -107,28 +107,28 @@ pub struct UIContext {
     pub camera: camera::CameraType,
 }
 
-pub fn create_mesh(ui: &UI<UIContext, u32>) -> (graphics::Mesh::<graphics::UIVertex>, Vec<graphics::Text>) {
-    let mut mesh = graphics::Mesh::<graphics::UIVertex> { vertices: Vec::new(), indices: Vec::new() };
+pub fn create_mesh(ui: &UI<UIContext, u32>) -> (graphics::Mesh::<graphics::ui::UIVertex>, Vec<graphics::Text>) {
+    let mut mesh = graphics::Mesh::<graphics::ui::UIVertex> { vertices: Vec::new(), indices: Vec::new() };
     let mut text = Vec::new();
     for (_, widget) in ui.widgets() {
         match widget {
             Widget::LabelW(layout, label) => {
-                let top_left = graphics::UIVertex {
+                let top_left = graphics::ui::UIVertex {
                     position: [layout.position.x, layout.position.y],
                     uv: [0.0, 0.0],
                     color: label.color,
                 };
-                let bottom_left = graphics::UIVertex {
+                let bottom_left = graphics::ui::UIVertex {
                     position: [layout.position.x, layout.position.y - layout.size.height],
                     uv: [0.0, 0.0],
                     color: label.color,
                 };
-                let top_right = graphics::UIVertex {
+                let top_right = graphics::ui::UIVertex {
                     position: [layout.position.x + layout.size.width, layout.position.y],
                     uv: [0.0, 0.0],
                     color: label.color,
                 };
-                let bottom_right = graphics::UIVertex {
+                let bottom_right = graphics::ui::UIVertex {
                     position: [layout.position.x + layout.size.width, layout.position.y - layout.size.height],
                     uv: [0.0, 0.0],
                     color: label.color,
