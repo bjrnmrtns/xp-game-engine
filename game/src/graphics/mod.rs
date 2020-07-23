@@ -3,7 +3,7 @@ use nalgebra_glm::*;
 use std::collections::HashSet;
 use std::convert::TryInto;
 use crate::graphics::error::GraphicsError;
-use crate::graphics::regular::{Vertex, Uniforms};
+use crate::graphics::regular::{Vertex, Uniforms, Instance};
 
 pub mod regular;
 pub mod ui;
@@ -11,6 +11,17 @@ pub mod texture;
 pub mod error;
 
 type Result<T> = std::result::Result<T, GraphicsError>;
+
+pub struct Mesh<T> {
+    pub vertices: Vec<T>,
+    pub indices: Vec<u32>,
+}
+
+pub struct Drawable {
+    pub vertex_buffer: wgpu::Buffer,
+    pub index_buffer: wgpu::Buffer,
+    pub index_buffer_len: u32,
+}
 
 pub fn ensure_unique_provoking_vertices(vertices: &[[f32; 3]], indices: &[u32]) -> (Vec<[f32; 3]>, Vec<u32>) {
     let mut new_vertices= vertices.to_vec();
@@ -74,12 +85,6 @@ pub fn enhance_provoking_vertices2(mut mesh: Mesh<Vertex>) -> Mesh<Vertex> {
     mesh
 }
 
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct Instance {
-    model: Mat4,
-}
-
 pub struct Text
 {
     pub pos: (f32, f32),
@@ -87,20 +92,6 @@ pub struct Text
     pub font_size: f32,
     pub color: [u8; 4],
 }
-
-pub struct Mesh<T> {
-    pub vertices: Vec<T>,
-    pub indices: Vec<u32>,
-}
-
-pub struct Drawable {
-    pub vertex_buffer: wgpu::Buffer,
-    pub index_buffer: wgpu::Buffer,
-    pub index_buffer_len: u32,
-}
-
-unsafe impl bytemuck::Pod for Instance {}
-unsafe impl bytemuck::Zeroable for Instance {}
 
 
 pub struct Graphics {

@@ -1,4 +1,4 @@
-use crate::graphics::{Drawable, texture, Instance};
+use crate::graphics::{texture, Drawable};
 use wgpu::*;
 use nalgebra_glm::{Mat4, identity};
 use crate::graphics::error::GraphicsError;
@@ -22,7 +22,6 @@ impl From<&[f32; 3]> for Vertex {
         }
     }
 }
-
 
 unsafe impl bytemuck::Pod for Vertex {}
 unsafe impl bytemuck::Zeroable for Vertex {}
@@ -53,6 +52,16 @@ impl Vertex {
         }
     }
 }
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct Instance {
+    pub(crate) model: Mat4,
+}
+
+unsafe impl bytemuck::Pod for Instance {}
+unsafe impl bytemuck::Zeroable for Instance {}
+
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]

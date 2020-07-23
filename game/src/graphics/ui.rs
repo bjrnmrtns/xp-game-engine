@@ -1,4 +1,4 @@
-use crate::graphics::{Drawable, Mesh, texture};
+use crate::graphics::{Mesh, texture, Drawable};
 use wgpu::{*};
 use nalgebra_glm::{Mat4, identity};
 use crate::graphics::error::GraphicsError;
