@@ -169,7 +169,7 @@ fn game(options: Options) {
     ui.layout();
     let mut renderer = futures::executor::block_on(graphics::Renderer::new(&window, create_mesh(&ui).0)).expect("Could not create graphics renderer");
     renderer.create_drawable_from_mesh(&player_mesh);
-    let mut tile_cache: terrain::TileCache<graphics::Drawable> = terrain::TileCache::new();
+    let terrain_tile_cache: terrain::TileCache<graphics::Drawable> = terrain::TileCache::new();
     renderer.create_drawable_from_mesh(&axis_mesh);
 
     let mut previous_time = Instant::now();
@@ -206,7 +206,7 @@ fn game(options: Options) {
         for frame in &commands_received {
             let _ = simulation.handle_frame(frame, &game_state.camera, &mut player);
         }
-        let mut tiles = Vec::new();
+        /*let mut tiles = Vec::new();
         for tile_header in tile_cache.what_needs_update(player.position.as_slice().try_into().unwrap()) {
             let time_start = Instant::now();
             let tile = terrain::Tile::new_from_header(tile_header.clone());
@@ -220,7 +220,7 @@ fn game(options: Options) {
             println!("create-drawable time: {}", (time_after_drawable_create - time_start).as_millis());
         }
         tile_cache.update(player.position.as_slice().try_into().unwrap(), tiles);
-
+        */
         match event {
             Event::RedrawRequested(_) => {
                 // first rotate all vertices on 0,0,0 (rotate around origin), then translate all points towards location.
@@ -236,7 +236,7 @@ fn game(options: Options) {
                     fps_label.text.text = fps.to_string();
                 }
                 previous_time = current_time;
-                futures::executor::block_on(renderer.render(tile_cache.view(player.position.as_slice().try_into().unwrap()).as_slice(), view, game_state.ui_enabled, Some(create_mesh(&ui))));
+                futures::executor::block_on(renderer.render(terrain_tile_cache.view(player.position.as_slice().try_into().unwrap()).as_slice(), view, game_state.ui_enabled, Some(create_mesh(&ui))));
             }
             Event::MainEventsCleared => {
                 window.request_redraw();
