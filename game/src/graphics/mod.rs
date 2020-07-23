@@ -172,7 +172,7 @@ impl Graphics {
         // far and near plane are not used in UI rendering
         let ui_uniforms = ui::UIUniforms { projection: ortho(0.0, self.sc_descriptor.width as f32, 0.0, self.sc_descriptor.height as f32, -1.0, 1.0) };
         let buffer = self.device.create_buffer_with_data(bytemuck::cast_slice(&[ui_uniforms]), wgpu::BufferUsage::COPY_SRC);
-        encoder.copy_buffer_to_buffer(&buffer, 0, &self.ui_renderer.ui_uniform_buffer, 0, std::mem::size_of_val(&ui_uniforms) as u64);
+        encoder.copy_buffer_to_buffer(&buffer, 0, &self.ui_renderer.uniform_buffer, 0, std::mem::size_of_val(&ui_uniforms) as u64);
         if render_ui
         {
             let mut ui_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -193,7 +193,7 @@ impl Graphics {
                 depth_stencil_attachment: None
             });
             if let Some(ui_mesh) = ui_mesh {
-                self.ui_renderer.ui_drawable = Drawable { vertex_buffer: self.device.create_buffer_with_data(bytemuck::cast_slice(&ui_mesh.0.vertices), wgpu::BufferUsage::VERTEX),
+                self.ui_renderer.drawable = Drawable { vertex_buffer: self.device.create_buffer_with_data(bytemuck::cast_slice(&ui_mesh.0.vertices), wgpu::BufferUsage::VERTEX),
                     index_buffer: self.device.create_buffer_with_data(bytemuck::cast_slice(&ui_mesh.0.indices), wgpu::BufferUsage::INDEX),
                     index_buffer_len: ui_mesh.0.indices.len() as u32 };
 
@@ -205,12 +205,12 @@ impl Graphics {
                     self.glyph_brush.queue(section);
                 }
             }
-            ui_pass.set_pipeline(&self.ui_renderer.ui_render_pipeline);
-            ui_pass.set_vertex_buffer(0, &self.ui_renderer.ui_drawable.vertex_buffer, 0, 0);
-            ui_pass.set_index_buffer(&self.ui_renderer.ui_drawable.index_buffer, 0, 0);
-            ui_pass.set_bind_group(0, &self.ui_renderer.ui_uniform_bind_group, &[]);
-            ui_pass.set_bind_group(1, &self.ui_renderer.ui_texture_bind_group, &[]);
-            ui_pass.draw_indexed(0..self.ui_renderer.ui_drawable.index_buffer_len, 0, 0..1);
+            ui_pass.set_pipeline(&self.ui_renderer.render_pipeline);
+            ui_pass.set_vertex_buffer(0, &self.ui_renderer.drawable.vertex_buffer, 0, 0);
+            ui_pass.set_index_buffer(&self.ui_renderer.drawable.index_buffer, 0, 0);
+            ui_pass.set_bind_group(0, &self.ui_renderer.uniform_bind_group, &[]);
+            ui_pass.set_bind_group(1, &self.ui_renderer.texture_bind_group, &[]);
+            ui_pass.draw_indexed(0..self.ui_renderer.drawable.index_buffer_len, 0, 0..1);
         }
 
         self.glyph_brush.draw_queued(&self.device, &mut encoder, &frame.view, self.sc_descriptor.width, self.sc_descriptor.height,).expect("Cannot draw glyph_brush");

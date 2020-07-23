@@ -53,11 +53,11 @@ impl UIVertex {
 }
 
 pub struct UIRenderer {
-    pub ui_drawable: Drawable,
-    pub ui_uniform_bind_group: wgpu::BindGroup,
-    pub ui_uniform_buffer: wgpu::Buffer,
-    pub ui_render_pipeline: wgpu::RenderPipeline,
-    pub ui_texture_bind_group: wgpu::BindGroup,
+    pub drawable: Drawable,
+    pub uniform_bind_group: wgpu::BindGroup,
+    pub uniform_buffer: wgpu::Buffer,
+    pub render_pipeline: wgpu::RenderPipeline,
+    pub texture_bind_group: wgpu::BindGroup,
 }
 
 impl UIRenderer {
@@ -71,8 +71,8 @@ impl UIRenderer {
 
         let ui_uniforms = UIUniforms { projection: identity(), };
 
-        let ui_uniform_buffer = device.create_buffer_with_data(bytemuck::cast_slice(&[ui_uniforms]),
-                                                               wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST);
+        let uniform_buffer = device.create_buffer_with_data(bytemuck::cast_slice(&[ui_uniforms]),
+                                                            wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST);
 
         let ui_uniform_layout= device.create_bind_group_layout(&BindGroupLayoutDescriptor{
             label: None,
@@ -83,13 +83,13 @@ impl UIRenderer {
             }]
         });
 
-        let ui_uniform_bind_group = device.create_bind_group(&BindGroupDescriptor{
+        let uniform_bind_group = device.create_bind_group(&BindGroupDescriptor{
             label: None,
             layout: &ui_uniform_layout,
             bindings: &[wgpu::Binding {
                 binding: 0,
                 resource: wgpu::BindingResource::Buffer {
-                    buffer: &ui_uniform_buffer,
+                    buffer: &uniform_buffer,
                     range: 0..std::mem::size_of_val(&ui_uniforms) as wgpu::BufferAddress,
                 }
             }],
@@ -119,7 +119,7 @@ impl UIRenderer {
             bind_group_layouts: &[&ui_uniform_layout, &ui_texture_layout],
         });
 
-        let ui_render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor{
+        let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor{
             layout: &ui_pipeline_layout,
             vertex_stage: wgpu::ProgrammableStageDescriptor {
                 module: &ui_vs_module,
@@ -162,7 +162,7 @@ impl UIRenderer {
         });
         let (ui_texture, encoder) = texture::Texture::create_ui_texture(&device);
         queue.submit(&[encoder.finish()]);
-        let ui_texture_bind_group = device.create_bind_group(&BindGroupDescriptor {
+        let texture_bind_group = device.create_bind_group(&BindGroupDescriptor {
             label: None,
             layout: &ui_texture_layout,
             bindings: &[
@@ -177,13 +177,13 @@ impl UIRenderer {
             ],
         });
         Ok(Self {
-            ui_drawable: Drawable { vertex_buffer: device.create_buffer_with_data(bytemuck::cast_slice(&ui_mesh.vertices), wgpu::BufferUsage::VERTEX),
+            drawable: Drawable { vertex_buffer: device.create_buffer_with_data(bytemuck::cast_slice(&ui_mesh.vertices), wgpu::BufferUsage::VERTEX),
                 index_buffer: device.create_buffer_with_data(bytemuck::cast_slice(&ui_mesh.indices), wgpu::BufferUsage::INDEX),
                 index_buffer_len: ui_mesh.indices.len() as u32 },
-            ui_texture_bind_group,
-            ui_render_pipeline,
-            ui_uniform_bind_group,
-            ui_uniform_buffer
+            texture_bind_group,
+            render_pipeline,
+            uniform_bind_group,
+            uniform_buffer
         })
     }
 }
