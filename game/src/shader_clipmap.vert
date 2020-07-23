@@ -1,11 +1,8 @@
 #version 450
 
-layout(location=0) in vec3 in_position;
-layout(location=1) in vec3 in_normal;
-layout(location=2) in vec3 in_color;
+layout(location=0) in vec2 in_position;
 
 layout(location=0) out vec3 out_color;
-layout(location=1) out vec3 out_normal;
 
 layout(set=1, binding=0)
 uniform Uniforms {
@@ -19,7 +16,7 @@ buffer Instances {
 };
 
 void main() {
-    out_normal = mat3(transpose(inverse(view * models[gl_InstanceIndex]))) * in_normal;
-    out_color = in_color;
-    gl_Position = projection * view * models[gl_InstanceIndex] * vec4(in_position, 1.0);
+    out_color = vec3(1.0, 1.0, 0.0);
+    //gl_Position = projection * view * models[gl_InstanceIndex] * vec4(in_position.x, 0.0, in_position.y, 1.0);
+    gl_Position = projection * view * vec4(in_position, 0.0, 1.0).xzyw;
 }

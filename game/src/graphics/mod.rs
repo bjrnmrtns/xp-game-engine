@@ -41,6 +41,7 @@ pub struct Graphics {
     swap_chain: wgpu::SwapChain,
     ui_renderer: ui::Renderer,
     renderer: regular::Renderer,
+    clipmap_renderer: clipmap::Renderer,
     depth_texture: texture::Texture,
     glyph_brush: wgpu_glyph::GlyphBrush<()>,
     window_size: winit::dpi::PhysicalSize<u32>,
@@ -74,8 +75,9 @@ impl Graphics {
         };
         let swap_chain = device.create_swap_chain(&surface, &sc_descriptor);
         let depth_texture = texture::Texture::create_depth_texture(&device, &sc_descriptor);
-        let renderer= regular::Renderer::new(&device, &sc_descriptor).await?;
         let ui_renderer = ui::Renderer::new(&device, &sc_descriptor, &queue, ui_mesh).await?;
+        let renderer= regular::Renderer::new(&device, &sc_descriptor).await?;
+        let clipmap_renderer= clipmap::Renderer::new(&device, &sc_descriptor).await?;
         let glyph_brush = Graphics::build_glyph_brush(&device, wgpu::TextureFormat::Bgra8UnormSrgb);
 
         Ok(Self {
@@ -86,6 +88,7 @@ impl Graphics {
             device,
             renderer,
             ui_renderer,
+            clipmap_renderer,
             glyph_brush,
             depth_texture,
             window_size: window.inner_size(),
@@ -98,6 +101,23 @@ impl Graphics {
         self.sc_descriptor.height = size.height;
         self.depth_texture = texture::Texture::create_depth_texture(&self.device, &self.sc_descriptor);
         self.swap_chain = self.device.create_swap_chain(&self.surface, &self.sc_descriptor);
+    }
+
+    pub fn create_drawable_clipmap(&mut self) {
+        let mut vertices: Vec<clipmap::Vertex> = Vec::new();
+        let mut indices: Vec<u32> = Vec::new();
+        vertices.push(clipmap::Vertex { p: [0.0, 0.0] });
+        vertices.push(clipmap::Vertex { p: [0.0, -10.0] });
+        vertices.push(clipmap::Vertex { p: [-10.0, -10.0] });
+        indices.push(0);
+        indices.push(1);
+        indices.push(1);
+        indices.push(2);
+        indices.push(2);
+        indices.push(0);
+        let vertex_buffer = self.device.create_buffer_with_data(bytemuck::cast_slice(&vertices), wgpu::BufferUsage::VERTEX);
+        let index_buffer = self.device.create_buffer_with_data(bytemuck::cast_slice(&indices), wgpu::BufferUsage::INDEX);
+        self.clipmap_renderer.drawables.push(Drawable { vertex_buffer, index_buffer, index_buffer_len: indices.len() as u32, });
     }
 
     pub fn create_drawable_from_mesh(&mut self, mesh: &Mesh<Vertex>) -> usize {
@@ -132,6 +152,7 @@ impl Graphics {
             label: None,
         });
         encoder.copy_buffer_to_buffer(&buffer, 0, &self.renderer.uniform_buffer, 0, std::mem::size_of_val(&uniforms) as u64);
+        encoder.copy_buffer_to_buffer(&buffer, 0, &self.clipmap_renderer.uniform_buffer, 0, std::mem::size_of_val(&uniforms) as u64);
         {
             let mut diffuse_scene_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 color_attachments: &[
@@ -169,6 +190,12 @@ impl Graphics {
             diffuse_scene_pass.set_index_buffer(&self.renderer.drawables[1].index_buffer, 0, 0);
             diffuse_scene_pass.set_bind_group(0, &self.renderer.uniform_bind_group, &[]);
             diffuse_scene_pass.draw_indexed(0..self.renderer.drawables[1].index_buffer_len, 0, 1..2);
+
+            diffuse_scene_pass.set_pipeline(&self.clipmap_renderer.render_pipeline);
+            diffuse_scene_pass.set_vertex_buffer(0, &self.clipmap_renderer.drawables[0].vertex_buffer, 0, 0);
+            diffuse_scene_pass.set_index_buffer(&self.clipmap_renderer.drawables[0].index_buffer, 0, 0);
+            diffuse_scene_pass.set_bind_group(0, &self.clipmap_renderer.uniform_bind_group, &[]);
+            diffuse_scene_pass.draw_indexed(0..self.clipmap_renderer.drawables[0].index_buffer_len, 0, 1..2);
         }
         // far and near plane are not used in UI rendering
         let ui_uniforms = ui::Uniforms { projection: ortho(0.0, self.sc_descriptor.width as f32, 0.0, self.sc_descriptor.height as f32, -1.0, 1.0) };
