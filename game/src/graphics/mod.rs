@@ -191,7 +191,6 @@ impl Texture {
     }
 }
 
-
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub struct Vertex {
@@ -353,7 +352,7 @@ pub struct Renderer {
 
 impl Renderer {
     pub fn build_glyph_brush(device: &wgpu::Device, texture_format: wgpu::TextureFormat) -> wgpu_glyph::GlyphBrush<()> {
-        let font = wgpu_glyph::ab_glyph::FontArc::try_from_slice(include_bytes!("JetBrainsMono-Regular.ttf")).expect("Can not load font");
+        let font = wgpu_glyph::ab_glyph::FontArc::try_from_slice(include_bytes!("../JetBrainsMono-Regular.ttf")).expect("Can not load font");
         let glyph_brush = wgpu_glyph::GlyphBrushBuilder::using_font(font).build(&device, texture_format);
         glyph_brush
     }
@@ -380,8 +379,8 @@ impl Renderer {
         let swap_chain = device.create_swap_chain(&surface, &sc_descriptor);
 
         // from here 3D renderpipeline creation
-        let vs_spirv = glsl_to_spirv::compile(include_str!("shader.vert"), glsl_to_spirv::ShaderType::Vertex)?;
-        let fs_spirv = glsl_to_spirv::compile(include_str!("shader.frag"), glsl_to_spirv::ShaderType::Fragment)?;
+        let vs_spirv = glsl_to_spirv::compile(include_str!("../shader.vert"), glsl_to_spirv::ShaderType::Vertex)?;
+        let fs_spirv = glsl_to_spirv::compile(include_str!("../shader.frag"), glsl_to_spirv::ShaderType::Fragment)?;
         let vs_data = wgpu::read_spirv(vs_spirv)?;
         let fs_data = wgpu::read_spirv(fs_spirv)?;
         let vs_module = device.create_shader_module(&vs_data);
@@ -490,8 +489,8 @@ impl Renderer {
 
         // from here UI renderpipeline creation
 
-        let vs_ui_spirv = glsl_to_spirv::compile(include_str!("shader_ui.vert"), glsl_to_spirv::ShaderType::Vertex)?;
-        let fs_ui_spirv = glsl_to_spirv::compile(include_str!("shader_ui.frag"), glsl_to_spirv::ShaderType::Fragment)?;
+        let vs_ui_spirv = glsl_to_spirv::compile(include_str!("../shader_ui.vert"), glsl_to_spirv::ShaderType::Vertex)?;
+        let fs_ui_spirv = glsl_to_spirv::compile(include_str!("../shader_ui.frag"), glsl_to_spirv::ShaderType::Fragment)?;
         let vs_ui_data = wgpu::read_spirv(vs_ui_spirv)?;
         let fs_ui_data = wgpu::read_spirv(fs_ui_spirv)?;
         let ui_vs_module = device.create_shader_module(&vs_ui_data);
