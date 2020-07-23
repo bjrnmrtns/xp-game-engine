@@ -128,10 +128,10 @@ impl Texture {
             compare: wgpu::CompareFunction::LessEqual, // 5.
         });
 
-        Self { texture, view, sampler }
+        Self { texture, view, sampler, }
     }
 
-    pub fn create_ui_texture(device: &wgpu::Device, queue: &mut Queue) -> Self {
+    pub fn create_ui_texture(device: &wgpu::Device) -> (Self, wgpu::CommandEncoder) {
         let texture = device.create_texture(&TextureDescriptor {
             label: None,
             size: Extent3d {
@@ -169,7 +169,6 @@ impl Texture {
                 depth: 1,
             }
         );
-        queue.submit(&[encoder.finish()]);
         let view = texture.create_default_view();
 
         let sampler = device.create_sampler(&SamplerDescriptor {
@@ -183,11 +182,11 @@ impl Texture {
             lod_max_clamp: 100.0,
             compare: CompareFunction::Always,
         });
-        Self {
+        (Self {
             texture,
             view,
             sampler,
-        }
+        }, encoder)
     }
 }
 
@@ -325,26 +324,154 @@ pub struct Drawable {
 unsafe impl bytemuck::Pod for Instance {}
 unsafe impl bytemuck::Zeroable for Instance {}
 
+pub struct UIRenderer {
+    ui_drawable: Drawable,
+    ui_uniform_bind_group: wgpu::BindGroup,
+    ui_uniform_buffer: wgpu::Buffer,
+    ui_render_pipeline: wgpu::RenderPipeline,
+    ui_texture_bind_group: wgpu::BindGroup,
+}
+
+impl UIRenderer {
+    pub async fn new(device: &Device, sc_descriptor: &wgpu::SwapChainDescriptor, queue: &wgpu::Queue, ui_mesh: Mesh<UIVertex>) -> Result<Self> {
+        let vs_ui_spirv = glsl_to_spirv::compile(include_str!("../shader_ui.vert"), glsl_to_spirv::ShaderType::Vertex)?;
+        let fs_ui_spirv = glsl_to_spirv::compile(include_str!("../shader_ui.frag"), glsl_to_spirv::ShaderType::Fragment)?;
+        let vs_ui_data = wgpu::read_spirv(vs_ui_spirv)?;
+        let fs_ui_data = wgpu::read_spirv(fs_ui_spirv)?;
+        let ui_vs_module = device.create_shader_module(&vs_ui_data);
+        let ui_fs_module = device.create_shader_module(&fs_ui_data);
+
+        let ui_uniforms = UIUniforms { projection: identity(), };
+
+        let ui_uniform_buffer = device.create_buffer_with_data(bytemuck::cast_slice(&[ui_uniforms]),
+                                                               wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST);
+
+        let ui_uniform_layout= device.create_bind_group_layout(&BindGroupLayoutDescriptor{
+            label: None,
+            bindings: &[BindGroupLayoutEntry{
+                binding: 0,
+                visibility: ShaderStage::VERTEX,
+                ty: wgpu::BindingType::UniformBuffer { dynamic: false},
+            }]
+        });
+
+        let ui_uniform_bind_group = device.create_bind_group(&BindGroupDescriptor{
+            label: None,
+            layout: &ui_uniform_layout,
+            bindings: &[wgpu::Binding {
+                binding: 0,
+                resource: wgpu::BindingResource::Buffer {
+                    buffer: &ui_uniform_buffer,
+                    range: 0..std::mem::size_of_val(&ui_uniforms) as wgpu::BufferAddress,
+                }
+            }],
+        });
+
+        let ui_texture_layout = device.create_bind_group_layout(&BindGroupLayoutDescriptor{
+            label: None,
+            bindings: &[
+                BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStage::FRAGMENT,
+                    ty: wgpu::BindingType::SampledTexture {
+                        multisampled: false,
+                        component_type: wgpu::TextureComponentType::Float,
+                        dimension: TextureViewDimension::D2,
+                    },
+                },
+                BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStage::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler { comparison: false },
+                },
+            ]
+        });
+
+        let ui_pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
+            bind_group_layouts: &[&ui_uniform_layout, &ui_texture_layout],
+        });
+
+        let ui_render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor{
+            layout: &ui_pipeline_layout,
+            vertex_stage: wgpu::ProgrammableStageDescriptor {
+                module: &ui_vs_module,
+                entry_point: "main"
+            },
+            fragment_stage: Some(wgpu::ProgrammableStageDescriptor {
+                module: &ui_fs_module,
+                entry_point: "main",
+            }),
+            rasterization_state: Some(RasterizationStateDescriptor {
+                front_face: wgpu::FrontFace::Ccw,
+                cull_mode: CullMode::Back,
+                depth_bias: 0,
+                depth_bias_slope_scale: 0.0,
+                depth_bias_clamp: 0.0,
+            }),
+            primitive_topology: PrimitiveTopology::TriangleList,
+            color_states: &[ColorStateDescriptor {
+                format: sc_descriptor.format,
+                color_blend: BlendDescriptor {
+                    src_factor: BlendFactor::SrcAlpha,
+                    dst_factor: BlendFactor::OneMinusSrcAlpha,
+                    operation: BlendOperation::Add,
+                },
+                alpha_blend: BlendDescriptor {
+                    src_factor: BlendFactor::OneMinusDstAlpha,
+                    dst_factor: BlendFactor::One,
+                    operation: BlendOperation::Add,
+                },
+                write_mask: ColorWrite::ALL,
+            }],
+            depth_stencil_state: None,
+            vertex_state: VertexStateDescriptor {
+                index_format: IndexFormat::Uint32,
+                vertex_buffers: &[UIVertex::desc()],
+            },
+            sample_count: 1,
+            sample_mask: !0,
+            alpha_to_coverage_enabled: false,
+        });
+        let (ui_texture, encoder) = Texture::create_ui_texture(&device);
+        queue.submit(&[encoder.finish()]);
+        let ui_texture_bind_group = device.create_bind_group(&BindGroupDescriptor {
+            label: None,
+            layout: &ui_texture_layout,
+            bindings: &[
+                Binding {
+                    binding: 0,
+                    resource: BindingResource::TextureView(&ui_texture.view),
+                },
+                Binding {
+                    binding: 1,
+                    resource: BindingResource::Sampler(&ui_texture.sampler),
+                },
+            ],
+        });
+        Ok(Self {
+            ui_drawable: Drawable { vertex_buffer: device.create_buffer_with_data(bytemuck::cast_slice(&ui_mesh.vertices), wgpu::BufferUsage::VERTEX),
+                index_buffer: device.create_buffer_with_data(bytemuck::cast_slice(&ui_mesh.indices), wgpu::BufferUsage::INDEX),
+                index_buffer_len: ui_mesh.indices.len() as u32 },
+            ui_texture_bind_group,
+            ui_render_pipeline,
+            ui_uniform_bind_group,
+            ui_uniform_buffer
+        })
+    }
+}
+
 pub struct Renderer {
     surface: wgpu::Surface,
     device: wgpu::Device,
     queue: wgpu::Queue,
     sc_descriptor: wgpu::SwapChainDescriptor,
     swap_chain: wgpu::SwapChain,
-    render_pipeline: wgpu::RenderPipeline,
-    ui_drawable: Drawable,
-    ui_uniform_bind_group: wgpu::BindGroup,
-    ui_uniform_buffer: wgpu::Buffer,
-    #[allow(unused)]
-    ui_uniforms: UIUniforms,
-    ui_render_pipeline: wgpu::RenderPipeline,
-    #[allow(unused)]
-    ui_texture: Texture,
-    ui_texture_bind_group: wgpu::BindGroup,
+    ui_renderer: UIRenderer,
     drawables: Vec<Drawable>,
     uniform_buffer: wgpu::Buffer,
     instance_buffer: wgpu::Buffer,
     uniform_bind_group: wgpu::BindGroup,
+    render_pipeline: wgpu::RenderPipeline,
     depth_texture: Texture,
     glyph_brush: wgpu_glyph::GlyphBrush<()>,
     window_size: winit::dpi::PhysicalSize<u32>,
@@ -367,7 +494,7 @@ impl Renderer {
             Some(adapter) => adapter,
             None => { return Err(GraphicsError::RequestAdapter); },
         };
-        let (device, mut queue) = adapter.request_device(&wgpu::DeviceDescriptor
+        let (device, queue) = adapter.request_device(&wgpu::DeviceDescriptor
         { extensions: wgpu::Extensions { anisotropic_filtering: false, }, limits: Default::default(), }).await;
         let sc_descriptor = wgpu::SwapChainDescriptor{
             usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
@@ -487,121 +614,7 @@ impl Renderer {
         });
         let depth_texture = Texture::create_depth_texture(&device, &sc_descriptor);
 
-        // from here UI renderpipeline creation
-
-        let vs_ui_spirv = glsl_to_spirv::compile(include_str!("../shader_ui.vert"), glsl_to_spirv::ShaderType::Vertex)?;
-        let fs_ui_spirv = glsl_to_spirv::compile(include_str!("../shader_ui.frag"), glsl_to_spirv::ShaderType::Fragment)?;
-        let vs_ui_data = wgpu::read_spirv(vs_ui_spirv)?;
-        let fs_ui_data = wgpu::read_spirv(fs_ui_spirv)?;
-        let ui_vs_module = device.create_shader_module(&vs_ui_data);
-        let ui_fs_module = device.create_shader_module(&fs_ui_data);
-
-        let ui_uniforms = UIUniforms { projection: identity(), };
-
-        let ui_uniform_buffer = device.create_buffer_with_data(bytemuck::cast_slice(&[ui_uniforms]),
-                                                               wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST);
-
-        let ui_uniform_layout= device.create_bind_group_layout(&BindGroupLayoutDescriptor{
-            label: None,
-            bindings: &[BindGroupLayoutEntry{
-                binding: 0,
-                visibility: ShaderStage::VERTEX,
-                ty: wgpu::BindingType::UniformBuffer { dynamic: false},
-            }]
-        });
-
-        let ui_uniform_bind_group = device.create_bind_group(&BindGroupDescriptor{
-            label: None,
-            layout: &ui_uniform_layout,
-            bindings: &[wgpu::Binding {
-                binding: 0,
-                resource: wgpu::BindingResource::Buffer {
-                    buffer: &ui_uniform_buffer,
-                    range: 0..std::mem::size_of_val(&ui_uniforms) as wgpu::BufferAddress,
-                }
-            }],
-        });
-
-        let ui_texture_layout = device.create_bind_group_layout(&BindGroupLayoutDescriptor{
-            label: None,
-            bindings: &[
-                BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStage::FRAGMENT,
-                    ty: wgpu::BindingType::SampledTexture {
-                        multisampled: false,
-                        component_type: wgpu::TextureComponentType::Float,
-                        dimension: TextureViewDimension::D2,
-                    },
-                },
-                BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility: wgpu::ShaderStage::FRAGMENT,
-                    ty: wgpu::BindingType::Sampler { comparison: false },
-                },
-            ]
-        });
-
-        let ui_pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
-            bind_group_layouts: &[&ui_uniform_layout, &ui_texture_layout],
-        });
-
-        let ui_render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor{
-            layout: &ui_pipeline_layout,
-            vertex_stage: wgpu::ProgrammableStageDescriptor {
-                module: &ui_vs_module,
-                entry_point: "main"
-            },
-            fragment_stage: Some(wgpu::ProgrammableStageDescriptor {
-                module: &ui_fs_module,
-                entry_point: "main",
-            }),
-            rasterization_state: Some(RasterizationStateDescriptor {
-                front_face: wgpu::FrontFace::Ccw,
-                cull_mode: CullMode::Back,
-                depth_bias: 0,
-                depth_bias_slope_scale: 0.0,
-                depth_bias_clamp: 0.0,
-            }),
-            primitive_topology: PrimitiveTopology::TriangleList,
-            color_states: &[ColorStateDescriptor {
-                format: sc_descriptor.format,
-                color_blend: BlendDescriptor {
-                    src_factor: BlendFactor::SrcAlpha,
-                    dst_factor: BlendFactor::OneMinusSrcAlpha,
-                    operation: BlendOperation::Add,
-                },
-                alpha_blend: BlendDescriptor {
-                    src_factor: BlendFactor::OneMinusDstAlpha,
-                    dst_factor: BlendFactor::One,
-                    operation: BlendOperation::Add,
-                },
-                write_mask: ColorWrite::ALL,
-            }],
-            depth_stencil_state: None,
-            vertex_state: VertexStateDescriptor {
-                index_format: IndexFormat::Uint32,
-                vertex_buffers: &[UIVertex::desc()],
-            },
-            sample_count: 1,
-            sample_mask: !0,
-            alpha_to_coverage_enabled: false,
-        });
-        let ui_texture = Texture::create_ui_texture(&device, &mut queue);
-        let ui_texture_bind_group = device.create_bind_group(&BindGroupDescriptor {
-            label: None,
-            layout: &ui_texture_layout,
-            bindings: &[
-                Binding {
-                    binding: 0,
-                    resource: BindingResource::TextureView(&ui_texture.view),
-                },
-                Binding {
-                    binding: 1,
-                    resource: BindingResource::Sampler(&ui_texture.sampler),
-                },
-            ],
-        });
+        let ui_renderer = UIRenderer::new(&device, &sc_descriptor, &queue, ui_mesh).await?;
 
         let glyph_brush = Renderer::build_glyph_brush(&device, wgpu::TextureFormat::Bgra8UnormSrgb);
 
@@ -610,23 +623,15 @@ impl Renderer {
             queue,
             sc_descriptor,
             swap_chain,
-            render_pipeline,
-            ui_drawable: Drawable { vertex_buffer: device.create_buffer_with_data(bytemuck::cast_slice(&ui_mesh.vertices), wgpu::BufferUsage::VERTEX),
-                index_buffer: device.create_buffer_with_data(bytemuck::cast_slice(&ui_mesh.indices), wgpu::BufferUsage::INDEX),
-                index_buffer_len: ui_mesh.indices.len() as u32 },
             device,
-            ui_uniform_bind_group,
-            ui_uniform_buffer,
-            ui_uniforms,
-            ui_render_pipeline,
-            ui_texture,
-            ui_texture_bind_group,
-            drawables: Vec::new(),
-            uniform_buffer,
-            instance_buffer,
-            uniform_bind_group,
-            depth_texture,
+            ui_renderer,
             glyph_brush,
+            drawables: Vec::new(),
+            uniform_bind_group,
+            uniform_buffer,
+            render_pipeline,
+            instance_buffer,
+            depth_texture,
             window_size: window.inner_size(),
         })
     }
@@ -712,7 +717,7 @@ impl Renderer {
         // far and near plane are not used in UI rendering
         let ui_uniforms = UIUniforms { projection: ortho(0.0, self.sc_descriptor.width as f32, 0.0, self.sc_descriptor.height as f32, -1.0, 1.0) };
         let buffer = self.device.create_buffer_with_data(bytemuck::cast_slice(&[ui_uniforms]), wgpu::BufferUsage::COPY_SRC);
-        encoder.copy_buffer_to_buffer(&buffer, 0, &self.ui_uniform_buffer, 0, std::mem::size_of_val(&ui_uniforms) as u64);
+        encoder.copy_buffer_to_buffer(&buffer, 0, &self.ui_renderer.ui_uniform_buffer, 0, std::mem::size_of_val(&ui_uniforms) as u64);
         if render_ui
         {
             let mut ui_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -733,7 +738,7 @@ impl Renderer {
                 depth_stencil_attachment: None
             });
             if let Some(ui_mesh) = ui_mesh {
-                self.ui_drawable = Drawable { vertex_buffer: self.device.create_buffer_with_data(bytemuck::cast_slice(&ui_mesh.0.vertices), wgpu::BufferUsage::VERTEX),
+                self.ui_renderer.ui_drawable = Drawable { vertex_buffer: self.device.create_buffer_with_data(bytemuck::cast_slice(&ui_mesh.0.vertices), wgpu::BufferUsage::VERTEX),
                     index_buffer: self.device.create_buffer_with_data(bytemuck::cast_slice(&ui_mesh.0.indices), wgpu::BufferUsage::INDEX),
                     index_buffer_len: ui_mesh.0.indices.len() as u32 };
 
@@ -745,12 +750,12 @@ impl Renderer {
                     self.glyph_brush.queue(section);
                 }
             }
-            ui_pass.set_pipeline(&self.ui_render_pipeline);
-            ui_pass.set_vertex_buffer(0, &self.ui_drawable.vertex_buffer, 0, 0);
-            ui_pass.set_index_buffer(&self.ui_drawable.index_buffer, 0, 0);
-            ui_pass.set_bind_group(0, &self.ui_uniform_bind_group, &[]);
-            ui_pass.set_bind_group(1, &self.ui_texture_bind_group, &[]);
-            ui_pass.draw_indexed(0..self.ui_drawable.index_buffer_len, 0, 0..1);
+            ui_pass.set_pipeline(&self.ui_renderer.ui_render_pipeline);
+            ui_pass.set_vertex_buffer(0, &self.ui_renderer.ui_drawable.vertex_buffer, 0, 0);
+            ui_pass.set_index_buffer(&self.ui_renderer.ui_drawable.index_buffer, 0, 0);
+            ui_pass.set_bind_group(0, &self.ui_renderer.ui_uniform_bind_group, &[]);
+            ui_pass.set_bind_group(1, &self.ui_renderer.ui_texture_bind_group, &[]);
+            ui_pass.draw_indexed(0..self.ui_renderer.ui_drawable.index_buffer_len, 0, 0..1);
         }
 
         self.glyph_brush.draw_queued(&self.device, &mut encoder, &frame.view, self.sc_descriptor.width, self.sc_descriptor.height,).expect("Cannot draw glyph_brush");
