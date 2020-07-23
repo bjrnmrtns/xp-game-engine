@@ -73,7 +73,7 @@ pub fn create_mesh_from(obj_file_name: &str) -> graphics::Mesh<graphics::regular
         } else {
             [0.8, 0.0, 0.8]
         };
-        let model_mesh = graphics::make_mesh_from_flat_obj(model.mesh.positions.as_ref(), model.mesh.indices.as_ref(), &color);
+        let model_mesh = graphics::helpers::make_mesh_from_flat_obj(model.mesh.positions.as_ref(), model.mesh.indices.as_ref(), &color);
         let index_offset = mesh.vertices.len() as u32;
         mesh.vertices.extend(model_mesh.vertices);
         mesh.indices.extend(model_mesh.indices.iter().map(|i| i + index_offset ));
