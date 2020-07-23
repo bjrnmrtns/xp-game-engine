@@ -24,11 +24,11 @@ pub struct Options {
     replay_path: Option<PathBuf>,
 }
 
-pub fn create_terrain_mesh_from_tile(tile: &terrain::Tile) -> graphics::Mesh<graphics::Vertex> {
+pub fn create_terrain_mesh_from_tile(tile: &terrain::Tile) -> graphics::Mesh<graphics::regular::Vertex> {
     let mut terrain = graphics::Mesh { vertices: Vec::new(), indices: Vec::new() };
     for z in 0..terrain::TILE_SIZE {
         for x in 0..terrain::TILE_SIZE {
-            terrain.vertices.push(graphics::Vertex {
+            terrain.vertices.push(graphics::regular::Vertex {
                 position: tile.get_element(x, z).p.clone(),
                 normal: [0.0, 1.0, 0.0],
                 color: tile.color(),
@@ -85,7 +85,7 @@ pub fn create_terrain_mesh_from_tile(tile: &terrain::Tile) -> graphics::Mesh<gra
     terrain
 }
 
-pub fn create_mesh_from(obj_file_name: &str) -> graphics::Mesh<graphics::Vertex> {
+pub fn create_mesh_from(obj_file_name: &str) -> graphics::Mesh<graphics::regular::Vertex> {
     let (models, materials) = tobj::load_obj(obj_file_name, true).expect(format!("Could not read obj file: {}", obj_file_name).as_str());
     let mut mesh = graphics::Mesh { vertices: Vec::new(), indices: Vec::new() };
     for model in models {
@@ -167,7 +167,7 @@ fn game(options: Options) {
         camera::CameraType::FreeLook => { context.camera = camera::CameraType::Follow },
     }});
     ui.layout();
-    let mut renderer = futures::executor::block_on(graphics::Renderer::new(&window, create_mesh(&ui).0)).expect("Could not create graphics renderer");
+    let mut renderer = futures::executor::block_on(graphics::Graphics::new(&window, create_mesh(&ui).0)).expect("Could not create graphics renderer");
     renderer.create_drawable_from_mesh(&player_mesh);
     renderer.create_drawable_from_mesh(&axis_mesh);
 
