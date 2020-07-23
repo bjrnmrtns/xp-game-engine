@@ -2,8 +2,8 @@ use noise::NoiseFn;
 use std::collections::{HashMap, HashSet};
 
 pub const TILE_SIZE: usize = 65;
-const TILE_PITCH_PER_LOD: [f64; 10] = [0.1, 0.2, 0.4, 0.8, 1.6, 3.2, 6.4, 12.8, 25.6, 51.2];
-const TILE_SIZE_PER_LOD: [f64; 10] = [6.4, 12.8, 25.6, 51.2, 102.4, 204.8, 409.6, 819.2, 1638.4, 3276.8];
+const TILE_PITCH_PER_LOD: [f64; 9] = [0.2, 0.4, 0.8, 1.6, 3.2, 6.4, 12.8, 25.6, 51.2];
+const TILE_SIZE_PER_LOD: [f64; 9] = [12.8, 25.6, 51.2, 102.4, 204.8, 409.6, 819.2, 1638.4, 3276.8];
 
 pub struct TileCache<T> {
     generated: HashSet<TileHeader>,
@@ -20,6 +20,7 @@ impl<T> TileCache<T> {
     pub fn update(&mut self, pos: [f32; 3], mut tiles: Vec<(TileHeader, T)>) {
         let mut current = TileHeader::new(pos.to_tile_index(), 0).around(1);
         current.extend(TileHeader::new(pos.to_tile_index(), 1).around(1));
+        current.extend(TileHeader::new(pos.to_tile_index(), 2).around(1));
         let to_replace: Vec<TileHeader> = self.generated.difference(&current).map(|v| v.clone()).collect();
         for r in to_replace {
             self.tiles.remove(&r);
@@ -34,11 +35,13 @@ impl<T> TileCache<T> {
     pub fn what_needs_update(&self, pos: [f32; 3]) -> HashSet<TileHeader> {
         let mut current = TileHeader::new(pos.to_tile_index(), 0).around(1);
         current.extend(TileHeader::new(pos.to_tile_index(), 1).around(1));
+        current.extend(TileHeader::new(pos.to_tile_index(), 2).around(1));
         current.difference(&self.generated).map(|v| v.clone()).collect()
     }
     pub fn view(&self, pos: [f32; 3]) -> Vec<&T> {
         let mut current = TileHeader::new(pos.to_tile_index(), 0).around(1);
         current.extend(TileHeader::new(pos.to_tile_index(), 1).around(1));
+        current.extend(TileHeader::new(pos.to_tile_index(), 2).around(1));
         self.tiles.iter().filter(|v| current.contains(v.0)).map(|v| v.1).collect()
     }
 }
@@ -114,8 +117,8 @@ trait ToTileIndices {
 impl ToTileIndices for i32 {
     fn to_tile_indices(self, offset: usize, lod: usize) -> Vec<Self> {
         let offset = offset as i32;
-        let step_size = 1 + lod.pow(2) as i32;
-        (-offset..=offset).map(|v| v * step_size + self).collect()
+        let step_size = (2 as i32).pow(lod as u32);
+        (-offset..offset).map(|v| v * step_size + self).collect()
     }
 }
 impl ToTileIndices for (i32, i32) {
