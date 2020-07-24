@@ -103,18 +103,7 @@ impl Graphics {
         self.swap_chain = self.device.create_swap_chain(&self.surface, &self.sc_descriptor);
     }
 
-    pub fn create_drawable_clipmap(&mut self) {
-        let mut vertices: Vec<clipmap::Vertex> = Vec::new();
-        let mut indices: Vec<u32> = Vec::new();
-        vertices.push(clipmap::Vertex { p: [0.0, 0.0] });
-        vertices.push(clipmap::Vertex { p: [0.0, -10.0] });
-        vertices.push(clipmap::Vertex { p: [-10.0, -10.0] });
-        indices.push(0);
-        indices.push(1);
-        indices.push(1);
-        indices.push(2);
-        indices.push(2);
-        indices.push(0);
+    pub fn add_clipmap(&mut self, vertices: &Vec<clipmap::Vertex>, indices: &Vec<u32>) {
         let vertex_buffer = self.device.create_buffer_with_data(bytemuck::cast_slice(&vertices), wgpu::BufferUsage::VERTEX);
         let index_buffer = self.device.create_buffer_with_data(bytemuck::cast_slice(&indices), wgpu::BufferUsage::INDEX);
         self.clipmap_renderer.drawables.push(Drawable { vertex_buffer, index_buffer, index_buffer_len: indices.len() as u32, });

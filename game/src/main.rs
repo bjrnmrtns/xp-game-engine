@@ -12,6 +12,7 @@ use game::command_queue::CommandQueue;
 use game::entity::{Posable, Followable};
 use xp_ui::{UI, DEFAULT_LAYOUT, Label, ActionType};
 use xp_ui::Widget::LabelW;
+use game::graphics::clipmap;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "options", about = "command line options")]
@@ -50,7 +51,8 @@ fn game(options: Options) {
     let mut renderer = futures::executor::block_on(graphics::Graphics::new(&window, mesh::create_mesh(&ui).0)).expect("Could not create graphics renderer");
     renderer.create_drawable_from_mesh(&player_mesh);
     renderer.create_drawable_from_mesh(&axis_mesh);
-    renderer.create_drawable_clipmap();
+    let (clipmap_vertices, clipmap_indices) = clipmap::create_clipmap();
+    renderer.add_clipmap(&clipmap_vertices, &clipmap_indices);
 
     let mut previous_time = Instant::now();
 

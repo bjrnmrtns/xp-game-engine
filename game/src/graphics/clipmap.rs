@@ -178,3 +178,21 @@ impl Renderer {
         })
     }
 }
+
+pub fn create_clipmap() -> (Vec<Vertex>, Vec<u32>) {
+    const K: u32 = 8;
+    const N: u32 = 255;
+    assert_eq!(N, (2 as u32).pow(K) - 1);
+    let mut vertices: Vec<Vertex> = Vec::new();
+    let mut indices: Vec<u32> = Vec::new();
+    vertices.push(Vertex { p: [0.0, 0.0] });
+    vertices.push(Vertex { p: [0.0, -10.0] });
+    vertices.push(Vertex { p: [-10.0, -10.0] });
+    indices.push(0);
+    indices.push(1);
+    indices.push(1);
+    indices.push(2);
+    indices.push(2);
+    indices.push(0);
+    (vertices, indices)
+}
