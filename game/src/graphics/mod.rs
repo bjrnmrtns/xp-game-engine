@@ -77,7 +77,7 @@ impl Graphics {
         let depth_texture = texture::Texture::create_depth_texture(&device, &sc_descriptor);
         let ui_renderer = ui::Renderer::new(&device, &sc_descriptor, &queue, ui_mesh).await?;
         let renderer= regular::Renderer::new(&device, &sc_descriptor).await?;
-        let clipmap_renderer= clipmap::Renderer::new(&device, &sc_descriptor).await?;
+        let clipmap_renderer= clipmap::Renderer::new(&device, &sc_descriptor, &queue).await?;
         let glyph_brush = Graphics::build_glyph_brush(&device, wgpu::TextureFormat::Bgra8UnormSrgb);
 
         Ok(Self {
@@ -183,7 +183,7 @@ impl Graphics {
             diffuse_scene_pass.set_pipeline(&self.clipmap_renderer.render_pipeline);
             diffuse_scene_pass.set_vertex_buffer(0, &self.clipmap_renderer.drawables[0].vertex_buffer, 0, 0);
             diffuse_scene_pass.set_index_buffer(&self.clipmap_renderer.drawables[0].index_buffer, 0, 0);
-            diffuse_scene_pass.set_bind_group(0, &self.clipmap_renderer.uniform_bind_group, &[]);
+            diffuse_scene_pass.set_bind_group(0, &self.clipmap_renderer.bind_group, &[]);
             diffuse_scene_pass.draw_indexed(0..self.clipmap_renderer.drawables[0].index_buffer_len, 0, 1..2);
         }
         // far and near plane are not used in UI rendering

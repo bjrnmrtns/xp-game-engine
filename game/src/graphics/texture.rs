@@ -44,7 +44,65 @@ impl Texture {
         Self { texture, view, sampler, }
     }
 
-    pub fn create_ui_texture(device: &wgpu::Device) -> (Self, wgpu::CommandEncoder) {
+    #[allow(non_snake_case)]
+    pub fn create_clipmap_texture(device: &wgpu::Device, N: u32) -> (Self, wgpu::CommandEncoder) {
+        let texture = device.create_texture(&TextureDescriptor {
+            label: None,
+            size: Extent3d {
+                width: N,
+                height: N,
+                depth: 1
+            },
+            array_layer_count: 1,
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: TextureDimension::D2,
+            format: TextureFormat::R32Float,
+            usage: TextureUsage::SAMPLED | TextureUsage::COPY_DST,
+        });
+        let data: Vec<f32> = vec![2.0;(N * N) as usize]; // should be all white
+        let buffer = device.create_buffer_with_data(bytemuck::cast_slice(data.as_slice()), BufferUsage::COPY_SRC);
+        let mut encoder = device.create_command_encoder(&CommandEncoderDescriptor {label: None});
+        encoder.copy_buffer_to_texture(
+            BufferCopyView {
+                buffer: &buffer,
+                offset: 0,
+                bytes_per_row: N * 2,
+                rows_per_image: N,
+            },
+            TextureCopyView {
+                texture: &texture,
+                mip_level: 0,
+                array_layer: 0,
+                origin: Origin3d { x: 0, y: 0, z: 0 },
+            },
+            Extent3d {
+                width: N,
+                height: N,
+                depth: 1,
+            }
+        );
+        let view = texture.create_default_view();
+        let sampler = device.create_sampler(&SamplerDescriptor {
+            address_mode_u: AddressMode::Repeat,
+            address_mode_v: AddressMode::Repeat,
+            address_mode_w: AddressMode::Repeat,
+            mag_filter: FilterMode::Nearest,
+            min_filter: FilterMode::Nearest,
+            mipmap_filter: FilterMode::Nearest,
+            lod_min_clamp: -100.0,
+            lod_max_clamp: 100.0,
+            compare: CompareFunction::Never,
+        });
+
+        (Self {
+            texture,
+            view,
+            sampler
+        }, encoder)
+}
+
+pub fn create_ui_texture(device: &wgpu::Device) -> (Self, wgpu::CommandEncoder) {
         let texture = device.create_texture(&TextureDescriptor {
             label: None,
             size: Extent3d {

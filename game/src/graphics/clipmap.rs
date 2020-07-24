@@ -1,6 +1,6 @@
 use crate::graphics::{Drawable, texture};
 use nalgebra_glm::{Mat4, identity};
-use wgpu::Device;
+use wgpu::{Device, BindingResource, BindGroupLayoutEntry, TextureViewDimension};
 use crate::graphics::error::GraphicsError;
 
 type Result<T> = std::result::Result<T, GraphicsError>;
@@ -55,12 +55,12 @@ pub struct Renderer {
     pub drawables: Vec<Drawable>,
     pub uniform_buffer: wgpu::Buffer,
     pub instance_buffer: wgpu::Buffer,
-    pub uniform_bind_group: wgpu::BindGroup,
+    pub bind_group: wgpu::BindGroup,
     pub render_pipeline: wgpu::RenderPipeline,
 }
 
 impl Renderer {
-    pub async fn new(device: &Device, sc_descriptor: &wgpu::SwapChainDescriptor) -> Result<Self> {
+    pub async fn new(device: &Device, sc_descriptor: &wgpu::SwapChainDescriptor, queue: &wgpu::Queue) -> Result<Self> {
         // from here 3D renderpipeline creation
         let vs_spirv = glsl_to_spirv::compile(include_str!("../shader_clipmap.vert"), glsl_to_spirv::ShaderType::Vertex)?;
         let fs_spirv = glsl_to_spirv::compile(include_str!("../shader_clipmap.frag"), glsl_to_spirv::ShaderType::Fragment)?;
@@ -78,7 +78,7 @@ impl Renderer {
         let instance_buffer = device.create_buffer_with_data(bytemuck::cast_slice(&instances),
                                                              wgpu::BufferUsage::STORAGE | wgpu::BufferUsage::COPY_DST);
 
-        let uniform_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             bindings: &[
                 wgpu::BindGroupLayoutEntry {
                     binding: 0,
@@ -95,12 +95,30 @@ impl Renderer {
                         readonly: false,
                     },
                 },
+                BindGroupLayoutEntry {
+                    binding: 2,
+                    visibility: wgpu::ShaderStage::VERTEX,
+                    ty: wgpu::BindingType::SampledTexture {
+                        multisampled: false,
+                        component_type: wgpu::TextureComponentType::Float,
+                        dimension: TextureViewDimension::D2,
+                    },
+                },
+                BindGroupLayoutEntry {
+                    binding: 3,
+                    visibility: wgpu::ShaderStage::VERTEX,
+                    ty: wgpu::BindingType::Sampler { comparison: false },
+                },
             ],
             label: None,
         });
 
-        let uniform_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: &uniform_bind_group_layout,
+        let (texture, encoder) = texture::Texture::create_clipmap_texture(&device, 16);
+        queue.submit(&[encoder.finish()]);
+
+
+        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: &bind_group_layout,
             bindings: &[
                 wgpu::Binding {
                     binding: 0,
@@ -117,12 +135,20 @@ impl Renderer {
                         range: 0..std::mem::size_of_val(&instances) as wgpu::BufferAddress,
                     }
                 },
+                wgpu::Binding {
+                    binding: 2,
+                    resource: BindingResource::TextureView(&texture.view),
+                },
+                wgpu::Binding {
+                    binding: 3,
+                    resource: BindingResource::Sampler(&texture.sampler),
+                },
             ],
             label: None,
         });
 
         let render_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            bind_group_layouts: &[&uniform_bind_group_layout],
+            bind_group_layouts: &[&bind_group_layout],
         });
 
         let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
@@ -173,7 +199,7 @@ impl Renderer {
             drawables: Vec::new(),
             uniform_buffer,
             instance_buffer,
-            uniform_bind_group,
+            bind_group: bind_group,
             render_pipeline
         })
     }

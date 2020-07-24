@@ -7,13 +7,13 @@ layout(location=2) in vec3 in_color;
 layout(location=0) out vec3 out_color;
 layout(location=1) out vec3 out_normal;
 
-layout(set=1, binding=0)
+layout(set=0, binding=0)
 uniform Uniforms {
     mat4 projection;
     mat4 view;
 };
 
-layout(set=1, binding=1)
+layout(set=0, binding=1)
 buffer Instances {
     mat4 models[];
 };
