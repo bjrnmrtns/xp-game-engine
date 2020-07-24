@@ -150,7 +150,7 @@ impl Renderer {
                     write_mask: wgpu::ColorWrite::ALL,
                 }
             ],
-            primitive_topology: wgpu::PrimitiveTopology::LineStrip,
+            primitive_topology: wgpu::PrimitiveTopology::LineList,
             depth_stencil_state: Some(wgpu::DepthStencilStateDescriptor {
                 format: texture::Texture::DEPTH_FORMAT,
                 depth_write_enabled: true,
@@ -180,19 +180,26 @@ impl Renderer {
 }
 
 pub fn create_clipmap() -> (Vec<Vertex>, Vec<u32>) {
-    const K: u32 = 8;
-    const N: u32 = 255;
+    const K: u32 = 4;
+    const N: u32 = 15;
     assert_eq!(N, (2 as u32).pow(K) - 1);
     let mut vertices: Vec<Vertex> = Vec::new();
+    for z in 0..N+1 {
+        for x in 0..N+1 {
+            vertices.push(Vertex {
+                p: [x as f32, z as f32],
+            })
+        }
+    }
     let mut indices: Vec<u32> = Vec::new();
-    vertices.push(Vertex { p: [0.0, 0.0] });
-    vertices.push(Vertex { p: [0.0, -10.0] });
-    vertices.push(Vertex { p: [-10.0, -10.0] });
-    indices.push(0);
-    indices.push(1);
-    indices.push(1);
-    indices.push(2);
-    indices.push(2);
-    indices.push(0);
+    for z in 0..N {
+        for x in 0..N {
+            let i0 = x + z * (N+1);
+            let i1 = i0 + 1;
+            let i2 = x + (z + 1) * (N+1);
+            let i3 = i2 + 1;
+            indices.extend_from_slice(&[i0, i2, i2, i1, i1, i0, i1, i2, i2, i3, i3, i1]); // line_strip -> wireframe, indexbuffer for filled is remove even indices
+        }
+    }
     (vertices, indices)
 }
