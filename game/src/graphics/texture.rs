@@ -60,14 +60,15 @@ impl Texture {
             format: TextureFormat::R32Float,
             usage: TextureUsage::SAMPLED | TextureUsage::COPY_DST,
         });
-        let data: Vec<f32> = vec![2.0;(N * N) as usize]; // should be all white
+        let mut data: Vec<f32> = vec![2.0;(N * N) as usize]; // should be all white
+        data[8] = 0.0;
         let buffer = device.create_buffer_with_data(bytemuck::cast_slice(data.as_slice()), BufferUsage::COPY_SRC);
         let mut encoder = device.create_command_encoder(&CommandEncoderDescriptor {label: None});
         encoder.copy_buffer_to_texture(
             BufferCopyView {
                 buffer: &buffer,
                 offset: 0,
-                bytes_per_row: N * 2,
+                bytes_per_row: N * 4,
                 rows_per_image: N,
             },
             TextureCopyView {
