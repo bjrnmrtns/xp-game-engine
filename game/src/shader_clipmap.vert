@@ -20,6 +20,7 @@ layout(set = 0, binding = 3) uniform sampler elevation_sampler;
 
 void main() {
     out_color = vec3(1.0, 1.0, 0.0);
-    float height = texture(sampler2D(tex, elevation_sampler), vec2(in_position.x / 16.0, in_position.y / 16.0)).r;
+    vec2 uv = vec2((in_position.x + 0.5) / 16.0, (in_position.y + 0.5) / 16.0);
+    float height = texture(sampler2D(tex, elevation_sampler), uv).r;
     gl_Position = projection * view * vec4(in_position, height, 1.0).xzyw;
 }
