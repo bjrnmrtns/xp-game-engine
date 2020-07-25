@@ -20,7 +20,8 @@ layout(set = 0, binding = 2) uniform texture2D tex;
 layout(set = 0, binding = 3) uniform sampler elevation_sampler;
 
 void main() {
-    vec2 position = vec2(in_position.x + camera_position.x, in_position.y + camera_position.z);
+    vec2 snapped_camera_position = vec2(floor(camera_position.x), floor(camera_position.z));
+    vec2 position = vec2(in_position.x + snapped_camera_position.x, in_position.y + snapped_camera_position.y);
     out_color = vec3(1.0, 1.0, 0.0);
     vec2 uv = vec2((position.x + 0.5) / 16.0, (position.y + 0.5) / 16.0);
     float height = texture(sampler2D(tex, elevation_sampler), uv).r;
