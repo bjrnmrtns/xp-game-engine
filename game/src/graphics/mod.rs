@@ -132,16 +132,18 @@ impl Graphics {
         self.queue.submit(&[encoder.finish()]);
     }
 
-    pub async fn render(&mut self, view: Mat4, render_ui: bool, ui_mesh: Option<(Mesh<ui::Vertex>, Vec<Text>)>) {
+    pub async fn render(&mut self, view: Mat4, render_ui: bool, ui_mesh: Option<(Mesh<ui::Vertex>, Vec<Text>)>, camera_position: Vec3) {
         let projection = perspective(self.sc_descriptor.width as f32 / self.sc_descriptor.height as f32,45.0, 0.1, 100.0);
         let uniforms = Uniforms { projection: projection, view: view, };
         let buffer = self.device.create_buffer_with_data(bytemuck::cast_slice(&[uniforms]), wgpu::BufferUsage::COPY_SRC);
+        let uniforms_clipmap = clipmap::Uniforms { projection: projection, view: view, camera_position, };
+        let buffer_clipmap = self.device.create_buffer_with_data(bytemuck::cast_slice(&[uniforms_clipmap]), wgpu::BufferUsage::COPY_SRC);
         let frame = self.swap_chain.get_next_texture().expect("failed to get next texture");
         let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: None,
         });
         encoder.copy_buffer_to_buffer(&buffer, 0, &self.renderer.uniform_buffer, 0, std::mem::size_of_val(&uniforms) as u64);
-        encoder.copy_buffer_to_buffer(&buffer, 0, &self.clipmap_renderer.uniform_buffer, 0, std::mem::size_of_val(&uniforms) as u64);
+        encoder.copy_buffer_to_buffer(&buffer_clipmap, 0, &self.clipmap_renderer.uniform_buffer, 0, std::mem::size_of_val(&uniforms_clipmap) as u64);
         {
             let mut diffuse_scene_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 color_attachments: &[
@@ -184,7 +186,7 @@ impl Graphics {
             diffuse_scene_pass.set_vertex_buffer(0, &self.clipmap_renderer.drawables[0].vertex_buffer, 0, 0);
             diffuse_scene_pass.set_index_buffer(&self.clipmap_renderer.drawables[0].index_buffer, 0, 0);
             diffuse_scene_pass.set_bind_group(0, &self.clipmap_renderer.bind_group, &[]);
-            diffuse_scene_pass.draw_indexed(0..self.clipmap_renderer.drawables[0].index_buffer_len, 0, 1..2);
+            diffuse_scene_pass.draw_indexed(0..self.clipmap_renderer.drawables[0].index_buffer_len, 0, 0..1);
         }
         // far and near plane are not used in UI rendering
         let ui_uniforms = ui::Uniforms { projection: ortho(0.0, self.sc_descriptor.width as f32, 0.0, self.sc_descriptor.height as f32, -1.0, 1.0) };

@@ -1,5 +1,5 @@
 use crate::graphics::{Drawable, texture};
-use nalgebra_glm::{Mat4, identity};
+use nalgebra_glm::{Mat4, identity, Vec3, vec3};
 use wgpu::{Device, BindingResource, BindGroupLayoutEntry, TextureViewDimension};
 use crate::graphics::error::GraphicsError;
 
@@ -46,6 +46,7 @@ unsafe impl bytemuck::Zeroable for Instance {}
 pub struct Uniforms {
     pub projection: Mat4,
     pub view: Mat4,
+    pub camera_position: Vec3,
 }
 
 unsafe impl bytemuck::Pod for Uniforms {}
@@ -69,7 +70,7 @@ impl Renderer {
         let vs_module = device.create_shader_module(&vs_data);
         let fs_module = device.create_shader_module(&fs_data);
 
-        let uniforms = Uniforms { projection: identity(), view: identity(), };
+        let uniforms = Uniforms { projection: identity(), view: identity(), camera_position: vec3(0.0, 0.0, 0.0) };
 
         let uniform_buffer = device.create_buffer_with_data(bytemuck::cast_slice(&[uniforms]),
                                                             wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST);

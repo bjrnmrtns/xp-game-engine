@@ -104,7 +104,7 @@ fn game(options: Options) {
                     fps_label.text.text = fps.to_string();
                 }
                 previous_time = current_time;
-                futures::executor::block_on(renderer.render(view, game_state.ui_enabled, Some(mesh::create_mesh(&ui))));
+                futures::executor::block_on(renderer.render(view, game_state.ui_enabled, Some(mesh::create_mesh(&ui)), player.position));
             }
             Event::MainEventsCleared => {
                 window.request_redraw();

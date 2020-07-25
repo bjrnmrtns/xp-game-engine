@@ -8,6 +8,7 @@ layout(set=0, binding=0)
 uniform Uniforms {
     mat4 projection;
     mat4 view;
+    vec3 camera_position;
 };
 
 layout(set=0, binding=1)
@@ -19,8 +20,9 @@ layout(set = 0, binding = 2) uniform texture2D tex;
 layout(set = 0, binding = 3) uniform sampler elevation_sampler;
 
 void main() {
+    vec2 position = vec2(in_position.x + camera_position.x, in_position.y + camera_position.z);
     out_color = vec3(1.0, 1.0, 0.0);
-    vec2 uv = vec2((in_position.x + 0.5) / 16.0, (in_position.y + 0.5) / 16.0);
+    vec2 uv = vec2((position.x + 0.5) / 16.0, (position.y + 0.5) / 16.0);
     float height = texture(sampler2D(tex, elevation_sampler), uv).r;
-    gl_Position = projection * view * vec4(in_position, height, 1.0).xzyw;
+    gl_Position = projection * view * vec4(position, height, 1.0).xzyw;
 }
