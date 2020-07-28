@@ -2,6 +2,7 @@ use winit::window::Window;
 use nalgebra_glm::*;
 use crate::graphics::error::GraphicsError;
 use crate::graphics::regular::{Vertex, Uniforms, Instance};
+use wgpu::{BufferCopyView, TextureCopyView, Origin3d};
 
 pub mod regular;
 pub mod ui;
@@ -141,6 +142,27 @@ impl Graphics {
         let frame = self.swap_chain.get_next_texture().expect("failed to get next texture");
         let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: None,
+        });
+        let height_map_data_update: Vec<f32> = vec!(1.0; 256);
+        let height_map_data_buffer = self.device.create_buffer_with_data(bytemuck::cast_slice(height_map_data_update.as_slice()), wgpu::BufferUsage::COPY_SRC);
+        encoder.copy_buffer_to_texture(BufferCopyView{
+            buffer: &height_map_data_buffer,
+            offset: 0,
+            bytes_per_row: 16 * 4,
+            rows_per_image: 16
+        }, TextureCopyView{
+            texture: &self.clipmap_renderer.texture.texture,
+            mip_level: 0,
+            array_layer: 0,
+            origin: wgpu::Origin3d{
+                x: 0,
+                y: 0,
+                z: 0
+            } 
+        }, wgpu::Extent3d{
+            width: 1,
+            height: 8,
+            depth: 1
         });
         encoder.copy_buffer_to_buffer(&buffer, 0, &self.renderer.uniform_buffer, 0, std::mem::size_of_val(&uniforms) as u64);
         encoder.copy_buffer_to_buffer(&buffer_clipmap, 0, &self.clipmap_renderer.uniform_buffer, 0, std::mem::size_of_val(&uniforms_clipmap) as u64);

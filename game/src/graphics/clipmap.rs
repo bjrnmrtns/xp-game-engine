@@ -58,6 +58,7 @@ pub struct Renderer {
     pub instance_buffer: wgpu::Buffer,
     pub bind_group: wgpu::BindGroup,
     pub render_pipeline: wgpu::RenderPipeline,
+    pub texture: texture::Texture,
 }
 
 impl Renderer {
@@ -116,7 +117,6 @@ impl Renderer {
 
         let (texture, encoder) = texture::Texture::create_clipmap_texture(&device, 16);
         queue.submit(&[encoder.finish()]);
-
 
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &bind_group_layout,
@@ -201,7 +201,8 @@ impl Renderer {
             uniform_buffer,
             instance_buffer,
             bind_group: bind_group,
-            render_pipeline
+            render_pipeline,
+            texture,
         })
     }
 }
