@@ -2,7 +2,7 @@ use winit::window::Window;
 use nalgebra_glm::*;
 use crate::graphics::error::GraphicsError;
 use crate::graphics::regular::{Vertex, Uniforms, Instance};
-use wgpu::{BufferCopyView, TextureCopyView, Origin3d};
+use wgpu::{BufferCopyView, TextureCopyView};
 
 pub mod regular;
 pub mod ui;
@@ -143,25 +143,26 @@ impl Graphics {
         let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: None,
         });
-        let height_map_data_update: Vec<f32> = vec!(1.0; 256);
+        let mut height_map_data_update: Vec<f32> = Vec::new();
+        height_map_data_update.extend_from_slice(&[1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0,1.0, 1.0, 1.0, 1.0,]);
         let height_map_data_buffer = self.device.create_buffer_with_data(bytemuck::cast_slice(height_map_data_update.as_slice()), wgpu::BufferUsage::COPY_SRC);
         encoder.copy_buffer_to_texture(BufferCopyView{
             buffer: &height_map_data_buffer,
             offset: 0,
-            bytes_per_row: 16 * 4,
-            rows_per_image: 16
+            bytes_per_row: 16,
+            rows_per_image: 4
         }, TextureCopyView{
             texture: &self.clipmap_renderer.texture.texture,
             mip_level: 0,
             array_layer: 0,
             origin: wgpu::Origin3d{
-                x: 0,
-                y: 0,
+                x: 4,
+                y: 4,
                 z: 0
             } 
         }, wgpu::Extent3d{
-            width: 1,
-            height: 8,
+            width: 4,
+            height: 4,
             depth: 1
         });
         encoder.copy_buffer_to_buffer(&buffer, 0, &self.renderer.uniform_buffer, 0, std::mem::size_of_val(&uniforms) as u64);
