@@ -231,3 +231,21 @@ pub fn create_clipmap() -> (Vec<Vertex>, Vec<u32>) {
     }
     (vertices, indices)
 }
+
+fn get_update_region(from: i32, to: i32, size: i32) -> std::ops::Range<i32> {
+    if from < to {
+        let diff = std::cmp::min(size, to - from);
+        ((to-diff)..to)
+    } else {
+        let diff = std::cmp::min(size, from - to);
+        (to..(to+diff))
+    }
+}
+
+#[test]
+fn test_update() {
+    assert_eq!(get_update_region(1, 10, 8), (2..10));
+    assert_eq!(get_update_region(-2, 8, 12), (-2..8));
+    assert_eq!(get_update_region(8, -2, 12), (-2..8));
+    assert_eq!(get_update_region(8, -2, 6), (-2..4));
+}

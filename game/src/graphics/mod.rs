@@ -24,7 +24,6 @@ pub struct Drawable {
     pub index_buffer_len: u32,
 }
 
-
 pub struct Text
 {
     pub pos: (f32, f32),
