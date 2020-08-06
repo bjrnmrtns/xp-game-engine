@@ -48,11 +48,11 @@ fn game(options: Options) {
         camera::CameraType::FreeLook => { context.camera = camera::CameraType::Follow },
     }});
     ui.layout();
-    let mut renderer = futures::executor::block_on(graphics::Graphics::new(&window, mesh::create_mesh(&ui).0)).expect("Could not create graphics renderer");
-    renderer.create_drawable_from_mesh(&player_mesh);
-    renderer.create_drawable_from_mesh(&axis_mesh);
+    let mut graphics = futures::executor::block_on(graphics::Graphics::new(&window, mesh::create_mesh(&ui).0)).expect("Could not create graphics renderer");
+    graphics.renderer.create_drawable_from_mesh(&graphics.device, &player_mesh);
+    graphics.renderer.create_drawable_from_mesh(&graphics.device, &axis_mesh);
     let (clipmap_vertices, clipmap_indices) = clipmap::create_clipmap();
-    renderer.add_clipmap(&clipmap_vertices, &clipmap_indices);
+    graphics.clipmap_renderer.add_clipmap(&graphics.device, &clipmap_vertices, &clipmap_indices);
 
     let mut previous_time = Instant::now();
 
@@ -103,7 +103,7 @@ fn game(options: Options) {
                     fps_label.text.text = fps.to_string();
                 }
                 previous_time = current_time;
-                futures::executor::block_on(renderer.render(player.pose(), identity(), identity(), view, game_state.ui_enabled, Some(mesh::create_mesh(&ui)), player.position));
+                futures::executor::block_on(graphics.render(player.pose(), identity(), identity(), view, game_state.ui_enabled, Some(mesh::create_mesh(&ui)), player.position));
             }
             Event::MainEventsCleared => {
                 window.request_redraw();
@@ -141,11 +141,11 @@ fn game(options: Options) {
                 }
                 WindowEvent::Resized(physical_size) => {
                     ui.update_window_size(physical_size.width as f32, physical_size.height as f32);
-                    futures::executor::block_on(renderer.resize(*physical_size));
+                    futures::executor::block_on(graphics.resize(*physical_size));
                 }
                 WindowEvent::ScaleFactorChanged { new_inner_size, ..} => {
                     ui.update_window_size(new_inner_size.width as f32, new_inner_size.height as f32);
-                    futures::executor::block_on(renderer.resize(**new_inner_size));
+                    futures::executor::block_on(graphics.resize(**new_inner_size));
                 }
                 WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
                 WindowEvent::KeyboardInput {

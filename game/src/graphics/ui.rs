@@ -1,9 +1,17 @@
-use crate::graphics::{Mesh, texture, Drawable, Text, Graphics};
+use crate::graphics::{Mesh, texture, Drawable, Graphics};
 use wgpu::{*};
 use nalgebra_glm::{Mat4, identity};
 use crate::graphics::error::GraphicsError;
 
 type Result<T> = std::result::Result<T, GraphicsError>;
+
+pub struct Text
+{
+    pub pos: (f32, f32),
+    pub text: String,
+    pub font_size: f32,
+    pub color: [u8; 4],
+}
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]

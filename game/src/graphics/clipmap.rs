@@ -205,6 +205,13 @@ impl Renderer {
             texture,
         })
     }
+
+    pub fn add_clipmap(&mut self, device: &wgpu::Device, vertices: &Vec<Vertex>, indices: &Vec<u32>) {
+        let vertex_buffer = device.create_buffer_with_data(bytemuck::cast_slice(&vertices), wgpu::BufferUsage::VERTEX);
+        let index_buffer = device.create_buffer_with_data(bytemuck::cast_slice(&indices), wgpu::BufferUsage::INDEX);
+        self.drawables.push(Drawable { vertex_buffer, index_buffer, index_buffer_len: indices.len() as u32, });
+    }
+
     pub fn update(&self, encoder: &mut wgpu::CommandEncoder, device: &wgpu::Device, projection: Mat4, view: Mat4, camera_position: Vec3) {
         let uniforms_clipmap = Uniforms { projection, view, camera_position, };
         let buffer_clipmap = device.create_buffer_with_data(bytemuck::cast_slice(&[uniforms_clipmap]), wgpu::BufferUsage::COPY_SRC);

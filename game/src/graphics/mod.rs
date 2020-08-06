@@ -23,25 +23,16 @@ pub struct Drawable {
     pub index_buffer_len: u32,
 }
 
-pub struct Text
-{
-    pub pos: (f32, f32),
-    pub text: String,
-    pub font_size: f32,
-    pub color: [u8; 4],
-}
-
-
 pub struct Graphics {
     surface: wgpu::Surface,
-    device: wgpu::Device,
+    pub device: wgpu::Device,
     queue: wgpu::Queue,
     sc_descriptor: wgpu::SwapChainDescriptor,
     swap_chain: wgpu::SwapChain,
     depth_texture: texture::Texture,
-    ui_renderer: ui::Renderer,
-    renderer: default_renderer::Renderer,
-    clipmap_renderer: clipmap::Renderer,
+    pub ui_renderer: ui::Renderer,
+    pub renderer: default_renderer::Renderer,
+    pub clipmap_renderer: clipmap::Renderer,
     window_size: winit::dpi::PhysicalSize<u32>,
 }
 
@@ -99,26 +90,7 @@ impl Graphics {
         self.swap_chain = self.device.create_swap_chain(&self.surface, &self.sc_descriptor);
     }
 
-    pub fn add_clipmap(&mut self, vertices: &Vec<clipmap::Vertex>, indices: &Vec<u32>) {
-        let vertex_buffer = self.device.create_buffer_with_data(bytemuck::cast_slice(&vertices), wgpu::BufferUsage::VERTEX);
-        let index_buffer = self.device.create_buffer_with_data(bytemuck::cast_slice(&indices), wgpu::BufferUsage::INDEX);
-        self.clipmap_renderer.drawables.push(Drawable { vertex_buffer, index_buffer, index_buffer_len: indices.len() as u32, });
-    }
-
-    pub fn create_drawable_from_mesh(&mut self, mesh: &Mesh<Vertex>) -> usize {
-        let vertex_buffer = self.device.create_buffer_with_data(bytemuck::cast_slice(&mesh.vertices), wgpu::BufferUsage::VERTEX);
-        let index_buffer = self.device.create_buffer_with_data(bytemuck::cast_slice(&mesh.indices), wgpu::BufferUsage::INDEX);
-        self.renderer.drawables.push(Drawable { vertex_buffer, index_buffer, index_buffer_len: mesh.indices.len() as u32, });
-        self.renderer.drawables.len() - 1
-    }
-
-    pub fn create_drawable_from_mesh2(&mut self, mesh: &Mesh<Vertex>) -> Drawable {
-        let vertex_buffer = self.device.create_buffer_with_data(bytemuck::cast_slice(&mesh.vertices), wgpu::BufferUsage::VERTEX);
-        let index_buffer = self.device.create_buffer_with_data(bytemuck::cast_slice(&mesh.indices), wgpu::BufferUsage::INDEX);
-        Drawable { vertex_buffer, index_buffer, index_buffer_len: mesh.indices.len() as u32, }
-    }
-
-    pub async fn render(&mut self, model_player: Mat4, model_terrain: Mat4, model_axis: Mat4, view: Mat4, render_ui: bool, ui_mesh: Option<(Mesh<ui::Vertex>, Vec<Text>)>, camera_position: Vec3) {
+    pub async fn render(&mut self, model_player: Mat4, model_terrain: Mat4, model_axis: Mat4, view: Mat4, render_ui: bool, ui_mesh: Option<(Mesh<ui::Vertex>, Vec<ui::Text>)>, camera_position: Vec3) {
         let frame = self.swap_chain.get_next_texture().expect("failed to get next texture");
         let ui_projection = ortho(0.0, self.sc_descriptor.width as f32, 0.0, self.sc_descriptor.height as f32, -1.0, 1.0);
         let projection = perspective(self.sc_descriptor.width as f32 / self.sc_descriptor.height as f32,45.0, 0.1, 100.0);

@@ -1,4 +1,4 @@
-use crate::graphics::{texture, Drawable};
+use crate::graphics::{texture, Drawable, Mesh};
 use wgpu::*;
 use nalgebra_glm::{Mat4, identity};
 use crate::graphics::error::GraphicsError;
@@ -198,6 +198,14 @@ impl Renderer {
             render_pipeline
         })
     }
+
+    pub fn create_drawable_from_mesh(&mut self, device: &wgpu::Device, mesh: &Mesh<Vertex>) -> usize {
+        let vertex_buffer = device.create_buffer_with_data(bytemuck::cast_slice(&mesh.vertices), wgpu::BufferUsage::VERTEX);
+        let index_buffer = device.create_buffer_with_data(bytemuck::cast_slice(&mesh.indices), wgpu::BufferUsage::INDEX);
+        self.drawables.push(Drawable { vertex_buffer, index_buffer, index_buffer_len: mesh.indices.len() as u32, });
+        self.drawables.len() - 1
+    }
+
     pub fn update(&self, encoder: &mut wgpu::CommandEncoder, device: &wgpu::Device, projection: Mat4, view: Mat4, model_player: Mat4, model_terrain: Mat4, model_axis: Mat4) {
         let instances = [Instance { model: model_player }, Instance { model: model_terrain }, Instance {model: model_axis }];
         let instance_buffer = device.create_buffer_with_data(bytemuck::cast_slice(&instances), wgpu::BufferUsage::COPY_SRC);
