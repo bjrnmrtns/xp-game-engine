@@ -205,6 +205,33 @@ impl Renderer {
             texture,
         })
     }
+    pub fn update(&self, encoder: &mut wgpu::CommandEncoder, device: &wgpu::Device, projection: Mat4, view: Mat4, camera_position: Vec3) {
+        let uniforms_clipmap = Uniforms { projection, view, camera_position, };
+        let buffer_clipmap = device.create_buffer_with_data(bytemuck::cast_slice(&[uniforms_clipmap]), wgpu::BufferUsage::COPY_SRC);
+        let mut height_map_data_update: Vec<f32> = Vec::new();
+        height_map_data_update.extend_from_slice(&[1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0,1.0, 1.0, 1.0, 1.0,]);
+        let height_map_data_buffer = device.create_buffer_with_data(bytemuck::cast_slice(height_map_data_update.as_slice()), wgpu::BufferUsage::COPY_SRC);
+        encoder.copy_buffer_to_texture(wgpu::BufferCopyView{
+            buffer: &height_map_data_buffer,
+            offset: 0,
+            bytes_per_row: 16,
+            rows_per_image: 4
+        }, wgpu::TextureCopyView{
+            texture: &self.texture.texture,
+            mip_level: 0,
+            array_layer: 0,
+            origin: wgpu::Origin3d{
+                x: 4,
+                y: 4,
+                z: 1
+            }
+        }, wgpu::Extent3d{
+            width: 4,
+            height: 4,
+            depth: 1
+        });
+        encoder.copy_buffer_to_buffer(&buffer_clipmap, 0, &self.uniform_buffer, 0, std::mem::size_of_val(&uniforms_clipmap) as u64);
+    }
 }
 
 pub fn create_clipmap() -> (Vec<Vertex>, Vec<u32>) {
@@ -232,20 +259,18 @@ pub fn create_clipmap() -> (Vec<Vertex>, Vec<u32>) {
     (vertices, indices)
 }
 
-fn get_update_region(from: i32, to: i32, size: i32) -> std::ops::Range<i32> {
-    if from < to {
-        let diff = std::cmp::min(size, to - from);
-        ((to-diff)..to)
+fn get_update_range(from: i32, to: i32, size: i32) -> Vec<std::ops::Range<i32>> {
+    let mut range = Vec::new();
+    if (to - from).abs() >= size {
+        range.push(0..size)
     } else {
-        let diff = std::cmp::min(size, from - to);
-        (to..(to+diff))
+        range.push(0..size)
     }
+    range
 }
 
 #[test]
-fn test_update() {
-    assert_eq!(get_update_region(1, 10, 8), (2..10));
-    assert_eq!(get_update_region(-2, 8, 12), (-2..8));
-    assert_eq!(get_update_region(8, -2, 12), (-2..8));
-    assert_eq!(get_update_region(8, -2, 6), (-2..4));
+fn test_get_update_range()
+{
+    get_update_range(0, 1, 2);
 }

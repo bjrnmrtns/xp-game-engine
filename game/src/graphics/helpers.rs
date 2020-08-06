@@ -1,5 +1,5 @@
 use std::collections::HashSet;
-use crate::graphics::regular::Vertex;
+use crate::graphics::default_renderer::Vertex;
 use nalgebra_glm::{triangle_normal, make_vec3, Vec3, cross};
 use crate::graphics::Mesh;
 use std::convert::TryInto;

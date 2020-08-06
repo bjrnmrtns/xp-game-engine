@@ -1,10 +1,9 @@
 use winit::window::Window;
 use nalgebra_glm::*;
 use crate::graphics::error::GraphicsError;
-use crate::graphics::regular::{Vertex, Uniforms, Instance};
-use wgpu::{BufferCopyView, TextureCopyView};
+use crate::graphics::default_renderer::{Vertex};
 
-pub mod regular;
+pub mod default_renderer;
 pub mod ui;
 pub mod texture;
 pub mod error;
@@ -39,11 +38,10 @@ pub struct Graphics {
     queue: wgpu::Queue,
     sc_descriptor: wgpu::SwapChainDescriptor,
     swap_chain: wgpu::SwapChain,
-    ui_renderer: ui::Renderer,
-    renderer: regular::Renderer,
-    clipmap_renderer: clipmap::Renderer,
     depth_texture: texture::Texture,
-    glyph_brush: wgpu_glyph::GlyphBrush<()>,
+    ui_renderer: ui::Renderer,
+    renderer: default_renderer::Renderer,
+    clipmap_renderer: clipmap::Renderer,
     window_size: winit::dpi::PhysicalSize<u32>,
 }
 
@@ -76,21 +74,19 @@ impl Graphics {
         let swap_chain = device.create_swap_chain(&surface, &sc_descriptor);
         let depth_texture = texture::Texture::create_depth_texture(&device, &sc_descriptor);
         let ui_renderer = ui::Renderer::new(&device, &sc_descriptor, &queue, ui_mesh).await?;
-        let renderer= regular::Renderer::new(&device, &sc_descriptor).await?;
+        let renderer= default_renderer::Renderer::new(&device, &sc_descriptor).await?;
         let clipmap_renderer= clipmap::Renderer::new(&device, &sc_descriptor, &queue).await?;
-        let glyph_brush = Graphics::build_glyph_brush(&device, wgpu::TextureFormat::Bgra8UnormSrgb);
 
         Ok(Self {
             surface,
+            device,
             queue,
             sc_descriptor,
             swap_chain,
-            device,
+            depth_texture,
             renderer,
             ui_renderer,
             clipmap_renderer,
-            glyph_brush,
-            depth_texture,
             window_size: window.inner_size(),
         })
     }
@@ -122,50 +118,16 @@ impl Graphics {
         Drawable { vertex_buffer, index_buffer, index_buffer_len: mesh.indices.len() as u32, }
     }
 
-    pub fn update(&mut self, model_player: Mat4, model_terrain: Mat4, model_axis: Mat4) {
-        let instances = [Instance { model: model_player }, Instance { model: model_terrain }, Instance {model: model_axis }];
-        let buffer = self.device.create_buffer_with_data(bytemuck::cast_slice(&instances), wgpu::BufferUsage::COPY_SRC);
-        let mut encoder =
-            self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
-        encoder.copy_buffer_to_buffer(&buffer, 0, &self.renderer.instance_buffer, 0,
-                                      std::mem::size_of_val(&instances) as wgpu::BufferAddress);
-        self.queue.submit(&[encoder.finish()]);
-    }
-
-    pub async fn render(&mut self, view: Mat4, render_ui: bool, ui_mesh: Option<(Mesh<ui::Vertex>, Vec<Text>)>, camera_position: Vec3) {
-        let projection = perspective(self.sc_descriptor.width as f32 / self.sc_descriptor.height as f32,45.0, 0.1, 100.0);
-        let uniforms = Uniforms { projection: projection, view: view, };
-        let buffer = self.device.create_buffer_with_data(bytemuck::cast_slice(&[uniforms]), wgpu::BufferUsage::COPY_SRC);
-        let uniforms_clipmap = clipmap::Uniforms { projection: projection, view: view, camera_position, };
-        let buffer_clipmap = self.device.create_buffer_with_data(bytemuck::cast_slice(&[uniforms_clipmap]), wgpu::BufferUsage::COPY_SRC);
+    pub async fn render(&mut self, model_player: Mat4, model_terrain: Mat4, model_axis: Mat4, view: Mat4, render_ui: bool, ui_mesh: Option<(Mesh<ui::Vertex>, Vec<Text>)>, camera_position: Vec3) {
         let frame = self.swap_chain.get_next_texture().expect("failed to get next texture");
-        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: None,
-        });
-        let mut height_map_data_update: Vec<f32> = Vec::new();
-        height_map_data_update.extend_from_slice(&[1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0,1.0, 1.0, 1.0, 1.0,]);
-        let height_map_data_buffer = self.device.create_buffer_with_data(bytemuck::cast_slice(height_map_data_update.as_slice()), wgpu::BufferUsage::COPY_SRC);
-        encoder.copy_buffer_to_texture(BufferCopyView{
-            buffer: &height_map_data_buffer,
-            offset: 0,
-            bytes_per_row: 16,
-            rows_per_image: 4
-        }, TextureCopyView{
-            texture: &self.clipmap_renderer.texture.texture,
-            mip_level: 0,
-            array_layer: 0,
-            origin: wgpu::Origin3d{
-                x: 4,
-                y: 4,
-                z: 0
-            } 
-        }, wgpu::Extent3d{
-            width: 4,
-            height: 4,
-            depth: 1
-        });
-        encoder.copy_buffer_to_buffer(&buffer, 0, &self.renderer.uniform_buffer, 0, std::mem::size_of_val(&uniforms) as u64);
-        encoder.copy_buffer_to_buffer(&buffer_clipmap, 0, &self.clipmap_renderer.uniform_buffer, 0, std::mem::size_of_val(&uniforms_clipmap) as u64);
+        let ui_projection = ortho(0.0, self.sc_descriptor.width as f32, 0.0, self.sc_descriptor.height as f32, -1.0, 1.0);
+        let projection = perspective(self.sc_descriptor.width as f32 / self.sc_descriptor.height as f32,45.0, 0.1, 100.0);
+        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+
+        self.renderer.update(&mut encoder, &self.device, projection.clone() as Mat4, view.clone() as Mat4, model_player, model_terrain, model_axis);
+        self.clipmap_renderer.update(&mut encoder, &self.device, projection.clone() as Mat4, view.clone() as Mat4, camera_position.clone() as Vec3);
+        self.ui_renderer.update(&mut encoder, &self.device, ui_projection.clone() as Mat4, ui_mesh);
+
         {
             let mut diffuse_scene_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 color_attachments: &[
@@ -192,6 +154,7 @@ impl Graphics {
                     clear_stencil: 0,
                 }),
             });
+
             diffuse_scene_pass.set_pipeline(&self.renderer.render_pipeline);
 
             diffuse_scene_pass.set_vertex_buffer(0, &self.renderer.drawables[0].vertex_buffer, 0, 0);
@@ -210,10 +173,7 @@ impl Graphics {
             diffuse_scene_pass.set_bind_group(0, &self.clipmap_renderer.bind_group, &[]);
             diffuse_scene_pass.draw_indexed(0..self.clipmap_renderer.drawables[0].index_buffer_len, 0, 0..1);
         }
-        // far and near plane are not used in UI rendering
-        let ui_uniforms = ui::Uniforms { projection: ortho(0.0, self.sc_descriptor.width as f32, 0.0, self.sc_descriptor.height as f32, -1.0, 1.0) };
-        let buffer = self.device.create_buffer_with_data(bytemuck::cast_slice(&[ui_uniforms]), wgpu::BufferUsage::COPY_SRC);
-        encoder.copy_buffer_to_buffer(&buffer, 0, &self.ui_renderer.uniform_buffer, 0, std::mem::size_of_val(&ui_uniforms) as u64);
+
         if render_ui
         {
             let mut ui_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -233,19 +193,6 @@ impl Graphics {
                 ],
                 depth_stencil_attachment: None
             });
-            if let Some(ui_mesh) = ui_mesh {
-                self.ui_renderer.drawable = Drawable { vertex_buffer: self.device.create_buffer_with_data(bytemuck::cast_slice(&ui_mesh.0.vertices), wgpu::BufferUsage::VERTEX),
-                    index_buffer: self.device.create_buffer_with_data(bytemuck::cast_slice(&ui_mesh.0.indices), wgpu::BufferUsage::INDEX),
-                    index_buffer_len: ui_mesh.0.indices.len() as u32 };
-
-                for text in &ui_mesh.1 {
-                    let section = wgpu_glyph::Section {
-                        screen_position: text.pos,
-                        text: vec![wgpu_glyph::Text::new(&text.text.as_str()).with_color([1.0, 0.0, 0.0, 1.0]).with_scale(wgpu_glyph::ab_glyph::PxScale{ x: text.font_size, y: text.font_size })], ..wgpu_glyph::Section::default()
-                    };
-                    self.glyph_brush.queue(section);
-                }
-            }
             ui_pass.set_pipeline(&self.ui_renderer.render_pipeline);
             ui_pass.set_vertex_buffer(0, &self.ui_renderer.drawable.vertex_buffer, 0, 0);
             ui_pass.set_index_buffer(&self.ui_renderer.drawable.index_buffer, 0, 0);
@@ -253,8 +200,9 @@ impl Graphics {
             ui_pass.set_bind_group(1, &self.ui_renderer.texture_bind_group, &[]);
             ui_pass.draw_indexed(0..self.ui_renderer.drawable.index_buffer_len, 0, 0..1);
         }
-
-        self.glyph_brush.draw_queued(&self.device, &mut encoder, &frame.view, self.sc_descriptor.width, self.sc_descriptor.height,).expect("Cannot draw glyph_brush");
+        if render_ui {
+            self.ui_renderer.glyph_brush.draw_queued(&self.device, &mut encoder, &frame.view, self.sc_descriptor.width, self.sc_descriptor.height,).expect("Cannot draw glyph_brush");
+        }
         self.queue.submit(&[encoder.finish()]);
     }
 }

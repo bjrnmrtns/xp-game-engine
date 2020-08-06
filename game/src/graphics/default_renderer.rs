@@ -198,4 +198,14 @@ impl Renderer {
             render_pipeline
         })
     }
+    pub fn update(&self, encoder: &mut wgpu::CommandEncoder, device: &wgpu::Device, projection: Mat4, view: Mat4, model_player: Mat4, model_terrain: Mat4, model_axis: Mat4) {
+        let instances = [Instance { model: model_player }, Instance { model: model_terrain }, Instance {model: model_axis }];
+        let instance_buffer = device.create_buffer_with_data(bytemuck::cast_slice(&instances), wgpu::BufferUsage::COPY_SRC);
+        encoder.copy_buffer_to_buffer(&instance_buffer, 0, &self.instance_buffer, 0,
+                                      std::mem::size_of_val(&instances) as wgpu::BufferAddress);
+
+        let uniforms = Uniforms { projection: projection, view: view, };
+        let buffer = device.create_buffer_with_data(bytemuck::cast_slice(&[uniforms]), wgpu::BufferUsage::COPY_SRC);
+        encoder.copy_buffer_to_buffer(&buffer, 0, &self.uniform_buffer, 0, std::mem::size_of_val(&uniforms) as u64);
+    }
 }

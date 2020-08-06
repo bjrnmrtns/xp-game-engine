@@ -1,4 +1,4 @@
-use crate::graphics::{Mesh, texture, Drawable};
+use crate::graphics::{Mesh, texture, Drawable, Text, Graphics};
 use wgpu::{*};
 use nalgebra_glm::{Mat4, identity};
 use crate::graphics::error::GraphicsError;
@@ -58,6 +58,7 @@ pub struct Renderer {
     pub uniform_buffer: wgpu::Buffer,
     pub render_pipeline: wgpu::RenderPipeline,
     pub texture_bind_group: wgpu::BindGroup,
+    pub glyph_brush: wgpu_glyph::GlyphBrush<()>,
 }
 
 impl Renderer {
@@ -176,6 +177,8 @@ impl Renderer {
                 },
             ],
         });
+
+        let glyph_brush = Graphics::build_glyph_brush(&device, wgpu::TextureFormat::Bgra8UnormSrgb);
         Ok(Self {
             drawable: Drawable { vertex_buffer: device.create_buffer_with_data(bytemuck::cast_slice(&ui_mesh.vertices), wgpu::BufferUsage::VERTEX),
                 index_buffer: device.create_buffer_with_data(bytemuck::cast_slice(&ui_mesh.indices), wgpu::BufferUsage::INDEX),
@@ -183,7 +186,28 @@ impl Renderer {
             texture_bind_group,
             render_pipeline,
             uniform_bind_group,
-            uniform_buffer
+            uniform_buffer,
+            glyph_brush,
         })
+    }
+    pub fn update(&mut self, encoder: &mut wgpu::CommandEncoder, device: &wgpu::Device, projection: Mat4, ui_mesh: Option<(Mesh<Vertex>, Vec<Text>)>) {
+        // far and near plane are not used in UI rendering
+        let ui_uniforms = Uniforms { projection, };
+        let buffer = device.create_buffer_with_data(bytemuck::cast_slice(&[ui_uniforms]), wgpu::BufferUsage::COPY_SRC);
+        encoder.copy_buffer_to_buffer(&buffer, 0, &self.uniform_buffer, 0, std::mem::size_of_val(&ui_uniforms) as u64);
+
+        if let Some(ui_mesh) = ui_mesh {
+            self.drawable = Drawable { vertex_buffer: device.create_buffer_with_data(bytemuck::cast_slice(&ui_mesh.0.vertices), wgpu::BufferUsage::VERTEX),
+                index_buffer: device.create_buffer_with_data(bytemuck::cast_slice(&ui_mesh.0.indices), wgpu::BufferUsage::INDEX),
+                index_buffer_len: ui_mesh.0.indices.len() as u32 };
+
+            for text in &ui_mesh.1 {
+                let section = wgpu_glyph::Section {
+                    screen_position: text.pos,
+                    text: vec![wgpu_glyph::Text::new(&text.text.as_str()).with_color([1.0, 0.0, 0.0, 1.0]).with_scale(wgpu_glyph::ab_glyph::PxScale{ x: text.font_size, y: text.font_size })], ..wgpu_glyph::Section::default()
+                };
+                self.glyph_brush.queue(section);
+            }
+        }
     }
 }

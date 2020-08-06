@@ -92,7 +92,6 @@ fn game(options: Options) {
         match event {
             Event::RedrawRequested(_) => {
                 // first rotate all vertices on 0,0,0 (rotate around origin), then translate all points towards location.
-                renderer.update(player.pose(), identity(), identity());
                 // for the view matrix we can also use player_move and player_rotate, and use the inverse of the resulting matrix
                 let view = match game_state.camera {
                     camera::CameraType::FreeLook => simulation.freelook_camera.view(),
@@ -104,7 +103,7 @@ fn game(options: Options) {
                     fps_label.text.text = fps.to_string();
                 }
                 previous_time = current_time;
-                futures::executor::block_on(renderer.render(view, game_state.ui_enabled, Some(mesh::create_mesh(&ui)), player.position));
+                futures::executor::block_on(renderer.render(player.pose(), identity(), identity(), view, game_state.ui_enabled, Some(mesh::create_mesh(&ui)), player.position));
             }
             Event::MainEventsCleared => {
                 window.request_redraw();
