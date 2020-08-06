@@ -31,23 +31,10 @@ pub struct Drawable {
     pub index_buffer_len: u32,
 }
 
-pub struct Graphics {
-    surface: wgpu::Surface,
-    pub device: wgpu::Device,
-    pub queue: wgpu::Queue,
-    pub sc_descriptor: wgpu::SwapChainDescriptor,
-    swap_chain: wgpu::SwapChain,
-    depth_texture: texture::Texture,
-    pub ui_renderer: ui::Renderer,
-    pub renderer: default_renderer::Renderer,
-    pub clipmap_renderer: clipmap::Renderer,
-    window_size: winit::dpi::PhysicalSize<u32>,
-}
-
 pub struct RenderPipelines {
-    ui: ui::Renderer,
-    default: default_renderer::Renderer,
-    clipmap: clipmap::Renderer,
+    pub ui: ui::Renderer,
+    pub default: default_renderer::Renderer,
+    pub clipmap: clipmap::Renderer,
 }
 
 impl RenderPipelines {
@@ -58,6 +45,16 @@ impl RenderPipelines {
             clipmap: clipmap::Renderer::new(&device, &swapchain_descriptor, &queue).await?,
         })
     }
+}
+
+pub struct Graphics {
+    surface: wgpu::Surface,
+    pub device: wgpu::Device,
+    pub queue: wgpu::Queue,
+    pub sc_descriptor: wgpu::SwapChainDescriptor,
+    swap_chain: wgpu::SwapChain,
+    depth_texture: texture::Texture,
+    window_size: winit::dpi::PhysicalSize<u32>,
 }
 
 impl Graphics {
@@ -88,9 +85,6 @@ impl Graphics {
         };
         let swap_chain = device.create_swap_chain(&surface, &sc_descriptor);
         let depth_texture = texture::Texture::create_depth_texture(&device, &sc_descriptor);
-        let ui_renderer = ui::Renderer::new(&device, &sc_descriptor, &queue).await?;
-        let renderer= default_renderer::Renderer::new(&device, &sc_descriptor, &queue).await?;
-        let clipmap_renderer= clipmap::Renderer::new(&device, &sc_descriptor, &queue).await?;
 
         Ok(Self {
             surface,
@@ -99,9 +93,6 @@ impl Graphics {
             sc_descriptor,
             swap_chain,
             depth_texture,
-            renderer,
-            ui_renderer,
-            clipmap_renderer,
             window_size: window.inner_size(),
         })
     }
@@ -114,7 +105,7 @@ impl Graphics {
         self.swap_chain = self.device.create_swap_chain(&self.surface, &self.sc_descriptor);
     }
 
-    pub async fn render(&mut self, model_player: Mat4, model_axis: Mat4, view: Mat4, render_ui: bool, ui_mesh: Option<(Mesh<ui::Vertex>, Vec<ui::Text>)>, camera_position: Vec3) {
+    pub async fn render(&mut self, render_pipelines: &mut RenderPipelines, model_player: Mat4, model_axis: Mat4, view: Mat4, render_ui: bool, ui_mesh: Option<(Mesh<ui::Vertex>, Vec<ui::Text>)>, camera_position: Vec3) {
         let frame = self.swap_chain.get_next_texture().expect("failed to get next texture");
         let projection_2d = ortho(0.0, self.sc_descriptor.width as f32, 0.0, self.sc_descriptor.height as f32, -1.0, 1.0);
         let projection_3d = perspective(self.sc_descriptor.width as f32 / self.sc_descriptor.height as f32, 45.0, 0.1, 100.0);
@@ -124,15 +115,15 @@ impl Graphics {
         let mut instances = Vec::new();
         instances.push( default_renderer::Instance {model: model_player });
         instances.push( default_renderer::Instance {model: model_axis });
-        self.renderer.update(default_renderer::Uniforms{ projection: projection_3d.clone() as Mat4, view: view.clone() as Mat4,}, instances,);
-        self.renderer.pre_render(&self.device, &mut encoder);
+        render_pipelines.default.update(default_renderer::Uniforms{ projection: projection_3d.clone() as Mat4, view: view.clone() as Mat4,}, instances,);
+        render_pipelines.default.pre_render(&self.device, &mut encoder);
         let mut height_map_data_update: Vec<f32> = Vec::new();
         height_map_data_update.extend_from_slice(&[1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0,1.0, 1.0, 1.0, 1.0,]);
-        self.clipmap_renderer.update(clipmap::Uniforms{ projection: projection_3d.clone() as Mat4, view: view.clone() as Mat4, camera_position: camera_position.clone() as Vec3 }, height_map_data_update);
-        self.clipmap_renderer.pre_render(&self.device, &mut encoder);
-        self.ui_renderer.create_drawable(&self.device, ui_mesh);
-        self.ui_renderer.update(ui::Uniforms { projection: projection_2d });
-        self.ui_renderer.pre_render(&self.device, &mut encoder);
+        render_pipelines.clipmap.update(clipmap::Uniforms{ projection: projection_3d.clone() as Mat4, view: view.clone() as Mat4, camera_position: camera_position.clone() as Vec3 }, height_map_data_update);
+        render_pipelines.clipmap.pre_render(&self.device, &mut encoder);
+        render_pipelines.ui.create_drawable(&self.device, ui_mesh);
+        render_pipelines.ui.update(ui::Uniforms { projection: projection_2d });
+        render_pipelines.ui.pre_render(&self.device, &mut encoder);
 
         // render with all renderers with respective render passes
         {
@@ -162,23 +153,23 @@ impl Graphics {
                 }),
             });
 
-            diffuse_scene_pass.set_pipeline(&self.renderer.render_pipeline);
+            diffuse_scene_pass.set_pipeline(&render_pipelines.default.render_pipeline);
 
-            diffuse_scene_pass.set_vertex_buffer(0, &self.renderer.drawables[0].vertex_buffer, 0, 0);
-            diffuse_scene_pass.set_index_buffer(&self.renderer.drawables[0].index_buffer, 0, 0);
-            diffuse_scene_pass.set_bind_group(0, &self.renderer.uniform_bind_group, &[]);
-            diffuse_scene_pass.draw_indexed(0..self.renderer.drawables[0].index_buffer_len, 0, 0..1);
+            diffuse_scene_pass.set_vertex_buffer(0, &render_pipelines.default.drawables[0].vertex_buffer, 0, 0);
+            diffuse_scene_pass.set_index_buffer(&render_pipelines.default.drawables[0].index_buffer, 0, 0);
+            diffuse_scene_pass.set_bind_group(0, &render_pipelines.default.uniform_bind_group, &[]);
+            diffuse_scene_pass.draw_indexed(0..render_pipelines.default.drawables[0].index_buffer_len, 0, 0..1);
 
-            diffuse_scene_pass.set_vertex_buffer(0, &self.renderer.drawables[1].vertex_buffer, 0, 0);
-            diffuse_scene_pass.set_index_buffer(&self.renderer.drawables[1].index_buffer, 0, 0);
-            diffuse_scene_pass.set_bind_group(0, &self.renderer.uniform_bind_group, &[]);
-            diffuse_scene_pass.draw_indexed(0..self.renderer.drawables[1].index_buffer_len, 0, 1..2);
+            diffuse_scene_pass.set_vertex_buffer(0, &render_pipelines.default.drawables[1].vertex_buffer, 0, 0);
+            diffuse_scene_pass.set_index_buffer(&render_pipelines.default.drawables[1].index_buffer, 0, 0);
+            diffuse_scene_pass.set_bind_group(0, &render_pipelines.default.uniform_bind_group, &[]);
+            diffuse_scene_pass.draw_indexed(0..render_pipelines.default.drawables[1].index_buffer_len, 0, 1..2);
 
-            diffuse_scene_pass.set_pipeline(&self.clipmap_renderer.render_pipeline);
-            diffuse_scene_pass.set_vertex_buffer(0, &self.clipmap_renderer.drawables[0].vertex_buffer, 0, 0);
-            diffuse_scene_pass.set_index_buffer(&self.clipmap_renderer.drawables[0].index_buffer, 0, 0);
-            diffuse_scene_pass.set_bind_group(0, &self.clipmap_renderer.bind_group, &[]);
-            diffuse_scene_pass.draw_indexed(0..self.clipmap_renderer.drawables[0].index_buffer_len, 0, 0..1);
+            diffuse_scene_pass.set_pipeline(&render_pipelines.clipmap.render_pipeline);
+            diffuse_scene_pass.set_vertex_buffer(0, &render_pipelines.clipmap.drawables[0].vertex_buffer, 0, 0);
+            diffuse_scene_pass.set_index_buffer(&render_pipelines.clipmap.drawables[0].index_buffer, 0, 0);
+            diffuse_scene_pass.set_bind_group(0, &render_pipelines.clipmap.bind_group, &[]);
+            diffuse_scene_pass.draw_indexed(0..render_pipelines.clipmap.drawables[0].index_buffer_len, 0, 0..1);
         }
 
         if render_ui
@@ -200,17 +191,17 @@ impl Graphics {
                 ],
                 depth_stencil_attachment: None
             });
-            ui_pass.set_pipeline(&self.ui_renderer.render_pipeline);
-            if let Some(drawable) = &self.ui_renderer.drawable {
+            ui_pass.set_pipeline(&render_pipelines.ui.render_pipeline);
+            if let Some(drawable) = &render_pipelines.ui.drawable {
                 ui_pass.set_vertex_buffer(0, &drawable.vertex_buffer, 0, 0);
                 ui_pass.set_index_buffer(&drawable.index_buffer, 0, 0);
-                ui_pass.set_bind_group(0, &self.ui_renderer.uniform_bind_group, &[]);
-                ui_pass.set_bind_group(1, &self.ui_renderer.texture_bind_group, &[]);
+                ui_pass.set_bind_group(0, &render_pipelines.ui.uniform_bind_group, &[]);
+                ui_pass.set_bind_group(1, &render_pipelines.ui.texture_bind_group, &[]);
                 ui_pass.draw_indexed(0..drawable.index_buffer_len, 0, 0..1);
             }
         }
         if render_ui {
-            self.ui_renderer.glyph_brush.draw_queued(&self.device, &mut encoder, &frame.view, self.sc_descriptor.width, self.sc_descriptor.height,).expect("Cannot draw glyph_brush");
+            render_pipelines.ui.glyph_brush.draw_queued(&self.device, &mut encoder, &frame.view, self.sc_descriptor.width, self.sc_descriptor.height,).expect("Cannot draw glyph_brush");
         }
         self.queue.submit(&[encoder.finish()]);
     }

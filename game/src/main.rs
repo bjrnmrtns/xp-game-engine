@@ -50,10 +50,10 @@ fn game(options: Options) {
     ui.layout();
     let mut graphics = futures::executor::block_on(graphics::Graphics::new(&window)).expect("Could not create graphics renderer");
     let mut render_pipelines = futures::executor::block_on(graphics::RenderPipelines::new(&graphics.device, &graphics.queue, &graphics.sc_descriptor)).expect("Could not create graphics renderer");
-    graphics.renderer.create_drawable(&graphics.device, &player_mesh);
-    graphics.renderer.create_drawable(&graphics.device, &axis_mesh);
+    render_pipelines.default.create_drawable(&graphics.device, &player_mesh);
+    render_pipelines.default.create_drawable(&graphics.device, &axis_mesh);
     let (clipmap_vertices, clipmap_indices) = clipmap::create_clipmap();
-    graphics.clipmap_renderer.add_clipmap(&graphics.device, &clipmap_vertices, &clipmap_indices);
+    render_pipelines.clipmap.add_clipmap(&graphics.device, &clipmap_vertices, &clipmap_indices);
 
     let mut previous_time = Instant::now();
 
@@ -104,7 +104,7 @@ fn game(options: Options) {
                     fps_label.text.text = fps.to_string();
                 }
                 previous_time = current_time;
-                futures::executor::block_on(graphics.render(player.pose(), identity(), view, game_state.ui_enabled, Some(mesh::create_mesh(&ui)), player.position));
+                futures::executor::block_on(graphics.render(&mut render_pipelines, player.pose(), identity(), view, game_state.ui_enabled, Some(mesh::create_mesh(&ui)), player.position));
             }
             Event::MainEventsCleared => {
                 window.request_redraw();
