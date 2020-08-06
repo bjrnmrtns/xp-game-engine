@@ -1,7 +1,6 @@
 use winit::window::Window;
 use nalgebra_glm::*;
 use crate::graphics::error::GraphicsError;
-use crate::graphics::default_renderer::{Vertex};
 
 pub mod default_renderer;
 pub mod ui;
@@ -90,16 +89,16 @@ impl Graphics {
         self.swap_chain = self.device.create_swap_chain(&self.surface, &self.sc_descriptor);
     }
 
-    pub async fn render(&mut self, model_player: Mat4, model_terrain: Mat4, model_axis: Mat4, view: Mat4, render_ui: bool, ui_mesh: Option<(Mesh<ui::Vertex>, Vec<ui::Text>)>, camera_position: Vec3) {
+    pub async fn render(&mut self, model_player: Mat4, model_axis: Mat4, view: Mat4, render_ui: bool, ui_mesh: Option<(Mesh<ui::Vertex>, Vec<ui::Text>)>, camera_position: Vec3) {
         let frame = self.swap_chain.get_next_texture().expect("failed to get next texture");
-        let ui_projection = ortho(0.0, self.sc_descriptor.width as f32, 0.0, self.sc_descriptor.height as f32, -1.0, 1.0);
-        let projection = perspective(self.sc_descriptor.width as f32 / self.sc_descriptor.height as f32,45.0, 0.1, 100.0);
+        let projection_2d = ortho(0.0, self.sc_descriptor.width as f32, 0.0, self.sc_descriptor.height as f32, -1.0, 1.0);
+        let projection_3d = perspective(self.sc_descriptor.width as f32 / self.sc_descriptor.height as f32, 45.0, 0.1, 100.0);
         let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
         // update all renderers
-        self.renderer.update(&mut encoder, &self.device, projection.clone() as Mat4, view.clone() as Mat4, model_player, model_terrain, model_axis);
-        self.clipmap_renderer.update(&mut encoder, &self.device, projection.clone() as Mat4, view.clone() as Mat4, camera_position.clone() as Vec3);
-        self.ui_renderer.update(&mut encoder, &self.device, ui_projection.clone() as Mat4, ui_mesh);
+        self.renderer.update(&mut encoder, &self.device, projection_3d.clone() as Mat4, view.clone() as Mat4, model_player, model_axis);
+        self.clipmap_renderer.update(&mut encoder, &self.device, projection_3d.clone() as Mat4, view.clone() as Mat4, camera_position.clone() as Vec3);
+        self.ui_renderer.update(&mut encoder, &self.device, projection_2d, ui_mesh);
 
         // render with all renderers with respective render passes
         {

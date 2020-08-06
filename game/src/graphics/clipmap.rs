@@ -266,18 +266,3 @@ pub fn create_clipmap() -> (Vec<Vertex>, Vec<u32>) {
     (vertices, indices)
 }
 
-fn get_update_range(from: i32, to: i32, size: i32) -> Vec<std::ops::Range<i32>> {
-    let mut range = Vec::new();
-    if (to - from).abs() >= size {
-        range.push(0..size)
-    } else {
-        range.push(0..size)
-    }
-    range
-}
-
-#[test]
-fn test_get_update_range()
-{
-    get_update_range(0, 1, 2);
-}

@@ -49,8 +49,8 @@ fn game(options: Options) {
     }});
     ui.layout();
     let mut graphics = futures::executor::block_on(graphics::Graphics::new(&window, mesh::create_mesh(&ui).0)).expect("Could not create graphics renderer");
-    graphics.renderer.create_drawable_from_mesh(&graphics.device, &player_mesh);
-    graphics.renderer.create_drawable_from_mesh(&graphics.device, &axis_mesh);
+    graphics.renderer.create_drawable(&graphics.device, &player_mesh);
+    graphics.renderer.create_drawable(&graphics.device, &axis_mesh);
     let (clipmap_vertices, clipmap_indices) = clipmap::create_clipmap();
     graphics.clipmap_renderer.add_clipmap(&graphics.device, &clipmap_vertices, &clipmap_indices);
 
@@ -103,7 +103,7 @@ fn game(options: Options) {
                     fps_label.text.text = fps.to_string();
                 }
                 previous_time = current_time;
-                futures::executor::block_on(graphics.render(player.pose(), identity(), identity(), view, game_state.ui_enabled, Some(mesh::create_mesh(&ui)), player.position));
+                futures::executor::block_on(graphics.render(player.pose(), identity(), view, game_state.ui_enabled, Some(mesh::create_mesh(&ui)), player.position));
             }
             Event::MainEventsCleared => {
                 window.request_redraw();
