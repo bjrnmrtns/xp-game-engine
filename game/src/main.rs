@@ -6,7 +6,7 @@ use winit::event_loop::{EventLoop, ControlFlow};
 use winit::event::{WindowEvent, ElementState, VirtualKeyCode, Event, KeyboardInput, MouseButton};
 use winit::window::WindowBuilder;
 use winit::event::DeviceEvent::{MouseMotion};
-use nalgebra_glm::{identity};
+use nalgebra_glm::{identity, ortho, perspective, Mat4, Vec3};
 use game::*;
 use game::command_queue::CommandQueue;
 use game::entity::{Posable, Followable};
@@ -104,7 +104,21 @@ fn game(options: Options) {
                     fps_label.text.text = fps.to_string();
                 }
                 previous_time = current_time;
-                futures::executor::block_on(graphics.render(&mut render_pipelines, player.pose(), identity(), view, game_state.ui_enabled, Some(mesh::create_mesh(&ui)), player.position));
+                let projection_2d = ortho(0.0, graphics.sc_descriptor.width as f32, 0.0, graphics.sc_descriptor.height as f32, -1.0, 1.0);
+                let projection_3d = perspective(graphics.sc_descriptor.width as f32 / graphics.sc_descriptor.height as f32, 45.0, 0.1, 100.0);
+
+                // update all renderers
+                let mut instances = Vec::new();
+                instances.push( graphics::default::Instance {model: player.pose() });
+                instances.push( graphics::default::Instance {model: identity() });
+                render_pipelines.default.update(graphics::default::Uniforms{ projection: projection_3d.clone() as Mat4, view: view.clone() as Mat4,}, instances,);
+                let mut height_map_data_update: Vec<f32> = Vec::new();
+                height_map_data_update.extend_from_slice(&[1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0,1.0, 1.0, 1.0, 1.0,]);
+                render_pipelines.clipmap.update(clipmap::Uniforms{ projection: projection_3d.clone() as Mat4, view: view.clone() as Mat4, camera_position: player.position }, height_map_data_update);
+                render_pipelines.ui.create_drawable(&graphics.device, Some(mesh::create_mesh(&ui)));
+                render_pipelines.ui.update(graphics::ui::Uniforms { projection: projection_2d });
+
+                futures::executor::block_on(graphics.render(&mut render_pipelines, game_state.ui_enabled));
             }
             Event::MainEventsCleared => {
                 window.request_redraw();

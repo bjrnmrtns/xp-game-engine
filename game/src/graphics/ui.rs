@@ -60,7 +60,7 @@ impl Vertex {
     }
 }
 
-pub struct Renderer {
+pub struct Pipeline {
     pub drawable: Option<Drawable>,
     pub uniform_bind_group: wgpu::BindGroup,
     pub uniform_buffer: wgpu::Buffer,
@@ -70,7 +70,7 @@ pub struct Renderer {
     uniforms: Uniforms,
 }
 
-impl Renderer {
+impl Pipeline {
     pub async fn new(device: &Device, sc_descriptor: &wgpu::SwapChainDescriptor, queue: &wgpu::Queue) -> Result<Self> {
         let vs_ui_spirv = glsl_to_spirv::compile(include_str!("../shader_ui.vert"), glsl_to_spirv::ShaderType::Vertex)?;
         let fs_ui_spirv = glsl_to_spirv::compile(include_str!("../shader_ui.frag"), glsl_to_spirv::ShaderType::Fragment)?;

@@ -2,7 +2,7 @@ use winit::window::Window;
 use nalgebra_glm::*;
 use crate::graphics::error::GraphicsError;
 
-pub mod default_renderer;
+pub mod default;
 pub mod ui;
 pub mod texture;
 pub mod error;
@@ -32,17 +32,17 @@ pub struct Drawable {
 }
 
 pub struct RenderPipelines {
-    pub ui: ui::Renderer,
-    pub default: default_renderer::Renderer,
-    pub clipmap: clipmap::Renderer,
+    pub ui: ui::Pipeline,
+    pub default: default::Pipeline,
+    pub clipmap: clipmap::Pipeline,
 }
 
 impl RenderPipelines {
     pub async fn new(device: &wgpu::Device, queue: &wgpu::Queue, swapchain_descriptor: &wgpu::SwapChainDescriptor) -> Result<Self> {
         Ok(Self {
-            ui: ui::Renderer::new(&device, &swapchain_descriptor, &queue).await?,
-            default: default_renderer::Renderer::new(&device, &swapchain_descriptor, &queue).await?,
-            clipmap: clipmap::Renderer::new(&device, &swapchain_descriptor, &queue).await?,
+            ui: ui::Pipeline::new(&device, &swapchain_descriptor, &queue).await?,
+            default: default::Pipeline::new(&device, &swapchain_descriptor, &queue).await?,
+            clipmap: clipmap::Pipeline::new(&device, &swapchain_descriptor, &queue).await?,
         })
     }
 }
@@ -105,24 +105,12 @@ impl Graphics {
         self.swap_chain = self.device.create_swap_chain(&self.surface, &self.sc_descriptor);
     }
 
-    pub async fn render(&mut self, render_pipelines: &mut RenderPipelines, model_player: Mat4, model_axis: Mat4, view: Mat4, render_ui: bool, ui_mesh: Option<(Mesh<ui::Vertex>, Vec<ui::Text>)>, camera_position: Vec3) {
+    pub async fn render(&mut self, render_pipelines: &mut RenderPipelines, render_ui: bool) {
         let frame = self.swap_chain.get_next_texture().expect("failed to get next texture");
-        let projection_2d = ortho(0.0, self.sc_descriptor.width as f32, 0.0, self.sc_descriptor.height as f32, -1.0, 1.0);
-        let projection_3d = perspective(self.sc_descriptor.width as f32 / self.sc_descriptor.height as f32, 45.0, 0.1, 100.0);
         let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
-        // update all renderers
-        let mut instances = Vec::new();
-        instances.push( default_renderer::Instance {model: model_player });
-        instances.push( default_renderer::Instance {model: model_axis });
-        render_pipelines.default.update(default_renderer::Uniforms{ projection: projection_3d.clone() as Mat4, view: view.clone() as Mat4,}, instances,);
         render_pipelines.default.pre_render(&self.device, &mut encoder);
-        let mut height_map_data_update: Vec<f32> = Vec::new();
-        height_map_data_update.extend_from_slice(&[1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0,1.0, 1.0, 1.0, 1.0,]);
-        render_pipelines.clipmap.update(clipmap::Uniforms{ projection: projection_3d.clone() as Mat4, view: view.clone() as Mat4, camera_position: camera_position.clone() as Vec3 }, height_map_data_update);
         render_pipelines.clipmap.pre_render(&self.device, &mut encoder);
-        render_pipelines.ui.create_drawable(&self.device, ui_mesh);
-        render_pipelines.ui.update(ui::Uniforms { projection: projection_2d });
         render_pipelines.ui.pre_render(&self.device, &mut encoder);
 
         // render with all renderers with respective render passes

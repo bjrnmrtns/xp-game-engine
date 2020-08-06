@@ -52,7 +52,7 @@ pub struct Uniforms {
 unsafe impl bytemuck::Pod for Uniforms {}
 unsafe impl bytemuck::Zeroable for Uniforms {}
 
-pub struct Renderer {
+pub struct Pipeline {
     pub drawables: Vec<Drawable>,
     pub uniforms_buffer: wgpu::Buffer,
     pub instance_buffer: wgpu::Buffer,
@@ -64,7 +64,7 @@ pub struct Renderer {
     clipmap_data: Vec<f32>,
 }
 
-impl Renderer {
+impl Pipeline {
     pub async fn new(device: &Device, sc_descriptor: &wgpu::SwapChainDescriptor, _queue: &wgpu::Queue) -> Result<Self> {
         // from here 3D renderpipeline creation
         let vs_spirv = glsl_to_spirv::compile(include_str!("../shader_clipmap.vert"), glsl_to_spirv::ShaderType::Vertex)?;
