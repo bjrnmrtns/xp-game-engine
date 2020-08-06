@@ -49,6 +49,7 @@ fn game(options: Options) {
     }});
     ui.layout();
     let mut graphics = futures::executor::block_on(graphics::Graphics::new(&window)).expect("Could not create graphics renderer");
+    let mut render_pipelines = futures::executor::block_on(graphics::RenderPipelines::new(&graphics.device, &graphics.queue, &graphics.sc_descriptor)).expect("Could not create graphics renderer");
     graphics.renderer.create_drawable(&graphics.device, &player_mesh);
     graphics.renderer.create_drawable(&graphics.device, &axis_mesh);
     let (clipmap_vertices, clipmap_indices) = clipmap::create_clipmap();

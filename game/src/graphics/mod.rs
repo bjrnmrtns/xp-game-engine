@@ -34,14 +34,30 @@ pub struct Drawable {
 pub struct Graphics {
     surface: wgpu::Surface,
     pub device: wgpu::Device,
-    queue: wgpu::Queue,
-    sc_descriptor: wgpu::SwapChainDescriptor,
+    pub queue: wgpu::Queue,
+    pub sc_descriptor: wgpu::SwapChainDescriptor,
     swap_chain: wgpu::SwapChain,
     depth_texture: texture::Texture,
     pub ui_renderer: ui::Renderer,
     pub renderer: default_renderer::Renderer,
     pub clipmap_renderer: clipmap::Renderer,
     window_size: winit::dpi::PhysicalSize<u32>,
+}
+
+pub struct RenderPipelines {
+    ui: ui::Renderer,
+    default: default_renderer::Renderer,
+    clipmap: clipmap::Renderer,
+}
+
+impl RenderPipelines {
+    pub async fn new(device: &wgpu::Device, queue: &wgpu::Queue, swapchain_descriptor: &wgpu::SwapChainDescriptor) -> Result<Self> {
+        Ok(Self {
+            ui: ui::Renderer::new(&device, &swapchain_descriptor, &queue).await?,
+            default: default_renderer::Renderer::new(&device, &swapchain_descriptor, &queue).await?,
+            clipmap: clipmap::Renderer::new(&device, &swapchain_descriptor, &queue).await?,
+        })
+    }
 }
 
 impl Graphics {
