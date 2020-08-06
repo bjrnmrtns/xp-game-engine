@@ -59,6 +59,11 @@ pub struct Renderer {
     pub bind_group: wgpu::BindGroup,
     pub render_pipeline: wgpu::RenderPipeline,
     pub texture: texture::Texture,
+
+    projection: Mat4,
+    view: Mat4,
+    camera_position: Vec3,
+    clipmap_data: Vec<f32>,
 }
 
 impl Renderer {
@@ -203,6 +208,10 @@ impl Renderer {
             bind_group: bind_group,
             render_pipeline,
             texture,
+            projection: identity(),
+            view: identity(),
+            camera_position: Vec3::new(0.0, 0.0, 0.0),
+            clipmap_data: Vec::new(),
         })
     }
 
@@ -212,12 +221,17 @@ impl Renderer {
         self.drawables.push(Drawable { vertex_buffer, index_buffer, index_buffer_len: indices.len() as u32, });
     }
 
-    pub fn update(&self, encoder: &mut wgpu::CommandEncoder, device: &wgpu::Device, projection: Mat4, view: Mat4, camera_position: Vec3) {
-        let uniforms_clipmap = Uniforms { projection, view, camera_position, };
+    pub fn update(&mut self, projection: Mat4, view: Mat4, camera_position: Vec3, clipmap_data: Vec<f32>) {
+        self.projection = projection;
+        self.view = view;
+        self.camera_position = camera_position;
+        self.clipmap_data = clipmap_data;
+    }
+
+    pub fn pre_render(&self, device: &wgpu::Device, encoder: &mut wgpu::CommandEncoder) {
+        let uniforms_clipmap = Uniforms { projection: self.projection.clone() as Mat4, view: self.view.clone() as Mat4, camera_position: self.camera_position.clone() as Vec3, };
         let buffer_clipmap = device.create_buffer_with_data(bytemuck::cast_slice(&[uniforms_clipmap]), wgpu::BufferUsage::COPY_SRC);
-        let mut height_map_data_update: Vec<f32> = Vec::new();
-        height_map_data_update.extend_from_slice(&[1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0,1.0, 1.0, 1.0, 1.0,]);
-        let height_map_data_buffer = device.create_buffer_with_data(bytemuck::cast_slice(height_map_data_update.as_slice()), wgpu::BufferUsage::COPY_SRC);
+        let height_map_data_buffer = device.create_buffer_with_data(bytemuck::cast_slice(self.clipmap_data.as_slice()), wgpu::BufferUsage::COPY_SRC);
         encoder.copy_buffer_to_texture(wgpu::BufferCopyView{
             buffer: &height_map_data_buffer,
             offset: 0,
@@ -242,8 +256,8 @@ impl Renderer {
 }
 
 pub fn create_clipmap() -> (Vec<Vertex>, Vec<u32>) {
-    const K: u32 = 4;
-    const N: u32 = 15;
+    const K: u32 = 8;
+    const N: u32 = 255;
     assert_eq!(N, (2 as u32).pow(K) - 1);
     let mut vertices: Vec<Vertex> = Vec::new();
     for z in 0..N+1 {

@@ -97,7 +97,10 @@ impl Graphics {
 
         // update all renderers
         self.renderer.update(&mut encoder, &self.device, projection_3d.clone() as Mat4, view.clone() as Mat4, model_player, model_axis);
-        self.clipmap_renderer.update(&mut encoder, &self.device, projection_3d.clone() as Mat4, view.clone() as Mat4, camera_position.clone() as Vec3);
+        let mut height_map_data_update: Vec<f32> = Vec::new();
+        height_map_data_update.extend_from_slice(&[1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0,1.0, 1.0, 1.0, 1.0,]);
+        self.clipmap_renderer.update(projection_3d.clone() as Mat4, view.clone() as Mat4, camera_position.clone() as Vec3, height_map_data_update);
+        self.clipmap_renderer.pre_render(&self.device, &mut encoder);
         self.ui_renderer.update(&mut encoder, &self.device, projection_2d, ui_mesh);
 
         // render with all renderers with respective render passes
