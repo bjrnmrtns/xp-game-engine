@@ -96,7 +96,11 @@ impl Graphics {
         let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
         // update all renderers
-        self.renderer.update(&mut encoder, &self.device, projection_3d.clone() as Mat4, view.clone() as Mat4, model_player, model_axis);
+        let mut instances = Vec::new();
+        instances.push( default_renderer::Instance {model: model_player });
+        instances.push( default_renderer::Instance {model: model_axis });
+        self.renderer.update(default_renderer::Uniforms{ projection: projection_3d.clone() as Mat4, view: view.clone() as Mat4,}, instances,);
+        self.renderer.pre_render(&self.device, &mut encoder);
         let mut height_map_data_update: Vec<f32> = Vec::new();
         height_map_data_update.extend_from_slice(&[1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0,1.0, 1.0, 1.0, 1.0,]);
         self.clipmap_renderer.update(clipmap::Uniforms{ projection: projection_3d.clone() as Mat4, view: view.clone() as Mat4, camera_position: camera_position.clone() as Vec3 }, height_map_data_update);

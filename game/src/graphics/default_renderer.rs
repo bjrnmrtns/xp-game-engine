@@ -79,6 +79,8 @@ pub struct Renderer {
     pub instance_buffer: wgpu::Buffer,
     pub uniform_bind_group: wgpu::BindGroup,
     pub render_pipeline: wgpu::RenderPipeline,
+    uniforms: Uniforms,
+    instances: Vec<Instance>,
 }
 impl Renderer {
     pub async fn new(device: &Device, sc_descriptor: &wgpu::SwapChainDescriptor) -> Result<Self> {
@@ -95,8 +97,9 @@ impl Renderer {
         let uniform_buffer = device.create_buffer_with_data(bytemuck::cast_slice(&[uniforms]),
                                                             wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST);
 
-        let instances = [Instance { model: identity(), }];
-        let instance_buffer = device.create_buffer_with_data(bytemuck::cast_slice(&instances),
+        let mut instances = Vec::new();
+        instances.push(Instance { model: identity(), });
+        let instance_buffer = device.create_buffer_with_data(bytemuck::cast_slice(instances.as_slice()),
                                                              wgpu::BufferUsage::STORAGE | wgpu::BufferUsage::COPY_DST);
 
         let uniform_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -195,7 +198,9 @@ impl Renderer {
             uniform_buffer,
             instance_buffer,
             uniform_bind_group,
-            render_pipeline
+            render_pipeline,
+            uniforms,
+            instances,
         })
     }
 
@@ -206,14 +211,17 @@ impl Renderer {
         self.drawables.len() - 1
     }
 
-    pub fn update(&self, encoder: &mut wgpu::CommandEncoder, device: &wgpu::Device, projection: Mat4, view: Mat4, model_player: Mat4, model_axis: Mat4) {
-        let instances = [Instance { model: model_player }, Instance {model: model_axis }];
-        let instance_buffer = device.create_buffer_with_data(bytemuck::cast_slice(&instances), wgpu::BufferUsage::COPY_SRC);
-        encoder.copy_buffer_to_buffer(&instance_buffer, 0, &self.instance_buffer, 0,
-                                      std::mem::size_of_val(&instances) as wgpu::BufferAddress);
+    pub fn update(&mut self, uniforms: Uniforms, instances: Vec<Instance>) {
+        self.uniforms = uniforms;
+        self.instances = instances;
+    }
 
-        let uniforms = Uniforms { projection: projection, view: view, };
-        let buffer = device.create_buffer_with_data(bytemuck::cast_slice(&[uniforms]), wgpu::BufferUsage::COPY_SRC);
-        encoder.copy_buffer_to_buffer(&buffer, 0, &self.uniform_buffer, 0, std::mem::size_of_val(&uniforms) as u64);
+    pub fn pre_render(&self, device: &wgpu::Device, encoder: &mut wgpu::CommandEncoder) {
+        let instance_buffer = device.create_buffer_with_data(bytemuck::cast_slice(self.instances.as_slice()), wgpu::BufferUsage::COPY_SRC);
+        encoder.copy_buffer_to_buffer(&instance_buffer, 0, &self.instance_buffer, 0,
+                                      std::mem::size_of_val(self.instances.as_slice()) as wgpu::BufferAddress);
+
+        let buffer = device.create_buffer_with_data(bytemuck::cast_slice(&[self.uniforms]), wgpu::BufferUsage::COPY_SRC);
+        encoder.copy_buffer_to_buffer(&buffer, 0, &self.uniform_buffer, 0, std::mem::size_of_val(&self.uniforms) as u64);
     }
 }
