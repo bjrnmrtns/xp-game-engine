@@ -6,7 +6,7 @@ use winit::event_loop::{EventLoop, ControlFlow};
 use winit::event::{WindowEvent, ElementState, VirtualKeyCode, Event, KeyboardInput, MouseButton};
 use winit::window::WindowBuilder;
 use winit::event::DeviceEvent::{MouseMotion};
-use nalgebra_glm::{identity, ortho, perspective, Mat4, Vec3};
+use nalgebra_glm::{identity, ortho, perspective, Mat4};
 use game::*;
 use game::command_queue::CommandQueue;
 use game::entity::{Posable, Followable};
@@ -118,7 +118,7 @@ fn game(options: Options) {
                 render_pipelines.ui.create_drawable(&graphics.device, Some(mesh::create_mesh(&ui)));
                 render_pipelines.ui.update(graphics::ui::Uniforms { projection: projection_2d });
 
-                futures::executor::block_on(graphics.render(&mut render_pipelines, game_state.ui_enabled));
+                futures::executor::block_on(graphics::render_loop(&mut graphics, &mut render_pipelines, game_state.ui_enabled));
             }
             Event::MainEventsCleared => {
                 window.request_redraw();

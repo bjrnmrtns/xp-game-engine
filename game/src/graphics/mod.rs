@@ -1,5 +1,4 @@
 use winit::window::Window;
-use nalgebra_glm::*;
 use crate::graphics::error::GraphicsError;
 
 pub mod default;
@@ -104,93 +103,93 @@ impl Graphics {
         self.depth_texture = texture::Texture::create_depth_texture(&self.device, &self.sc_descriptor);
         self.swap_chain = self.device.create_swap_chain(&self.surface, &self.sc_descriptor);
     }
+}
 
-    pub async fn render(&mut self, render_pipelines: &mut RenderPipelines, render_ui: bool) {
-        let frame = self.swap_chain.get_next_texture().expect("failed to get next texture");
-        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+pub async fn render_loop(graphics: &mut Graphics, render_pipelines: &mut RenderPipelines, render_ui: bool) {
+    let frame = graphics.swap_chain.get_next_texture().expect("failed to get next texture");
+    let mut encoder = graphics.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
-        render_pipelines.default.pre_render(&self.device, &mut encoder);
-        render_pipelines.clipmap.pre_render(&self.device, &mut encoder);
-        render_pipelines.ui.pre_render(&self.device, &mut encoder);
+    render_pipelines.default.pre_render(&graphics.device, &mut encoder);
+    render_pipelines.clipmap.pre_render(&graphics.device, &mut encoder);
+    render_pipelines.ui.pre_render(&graphics.device, &mut encoder);
 
-        // render with all renderers with respective render passes
-        {
-            let mut diffuse_scene_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                color_attachments: &[
-                    wgpu::RenderPassColorAttachmentDescriptor {
-                        attachment: &frame.view,
-                        resolve_target: None,
-                        load_op: wgpu::LoadOp::Clear,
-                        store_op: wgpu::StoreOp::Store,
-                        clear_color: wgpu::Color {
-                            r: 0.0,
-                            g: 0.0,
-                            b: 0.0,
-                            a: 1.0,
-                        }
+    // render with all renderers with respective render passes
+    {
+        let mut game_render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            color_attachments: &[
+                wgpu::RenderPassColorAttachmentDescriptor {
+                    attachment: &frame.view,
+                    resolve_target: None,
+                    load_op: wgpu::LoadOp::Clear,
+                    store_op: wgpu::StoreOp::Store,
+                    clear_color: wgpu::Color {
+                        r: 0.0,
+                        g: 0.0,
+                        b: 0.0,
+                        a: 1.0,
                     }
-                ],
-                depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachmentDescriptor {
-                    attachment: &self.depth_texture.view,
-                    depth_load_op: wgpu::LoadOp::Clear,
-                    depth_store_op: wgpu::StoreOp::Store,
-                    clear_depth: 1.0,
-                    stencil_load_op: wgpu::LoadOp::Clear,
-                    stencil_store_op: wgpu::StoreOp::Store,
-                    clear_stencil: 0,
-                }),
-            });
+                }
+            ],
+            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachmentDescriptor {
+                attachment: &graphics.depth_texture.view,
+                depth_load_op: wgpu::LoadOp::Clear,
+                depth_store_op: wgpu::StoreOp::Store,
+                clear_depth: 1.0,
+                stencil_load_op: wgpu::LoadOp::Clear,
+                stencil_store_op: wgpu::StoreOp::Store,
+                clear_stencil: 0,
+            }),
+        });
 
-            diffuse_scene_pass.set_pipeline(&render_pipelines.default.render_pipeline);
+        game_render_pass.set_pipeline(&render_pipelines.default.render_pipeline);
 
-            diffuse_scene_pass.set_vertex_buffer(0, &render_pipelines.default.drawables[0].vertex_buffer, 0, 0);
-            diffuse_scene_pass.set_index_buffer(&render_pipelines.default.drawables[0].index_buffer, 0, 0);
-            diffuse_scene_pass.set_bind_group(0, &render_pipelines.default.uniform_bind_group, &[]);
-            diffuse_scene_pass.draw_indexed(0..render_pipelines.default.drawables[0].index_buffer_len, 0, 0..1);
+        game_render_pass.set_vertex_buffer(0, &render_pipelines.default.drawables[0].vertex_buffer, 0, 0);
+        game_render_pass.set_index_buffer(&render_pipelines.default.drawables[0].index_buffer, 0, 0);
+        game_render_pass.set_bind_group(0, &render_pipelines.default.uniform_bind_group, &[]);
+        game_render_pass.draw_indexed(0..render_pipelines.default.drawables[0].index_buffer_len, 0, 0..1);
 
-            diffuse_scene_pass.set_vertex_buffer(0, &render_pipelines.default.drawables[1].vertex_buffer, 0, 0);
-            diffuse_scene_pass.set_index_buffer(&render_pipelines.default.drawables[1].index_buffer, 0, 0);
-            diffuse_scene_pass.set_bind_group(0, &render_pipelines.default.uniform_bind_group, &[]);
-            diffuse_scene_pass.draw_indexed(0..render_pipelines.default.drawables[1].index_buffer_len, 0, 1..2);
+        game_render_pass.set_vertex_buffer(0, &render_pipelines.default.drawables[1].vertex_buffer, 0, 0);
+        game_render_pass.set_index_buffer(&render_pipelines.default.drawables[1].index_buffer, 0, 0);
+        game_render_pass.set_bind_group(0, &render_pipelines.default.uniform_bind_group, &[]);
+        game_render_pass.draw_indexed(0..render_pipelines.default.drawables[1].index_buffer_len, 0, 1..2);
 
-            diffuse_scene_pass.set_pipeline(&render_pipelines.clipmap.render_pipeline);
-            diffuse_scene_pass.set_vertex_buffer(0, &render_pipelines.clipmap.drawables[0].vertex_buffer, 0, 0);
-            diffuse_scene_pass.set_index_buffer(&render_pipelines.clipmap.drawables[0].index_buffer, 0, 0);
-            diffuse_scene_pass.set_bind_group(0, &render_pipelines.clipmap.bind_group, &[]);
-            diffuse_scene_pass.draw_indexed(0..render_pipelines.clipmap.drawables[0].index_buffer_len, 0, 0..1);
-        }
-
-        if render_ui
-        {
-            let mut ui_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                color_attachments: &[
-                    wgpu::RenderPassColorAttachmentDescriptor {
-                        attachment: &frame.view,
-                        resolve_target: None,
-                        load_op: wgpu::LoadOp::Load,
-                        store_op: wgpu::StoreOp::Store,
-                        clear_color: wgpu::Color {
-                            r: 0.0,
-                            g: 0.0,
-                            b: 0.0,
-                            a: 1.0,
-                        }
-                    }
-                ],
-                depth_stencil_attachment: None
-            });
-            ui_pass.set_pipeline(&render_pipelines.ui.render_pipeline);
-            if let Some(drawable) = &render_pipelines.ui.drawable {
-                ui_pass.set_vertex_buffer(0, &drawable.vertex_buffer, 0, 0);
-                ui_pass.set_index_buffer(&drawable.index_buffer, 0, 0);
-                ui_pass.set_bind_group(0, &render_pipelines.ui.uniform_bind_group, &[]);
-                ui_pass.set_bind_group(1, &render_pipelines.ui.texture_bind_group, &[]);
-                ui_pass.draw_indexed(0..drawable.index_buffer_len, 0, 0..1);
-            }
-        }
-        if render_ui {
-            render_pipelines.ui.glyph_brush.draw_queued(&self.device, &mut encoder, &frame.view, self.sc_descriptor.width, self.sc_descriptor.height,).expect("Cannot draw glyph_brush");
-        }
-        self.queue.submit(&[encoder.finish()]);
+        game_render_pass.set_pipeline(&render_pipelines.clipmap.render_pipeline);
+        game_render_pass.set_vertex_buffer(0, &render_pipelines.clipmap.drawables[0].vertex_buffer, 0, 0);
+        game_render_pass.set_index_buffer(&render_pipelines.clipmap.drawables[0].index_buffer, 0, 0);
+        game_render_pass.set_bind_group(0, &render_pipelines.clipmap.bind_group, &[]);
+        game_render_pass.draw_indexed(0..render_pipelines.clipmap.drawables[0].index_buffer_len, 0, 0..1);
     }
+
+    if render_ui
+    {
+        let mut ui_render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            color_attachments: &[
+                wgpu::RenderPassColorAttachmentDescriptor {
+                    attachment: &frame.view,
+                    resolve_target: None,
+                    load_op: wgpu::LoadOp::Load,
+                    store_op: wgpu::StoreOp::Store,
+                    clear_color: wgpu::Color {
+                        r: 0.0,
+                        g: 0.0,
+                        b: 0.0,
+                        a: 1.0,
+                    }
+                }
+            ],
+            depth_stencil_attachment: None
+        });
+        ui_render_pass.set_pipeline(&render_pipelines.ui.render_pipeline);
+        if let Some(drawable) = &render_pipelines.ui.drawable {
+            ui_render_pass.set_vertex_buffer(0, &drawable.vertex_buffer, 0, 0);
+            ui_render_pass.set_index_buffer(&drawable.index_buffer, 0, 0);
+            ui_render_pass.set_bind_group(0, &render_pipelines.ui.uniform_bind_group, &[]);
+            ui_render_pass.set_bind_group(1, &render_pipelines.ui.texture_bind_group, &[]);
+            ui_render_pass.draw_indexed(0..drawable.index_buffer_len, 0, 0..1);
+        }
+    }
+    if render_ui {
+        render_pipelines.ui.glyph_brush.draw_queued(&graphics.device, &mut encoder, &frame.view, graphics.sc_descriptor.width, graphics.sc_descriptor.height,).expect("Cannot draw glyph_brush");
+    }
+    graphics.queue.submit(&[encoder.finish()]);
 }
