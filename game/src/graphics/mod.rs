@@ -124,10 +124,12 @@ impl Graphics {
         let projection = perspective(self.sc_descriptor.width as f32 / self.sc_descriptor.height as f32,45.0, 0.1, 100.0);
         let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
+        // update all renderers
         self.renderer.update(&mut encoder, &self.device, projection.clone() as Mat4, view.clone() as Mat4, model_player, model_terrain, model_axis);
         self.clipmap_renderer.update(&mut encoder, &self.device, projection.clone() as Mat4, view.clone() as Mat4, camera_position.clone() as Vec3);
         self.ui_renderer.update(&mut encoder, &self.device, ui_projection.clone() as Mat4, ui_mesh);
 
+        // render with all renderers with respective render passes
         {
             let mut diffuse_scene_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 color_attachments: &[
