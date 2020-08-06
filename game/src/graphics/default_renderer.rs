@@ -83,7 +83,7 @@ pub struct Renderer {
     instances: Vec<Instance>,
 }
 impl Renderer {
-    pub async fn new(device: &Device, sc_descriptor: &wgpu::SwapChainDescriptor) -> Result<Self> {
+    pub async fn new(device: &Device, sc_descriptor: &wgpu::SwapChainDescriptor, _queue: &wgpu::Queue) -> Result<Self> {
         // from here 3D renderpipeline creation
         let vs_spirv = glsl_to_spirv::compile(include_str!("../shader.vert"), glsl_to_spirv::ShaderType::Vertex)?;
         let fs_spirv = glsl_to_spirv::compile(include_str!("../shader.frag"), glsl_to_spirv::ShaderType::Fragment)?;

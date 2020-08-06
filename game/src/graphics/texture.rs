@@ -78,9 +78,9 @@ impl Texture {
             view,
             sampler
         }
-}
+    }
 
-pub fn create_ui_texture(device: &wgpu::Device) -> (Self, wgpu::CommandEncoder) {
+    pub fn create_ui_texture(device: &wgpu::Device) -> (Self, wgpu::CommandEncoder) {
         let texture = device.create_texture(&TextureDescriptor {
             label: None,
             size: Extent3d {

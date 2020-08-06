@@ -48,7 +48,7 @@ fn game(options: Options) {
         camera::CameraType::FreeLook => { context.camera = camera::CameraType::Follow },
     }});
     ui.layout();
-    let mut graphics = futures::executor::block_on(graphics::Graphics::new(&window, mesh::create_mesh(&ui).0)).expect("Could not create graphics renderer");
+    let mut graphics = futures::executor::block_on(graphics::Graphics::new(&window)).expect("Could not create graphics renderer");
     graphics.renderer.create_drawable(&graphics.device, &player_mesh);
     graphics.renderer.create_drawable(&graphics.device, &axis_mesh);
     let (clipmap_vertices, clipmap_indices) = clipmap::create_clipmap();

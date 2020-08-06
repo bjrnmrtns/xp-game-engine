@@ -16,6 +16,15 @@ pub struct Mesh<T> {
     pub indices: Vec<u32>,
 }
 
+impl<T> Mesh<T> {
+    pub fn new() -> Self {
+        Self {
+            vertices: Vec::new(),
+            indices: Vec::new(),
+        }
+    }
+}
+
 pub struct Drawable {
     pub vertex_buffer: wgpu::Buffer,
     pub index_buffer: wgpu::Buffer,
@@ -42,7 +51,7 @@ impl Graphics {
         glyph_brush
     }
 
-    pub async fn new(window: &Window, ui_mesh: Mesh<ui::Vertex>) -> Result<Self> {
+    pub async fn new(window: &Window) -> Result<Self> {
         // from here device creation and surface swapchain
         let surface =  wgpu::Surface::create(window);
         let adapter = wgpu::Adapter::request(
@@ -63,9 +72,9 @@ impl Graphics {
         };
         let swap_chain = device.create_swap_chain(&surface, &sc_descriptor);
         let depth_texture = texture::Texture::create_depth_texture(&device, &sc_descriptor);
-        let ui_renderer = ui::Renderer::new(&device, &sc_descriptor, &queue, ui_mesh).await?;
-        let renderer= default_renderer::Renderer::new(&device, &sc_descriptor).await?;
-        let clipmap_renderer= clipmap::Renderer::new(&device, &sc_descriptor).await?;
+        let ui_renderer = ui::Renderer::new(&device, &sc_descriptor, &queue).await?;
+        let renderer= default_renderer::Renderer::new(&device, &sc_descriptor, &queue).await?;
+        let clipmap_renderer= clipmap::Renderer::new(&device, &sc_descriptor, &queue).await?;
 
         Ok(Self {
             surface,
@@ -176,11 +185,13 @@ impl Graphics {
                 depth_stencil_attachment: None
             });
             ui_pass.set_pipeline(&self.ui_renderer.render_pipeline);
-            ui_pass.set_vertex_buffer(0, &self.ui_renderer.drawable.vertex_buffer, 0, 0);
-            ui_pass.set_index_buffer(&self.ui_renderer.drawable.index_buffer, 0, 0);
-            ui_pass.set_bind_group(0, &self.ui_renderer.uniform_bind_group, &[]);
-            ui_pass.set_bind_group(1, &self.ui_renderer.texture_bind_group, &[]);
-            ui_pass.draw_indexed(0..self.ui_renderer.drawable.index_buffer_len, 0, 0..1);
+            if let Some(drawable) = &self.ui_renderer.drawable {
+                ui_pass.set_vertex_buffer(0, &drawable.vertex_buffer, 0, 0);
+                ui_pass.set_index_buffer(&drawable.index_buffer, 0, 0);
+                ui_pass.set_bind_group(0, &self.ui_renderer.uniform_bind_group, &[]);
+                ui_pass.set_bind_group(1, &self.ui_renderer.texture_bind_group, &[]);
+                ui_pass.draw_indexed(0..drawable.index_buffer_len, 0, 0..1);
+            }
         }
         if render_ui {
             self.ui_renderer.glyph_brush.draw_queued(&self.device, &mut encoder, &frame.view, self.sc_descriptor.width, self.sc_descriptor.height,).expect("Cannot draw glyph_brush");

@@ -61,7 +61,7 @@ impl Vertex {
 }
 
 pub struct Renderer {
-    pub drawable: Drawable,
+    pub drawable: Option<Drawable>,
     pub uniform_bind_group: wgpu::BindGroup,
     pub uniform_buffer: wgpu::Buffer,
     pub render_pipeline: wgpu::RenderPipeline,
@@ -71,7 +71,7 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub async fn new(device: &Device, sc_descriptor: &wgpu::SwapChainDescriptor, queue: &wgpu::Queue, ui_mesh: Mesh<Vertex>) -> Result<Self> {
+    pub async fn new(device: &Device, sc_descriptor: &wgpu::SwapChainDescriptor, queue: &wgpu::Queue) -> Result<Self> {
         let vs_ui_spirv = glsl_to_spirv::compile(include_str!("../shader_ui.vert"), glsl_to_spirv::ShaderType::Vertex)?;
         let fs_ui_spirv = glsl_to_spirv::compile(include_str!("../shader_ui.frag"), glsl_to_spirv::ShaderType::Fragment)?;
         let vs_ui_data = wgpu::read_spirv(vs_ui_spirv)?;
@@ -189,9 +189,7 @@ impl Renderer {
 
         let glyph_brush = Graphics::build_glyph_brush(&device, wgpu::TextureFormat::Bgra8UnormSrgb);
         Ok(Self {
-            drawable: Drawable { vertex_buffer: device.create_buffer_with_data(bytemuck::cast_slice(&ui_mesh.vertices), wgpu::BufferUsage::VERTEX),
-                index_buffer: device.create_buffer_with_data(bytemuck::cast_slice(&ui_mesh.indices), wgpu::BufferUsage::INDEX),
-                index_buffer_len: ui_mesh.indices.len() as u32 },
+            drawable: None,
             texture_bind_group,
             render_pipeline,
             uniform_bind_group,
@@ -203,9 +201,9 @@ impl Renderer {
 
     pub fn create_drawable(&mut self, device: &wgpu::Device, ui_mesh: Option<(Mesh<Vertex>, Vec<Text>)>) {
         if let Some(ui_mesh) = ui_mesh {
-            self.drawable = Drawable { vertex_buffer: device.create_buffer_with_data(bytemuck::cast_slice(&ui_mesh.0.vertices), wgpu::BufferUsage::VERTEX),
+            self.drawable = Some(Drawable { vertex_buffer: device.create_buffer_with_data(bytemuck::cast_slice(&ui_mesh.0.vertices), wgpu::BufferUsage::VERTEX),
                 index_buffer: device.create_buffer_with_data(bytemuck::cast_slice(&ui_mesh.0.indices), wgpu::BufferUsage::INDEX),
-                index_buffer_len: ui_mesh.0.indices.len() as u32 };
+                index_buffer_len: ui_mesh.0.indices.len() as u32 });
 
             for text in &ui_mesh.1 {
                 let section = wgpu_glyph::Section {
