@@ -34,7 +34,7 @@ impl Vertex {
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct Instance {
-    pub(crate) model: Mat4,
+    pub model: Mat4,
 }
 
 unsafe impl bytemuck::Pod for Instance {}
@@ -54,15 +54,13 @@ unsafe impl bytemuck::Zeroable for Uniforms {}
 
 pub struct Renderer {
     pub drawables: Vec<Drawable>,
-    pub uniform_buffer: wgpu::Buffer,
+    pub uniforms_buffer: wgpu::Buffer,
     pub instance_buffer: wgpu::Buffer,
     pub bind_group: wgpu::BindGroup,
     pub render_pipeline: wgpu::RenderPipeline,
     pub texture: texture::Texture,
 
-    projection: Mat4,
-    view: Mat4,
-    camera_position: Vec3,
+    uniforms: Uniforms,
     clipmap_data: Vec<f32>,
 }
 
@@ -203,14 +201,12 @@ impl Renderer {
 
         Ok(Self {
             drawables: Vec::new(),
-            uniform_buffer,
+            uniforms_buffer: uniform_buffer,
             instance_buffer,
             bind_group: bind_group,
             render_pipeline,
             texture,
-            projection: identity(),
-            view: identity(),
-            camera_position: Vec3::new(0.0, 0.0, 0.0),
+            uniforms,
             clipmap_data: Vec::new(),
         })
     }
@@ -221,16 +217,13 @@ impl Renderer {
         self.drawables.push(Drawable { vertex_buffer, index_buffer, index_buffer_len: indices.len() as u32, });
     }
 
-    pub fn update(&mut self, projection: Mat4, view: Mat4, camera_position: Vec3, clipmap_data: Vec<f32>) {
-        self.projection = projection;
-        self.view = view;
-        self.camera_position = camera_position;
+    pub fn update(&mut self, uniforms: Uniforms, clipmap_data: Vec<f32>) {
+        self.uniforms = uniforms;
         self.clipmap_data = clipmap_data;
     }
 
     pub fn pre_render(&self, device: &wgpu::Device, encoder: &mut wgpu::CommandEncoder) {
-        let uniforms_clipmap = Uniforms { projection: self.projection.clone() as Mat4, view: self.view.clone() as Mat4, camera_position: self.camera_position.clone() as Vec3, };
-        let buffer_clipmap = device.create_buffer_with_data(bytemuck::cast_slice(&[uniforms_clipmap]), wgpu::BufferUsage::COPY_SRC);
+        let uniforms_bufer = device.create_buffer_with_data(bytemuck::cast_slice(&[self.uniforms]), wgpu::BufferUsage::COPY_SRC);
         let height_map_data_buffer = device.create_buffer_with_data(bytemuck::cast_slice(self.clipmap_data.as_slice()), wgpu::BufferUsage::COPY_SRC);
         encoder.copy_buffer_to_texture(wgpu::BufferCopyView{
             buffer: &height_map_data_buffer,
@@ -251,7 +244,7 @@ impl Renderer {
             height: 4,
             depth: 1
         });
-        encoder.copy_buffer_to_buffer(&buffer_clipmap, 0, &self.uniform_buffer, 0, std::mem::size_of_val(&uniforms_clipmap) as u64);
+        encoder.copy_buffer_to_buffer(&uniforms_bufer, 0, &self.uniforms_buffer, 0, std::mem::size_of_val(&self.uniforms) as u64);
     }
 }
 

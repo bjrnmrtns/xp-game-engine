@@ -56,7 +56,7 @@ impl Vertex {
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct Instance {
-    pub(crate) model: Mat4,
+    pub model: Mat4,
 }
 
 unsafe impl bytemuck::Pod for Instance {}
