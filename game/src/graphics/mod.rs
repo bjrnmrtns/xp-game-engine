@@ -65,7 +65,7 @@ impl Graphics {
         let depth_texture = texture::Texture::create_depth_texture(&device, &sc_descriptor);
         let ui_renderer = ui::Renderer::new(&device, &sc_descriptor, &queue, ui_mesh).await?;
         let renderer= default_renderer::Renderer::new(&device, &sc_descriptor).await?;
-        let clipmap_renderer= clipmap::Renderer::new(&device, &sc_descriptor, &queue).await?;
+        let clipmap_renderer= clipmap::Renderer::new(&device, &sc_descriptor).await?;
 
         Ok(Self {
             surface,

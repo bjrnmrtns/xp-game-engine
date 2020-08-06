@@ -65,7 +65,7 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub async fn new(device: &Device, sc_descriptor: &wgpu::SwapChainDescriptor, queue: &wgpu::Queue) -> Result<Self> {
+    pub async fn new(device: &Device, sc_descriptor: &wgpu::SwapChainDescriptor) -> Result<Self> {
         // from here 3D renderpipeline creation
         let vs_spirv = glsl_to_spirv::compile(include_str!("../shader_clipmap.vert"), glsl_to_spirv::ShaderType::Vertex)?;
         let fs_spirv = glsl_to_spirv::compile(include_str!("../shader_clipmap.frag"), glsl_to_spirv::ShaderType::Fragment)?;
@@ -118,8 +118,7 @@ impl Renderer {
             label: None,
         });
 
-        let (texture, encoder) = texture::Texture::create_clipmap_texture(&device, 16);
-        queue.submit(&[encoder.finish()]);
+        let texture = texture::Texture::create_clipmap_texture(&device, 16);
 
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &bind_group_layout,
