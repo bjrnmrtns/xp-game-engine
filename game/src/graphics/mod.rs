@@ -101,7 +101,9 @@ impl Graphics {
         height_map_data_update.extend_from_slice(&[1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0,1.0, 1.0, 1.0, 1.0,]);
         self.clipmap_renderer.update(clipmap::Uniforms{ projection: projection_3d.clone() as Mat4, view: view.clone() as Mat4, camera_position: camera_position.clone() as Vec3 }, height_map_data_update);
         self.clipmap_renderer.pre_render(&self.device, &mut encoder);
-        self.ui_renderer.update(&mut encoder, &self.device, projection_2d, ui_mesh);
+        self.ui_renderer.create_drawable(&self.device, ui_mesh);
+        self.ui_renderer.update(ui::Uniforms { projection: projection_2d });
+        self.ui_renderer.pre_render(&self.device, &mut encoder);
 
         // render with all renderers with respective render passes
         {

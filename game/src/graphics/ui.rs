@@ -67,6 +67,7 @@ pub struct Renderer {
     pub render_pipeline: wgpu::RenderPipeline,
     pub texture_bind_group: wgpu::BindGroup,
     pub glyph_brush: wgpu_glyph::GlyphBrush<()>,
+    uniforms: Uniforms,
 }
 
 impl Renderer {
@@ -78,9 +79,9 @@ impl Renderer {
         let ui_vs_module = device.create_shader_module(&vs_ui_data);
         let ui_fs_module = device.create_shader_module(&fs_ui_data);
 
-        let ui_uniforms = Uniforms { projection: identity(), };
+        let uniforms = Uniforms { projection: identity(), };
 
-        let uniform_buffer = device.create_buffer_with_data(bytemuck::cast_slice(&[ui_uniforms]),
+        let uniform_buffer = device.create_buffer_with_data(bytemuck::cast_slice(&[uniforms]),
                                                             wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST);
 
         let ui_uniform_layout= device.create_bind_group_layout(&BindGroupLayoutDescriptor{
@@ -99,7 +100,7 @@ impl Renderer {
                 binding: 0,
                 resource: wgpu::BindingResource::Buffer {
                     buffer: &uniform_buffer,
-                    range: 0..std::mem::size_of_val(&ui_uniforms) as wgpu::BufferAddress,
+                    range: 0..std::mem::size_of_val(&uniforms) as wgpu::BufferAddress,
                 }
             }],
         });
@@ -196,14 +197,11 @@ impl Renderer {
             uniform_bind_group,
             uniform_buffer,
             glyph_brush,
+            uniforms,
         })
     }
-    pub fn update(&mut self, encoder: &mut wgpu::CommandEncoder, device: &wgpu::Device, projection: Mat4, ui_mesh: Option<(Mesh<Vertex>, Vec<Text>)>) {
-        // far and near plane are not used in UI rendering
-        let ui_uniforms = Uniforms { projection, };
-        let buffer = device.create_buffer_with_data(bytemuck::cast_slice(&[ui_uniforms]), wgpu::BufferUsage::COPY_SRC);
-        encoder.copy_buffer_to_buffer(&buffer, 0, &self.uniform_buffer, 0, std::mem::size_of_val(&ui_uniforms) as u64);
 
+    pub fn create_drawable(&mut self, device: &wgpu::Device, ui_mesh: Option<(Mesh<Vertex>, Vec<Text>)>) {
         if let Some(ui_mesh) = ui_mesh {
             self.drawable = Drawable { vertex_buffer: device.create_buffer_with_data(bytemuck::cast_slice(&ui_mesh.0.vertices), wgpu::BufferUsage::VERTEX),
                 index_buffer: device.create_buffer_with_data(bytemuck::cast_slice(&ui_mesh.0.indices), wgpu::BufferUsage::INDEX),
@@ -217,5 +215,14 @@ impl Renderer {
                 self.glyph_brush.queue(section);
             }
         }
+    }
+
+    pub fn update(&mut self, uniforms: Uniforms) {
+        self.uniforms = uniforms;
+    }
+
+    pub fn pre_render(&self, device: &wgpu::Device, encoder: &mut wgpu::CommandEncoder) {
+        let buffer = device.create_buffer_with_data(bytemuck::cast_slice(&[self.uniforms]), wgpu::BufferUsage::COPY_SRC);
+        encoder.copy_buffer_to_buffer(&buffer, 0, &self.uniform_buffer, 0, std::mem::size_of_val(&self.uniforms) as u64);
     }
 }
