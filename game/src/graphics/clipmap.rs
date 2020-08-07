@@ -119,7 +119,7 @@ impl Renderable {
             label: None,
         });
 
-        let texture = texture::Texture::create_clipmap_texture(&device, 16);
+        let texture = texture::Texture::create_clipmap_texture(&device, 256);
 
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &bind_group_layout,
@@ -220,13 +220,13 @@ impl Renderable {
     pub fn update(&mut self, uniforms: Uniforms) {
         let sine = Sine {};
         self.uniforms = uniforms;
-        self.clipmap_data = create_heightmap(&[uniforms.camera_position.x as i32, uniforms.camera_position.z as i32], 8, &sine);
+        self.clipmap_data = create_heightmap(&[uniforms.camera_position.x as i32, uniforms.camera_position.z as i32], 128, &sine);
     }
 }
 
 pub fn create_clipmap() -> (Vec<Vertex>, Vec<u32>) {
-    const K: u32 = 4;
-    const N: u32 = 15;
+    const K: u32 = 8;
+    const N: u32 = 255;
     assert_eq!(N, (2 as u32).pow(K) - 1);
     let mut vertices: Vec<Vertex> = Vec::new();
     for z in 0..N {
@@ -256,8 +256,8 @@ impl graphics::Renderable for Renderable {
         encoder.copy_buffer_to_texture(wgpu::BufferCopyView {
             buffer: &height_map_data_buffer,
             offset: 0,
-            bytes_per_row: 16 * 4,
-            rows_per_image: 16
+            bytes_per_row: 256 * 4,
+            rows_per_image: 256
         }, wgpu::TextureCopyView{
             texture: &self.texture.texture,
             mip_level: 0,
@@ -268,8 +268,8 @@ impl graphics::Renderable for Renderable {
                 z: 1
             }
         }, wgpu::Extent3d{
-            width: 16,
-            height: 16,
+            width: 256,
+            height: 256,
             depth: 1
         });
 
@@ -286,7 +286,7 @@ struct Sine;
 
 impl graphics::clipmap::Generator for Sine {
     fn generate(&self, pos: [f32; 2]) -> f32 {
-        pos[0].sin() + pos[1].cos()
+        (pos[0].sin()  + pos[1].cos()) / 4.0
     }
 }
 
@@ -295,11 +295,11 @@ pub trait Generator {
 }
 
 fn create_heightmap<T: Generator>(pos: &[i32; 2], offset: i32, generator: &T) -> Vec<f32> {
-    let mut heightmap = Vec::new();
-    heightmap.reserve(256);
+    let mut heightmap = vec!(0.0; 65536);
     for z in pos[1]-offset..pos[1]+offset {
         for x in pos[0]-offset..pos[0]+offset {
-            heightmap.push(generator.generate([x as f32, z as f32]));
+            let height = generator.generate([x as f32, z as f32]);
+            heightmap[x as usize % 256 + (z as usize % 256) * 256] = height;
         }
     }
     heightmap
