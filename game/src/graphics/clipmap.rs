@@ -6,6 +6,11 @@ use crate::graphics;
 
 type Result<T> = std::result::Result<T, GraphicsError>;
 
+const CLIPMAP_K: u32 = 8;
+const CLIPMAP_N: u32 = 255;
+const CLIPMAP_TEXTURE_SIZE: u32 = CLIPMAP_N + 1;
+const CLIPMAP_TEXTURE_SIZE_HALF: u32 = CLIPMAP_TEXTURE_SIZE / 2;
+
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub struct Vertex {
@@ -119,7 +124,7 @@ impl Renderable {
             label: None,
         });
 
-        let texture = texture::Texture::create_clipmap_texture(&device, 256);
+        let texture = texture::Texture::create_clipmap_texture(&device,  CLIPMAP_TEXTURE_SIZE as u32);
 
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &bind_group_layout,
@@ -220,28 +225,26 @@ impl Renderable {
     pub fn update(&mut self, uniforms: Uniforms) {
         let sine = Sine {};
         self.uniforms = uniforms;
-        self.clipmap_data = create_heightmap(&[uniforms.camera_position.x as i32, uniforms.camera_position.z as i32], 128, &sine);
+        self.clipmap_data = create_heightmap(&[uniforms.camera_position.x as i32, uniforms.camera_position.z as i32], &sine);
     }
 }
 
 pub fn create_clipmap() -> (Vec<Vertex>, Vec<u32>) {
-    const K: u32 = 8;
-    const N: u32 = 255;
-    assert_eq!(N, (2 as u32).pow(K) - 1);
+    assert_eq!(CLIPMAP_N, (2 as u32).pow(CLIPMAP_K) - 1);
     let mut vertices: Vec<Vertex> = Vec::new();
-    for z in 0..N {
-        for x in 0..N {
+    for z in 0..CLIPMAP_N {
+        for x in 0..CLIPMAP_N {
             vertices.push(Vertex {
                 p: [x as f32, z as f32],
             })
         }
     }
     let mut indices: Vec<u32> = Vec::new();
-    for z in 0..N-1 {
-        for x in 0..N-1 {
-            let i0 = x + z * N;
+    for z in 0..CLIPMAP_N-1 {
+        for x in 0..CLIPMAP_N-1 {
+            let i0 = x + z * CLIPMAP_N;
             let i1 = i0 + 1;
-            let i2 = x + (z + 1) * N;
+            let i2 = x + (z + 1) * CLIPMAP_N;
             let i3 = i2 + 1;
             indices.extend_from_slice(&[i0, i2, i2, i1, i1, i0, i1, i2, i2, i3, i3, i1]); // line_strip -> wireframe, indexbuffer for filled is remove even indices
         }
@@ -256,8 +259,8 @@ impl graphics::Renderable for Renderable {
         encoder.copy_buffer_to_texture(wgpu::BufferCopyView {
             buffer: &height_map_data_buffer,
             offset: 0,
-            bytes_per_row: 256 * 4,
-            rows_per_image: 256
+            bytes_per_row: CLIPMAP_TEXTURE_SIZE * 4,
+            rows_per_image: CLIPMAP_TEXTURE_SIZE
         }, wgpu::TextureCopyView{
             texture: &self.texture.texture,
             mip_level: 0,
@@ -268,8 +271,8 @@ impl graphics::Renderable for Renderable {
                 z: 1
             }
         }, wgpu::Extent3d{
-            width: 256,
-            height: 256,
+            width: CLIPMAP_TEXTURE_SIZE,
+            height: CLIPMAP_TEXTURE_SIZE,
             depth: 1
         });
 
@@ -294,12 +297,14 @@ pub trait Generator {
     fn generate(&self, pos: [f32; 2]) -> f32;
 }
 
-fn create_heightmap<T: Generator>(pos: &[i32; 2], offset: i32, generator: &T) -> Vec<f32> {
-    let mut heightmap = vec!(0.0; 65536);
-    for z in pos[1]-offset..pos[1]+offset {
-        for x in pos[0]-offset..pos[0]+offset {
+fn create_heightmap<T: Generator>(pos: &[i32; 2], generator: &T) -> Vec<f32> {
+    const N: i32 = CLIPMAP_TEXTURE_SIZE as i32;
+    const N_HALF: i32 = CLIPMAP_TEXTURE_SIZE_HALF as i32;
+    let mut heightmap = vec!(0.0; (N * N) as usize);
+    for z in pos[1]-N_HALF..pos[1]+N_HALF {
+        for x in pos[0]-N_HALF..pos[0]+N_HALF {
             let height = generator.generate([x as f32, z as f32]);
-            heightmap[x as usize % 256 + (z as usize % 256) * 256] = height;
+            heightmap[x as usize % CLIPMAP_TEXTURE_SIZE as usize + (z as usize % CLIPMAP_TEXTURE_SIZE as usize) * CLIPMAP_TEXTURE_SIZE as usize] = height;
         }
     }
     heightmap
