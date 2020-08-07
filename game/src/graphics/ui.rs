@@ -222,14 +222,11 @@ impl Pipeline {
         self.uniforms = uniforms;
     }
 
-    pub fn pre_render(&self, device: &wgpu::Device, encoder: &mut wgpu::CommandEncoder) {
-        let buffer = device.create_buffer_with_data(bytemuck::cast_slice(&[self.uniforms]), wgpu::BufferUsage::COPY_SRC);
-        encoder.copy_buffer_to_buffer(&buffer, 0, &self.uniform_buffer, 0, std::mem::size_of_val(&self.uniforms) as u64);
-    }
-
-    pub fn draw<'a, 'b>(&'a self, render_pass: &'b mut wgpu::RenderPass<'a>)
+    pub fn draw<'a, 'b>(&'a self, device: &wgpu::Device, encoder: &mut wgpu::CommandEncoder, render_pass: &'b mut wgpu::RenderPass<'a>)
         where 'a: 'b
     {
+        let buffer = device.create_buffer_with_data(bytemuck::cast_slice(&[self.uniforms]), wgpu::BufferUsage::COPY_SRC);
+        encoder.copy_buffer_to_buffer(&buffer, 0, &self.uniform_buffer, 0, std::mem::size_of_val(&self.uniforms) as u64);
         if self.enabled {
             if let Some(drawable) = &self.drawable {
                 render_pass.set_pipeline(&self.render_pipeline);
@@ -239,6 +236,7 @@ impl Pipeline {
                 render_pass.set_bind_group(1, &self.texture_bind_group, &[]);
                 render_pass.draw_indexed(0..drawable.index_buffer_len, 0, 0..1);
             }
+            //TODO: render glyphs without mut in some way, self.glyph_brush.draw_queued(&graphics.device, &mut encoder, target, graphics.sc_descriptor.width, graphics.sc_descriptor.height,).expect("Cannot draw glyph_brush");
         }
     }
 }

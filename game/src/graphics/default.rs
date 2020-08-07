@@ -216,18 +216,16 @@ impl Pipeline {
         self.instances = instances;
     }
 
-    pub fn pre_render(&self, device: &wgpu::Device, encoder: &mut wgpu::CommandEncoder) {
+    pub fn draw<'a, 'b>(&'a self, device: &wgpu::Device, encoder: &mut wgpu::CommandEncoder, render_pass: &'b mut wgpu::RenderPass<'a>)
+        where 'a: 'b
+    {
         let instance_buffer = device.create_buffer_with_data(bytemuck::cast_slice(self.instances.as_slice()), wgpu::BufferUsage::COPY_SRC);
         encoder.copy_buffer_to_buffer(&instance_buffer, 0, &self.instance_buffer, 0,
                                       std::mem::size_of_val(self.instances.as_slice()) as wgpu::BufferAddress);
 
         let buffer = device.create_buffer_with_data(bytemuck::cast_slice(&[self.uniforms]), wgpu::BufferUsage::COPY_SRC);
         encoder.copy_buffer_to_buffer(&buffer, 0, &self.uniform_buffer, 0, std::mem::size_of_val(&self.uniforms) as u64);
-    }
 
-    pub fn draw<'a, 'b>(&'a self, render_pass: &'b mut wgpu::RenderPass<'a>)
-        where 'a: 'b
-    {
         render_pass.set_pipeline(&self.render_pipeline);
 
         render_pass.set_vertex_buffer(0, &self.drawables[0].vertex_buffer, 0, 0);

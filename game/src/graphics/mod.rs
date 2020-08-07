@@ -52,7 +52,7 @@ pub struct Graphics {
     pub queue: wgpu::Queue,
     pub sc_descriptor: wgpu::SwapChainDescriptor,
     pub swap_chain: wgpu::SwapChain,
-    depth_texture: texture::Texture,
+    pub depth_texture: texture::Texture,
     window_size: winit::dpi::PhysicalSize<u32>,
 }
 
@@ -105,16 +105,11 @@ impl Graphics {
     }
 }
 
-pub fn render_loop(graphics: &mut Graphics, render_pipelines: &RenderPipelines, target: &wgpu::TextureView) {
-    let mut encoder = graphics.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
-
-    render_pipelines.default.pre_render(&graphics.device, &mut encoder);
-    render_pipelines.clipmap.pre_render(&graphics.device, &mut encoder);
-    render_pipelines.ui.pre_render(&graphics.device, &mut encoder);
-
-    // render with all renderers with respective render passes
+pub fn render_loop(render_pipelines: &RenderPipelines, device: &wgpu::Device, queue: &wgpu::Queue, target: &wgpu::TextureView, depth_attachment: &wgpu::TextureView) {
+    let mut render_pass_creation_encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+    let mut pipeline_encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
     {
-        let mut game_render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+        let mut game_render_pass = render_pass_creation_encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             color_attachments: &[
                 wgpu::RenderPassColorAttachmentDescriptor {
                     attachment: target,
@@ -130,7 +125,7 @@ pub fn render_loop(graphics: &mut Graphics, render_pipelines: &RenderPipelines, 
                 }
             ],
             depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachmentDescriptor {
-                attachment: &graphics.depth_texture.view,
+                attachment: &depth_attachment,
                 depth_load_op: wgpu::LoadOp::Clear,
                 depth_store_op: wgpu::StoreOp::Store,
                 clear_depth: 1.0,
@@ -139,13 +134,11 @@ pub fn render_loop(graphics: &mut Graphics, render_pipelines: &RenderPipelines, 
                 clear_stencil: 0,
             }),
         });
-
-        &render_pipelines.default.draw(&mut game_render_pass);
-        &render_pipelines.clipmap.draw(&mut game_render_pass);
+        render_pipelines.default.draw(&device, &mut pipeline_encoder, &mut game_render_pass);
+        render_pipelines.clipmap.draw(&device, &mut pipeline_encoder, &mut game_render_pass);
     }
-
     {
-        let mut ui_render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+        let mut ui_render_pass = render_pass_creation_encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             color_attachments: &[
                 wgpu::RenderPassColorAttachmentDescriptor {
                     attachment: target,
@@ -162,12 +155,7 @@ pub fn render_loop(graphics: &mut Graphics, render_pipelines: &RenderPipelines, 
             ],
             depth_stencil_attachment: None
         });
-        &render_pipelines.ui.draw(&mut ui_render_pass);
+        render_pipelines.ui.draw(&device, &mut pipeline_encoder, &mut ui_render_pass);
     }
-/*    if render_ui {
-        render_pipelines.ui.glyph_brush.draw_queued(&graphics.device, &mut encoder, target, graphics.sc_descriptor.width, graphics.sc_descriptor.height,).expect("Cannot draw glyph_brush");
-    }
-
- */
-    graphics.queue.submit(&[encoder.finish()]);
+    queue.submit(&[render_pass_creation_encoder.finish(), pipeline_encoder.finish()]);
 }

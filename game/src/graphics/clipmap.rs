@@ -221,7 +221,9 @@ impl Pipeline {
         self.clipmap_data = clipmap_data;
     }
 
-    pub fn pre_render(&self, device: &wgpu::Device, encoder: &mut wgpu::CommandEncoder) {
+    pub fn draw<'a, 'b>(&'a self, device: &wgpu::Device, encoder: &mut wgpu::CommandEncoder, render_pass: &'b mut wgpu::RenderPass<'a>)
+        where 'a: 'b
+    {
         let uniforms_bufer = device.create_buffer_with_data(bytemuck::cast_slice(&[self.uniforms]), wgpu::BufferUsage::COPY_SRC);
         let height_map_data_buffer = device.create_buffer_with_data(bytemuck::cast_slice(self.clipmap_data.as_slice()), wgpu::BufferUsage::COPY_SRC);
         encoder.copy_buffer_to_texture(wgpu::BufferCopyView{
@@ -243,11 +245,8 @@ impl Pipeline {
             height: 4,
             depth: 1
         });
+
         encoder.copy_buffer_to_buffer(&uniforms_bufer, 0, &self.uniforms_buffer, 0, std::mem::size_of_val(&self.uniforms) as u64);
-    }
-    pub fn draw<'a, 'b>(&'a self, render_pass: &'b mut wgpu::RenderPass<'a>)
-        where 'a: 'b
-    {
         render_pass.set_pipeline(&self.render_pipeline);
         render_pass.set_vertex_buffer(0, &self.drawables[0].vertex_buffer, 0, 0);
         render_pass.set_index_buffer(&self.drawables[0].index_buffer, 0, 0);
