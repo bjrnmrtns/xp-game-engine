@@ -118,7 +118,8 @@ fn game(options: Options) {
                 render_pipelines.ui.create_drawable(&graphics.device, Some(mesh::create_mesh(&ui)));
                 render_pipelines.ui.update(graphics::ui::Uniforms { projection: projection_2d }, game_state.ui_enabled);
 
-                futures::executor::block_on(graphics::render_loop(&mut graphics, &mut render_pipelines));
+                let target = &graphics.swap_chain.get_next_texture().expect("failed to get next texture").view;
+                graphics::render_loop(&mut graphics, &mut render_pipelines, target);
             }
             Event::MainEventsCleared => {
                 window.request_redraw();

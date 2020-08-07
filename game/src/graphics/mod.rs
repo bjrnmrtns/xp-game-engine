@@ -51,7 +51,7 @@ pub struct Graphics {
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
     pub sc_descriptor: wgpu::SwapChainDescriptor,
-    swap_chain: wgpu::SwapChain,
+    pub swap_chain: wgpu::SwapChain,
     depth_texture: texture::Texture,
     window_size: winit::dpi::PhysicalSize<u32>,
 }
@@ -105,8 +105,7 @@ impl Graphics {
     }
 }
 
-pub async fn render_loop(graphics: &mut Graphics, render_pipelines: &RenderPipelines) {
-    let target = &graphics.swap_chain.get_next_texture().expect("failed to get next texture").view;
+pub fn render_loop(graphics: &mut Graphics, render_pipelines: &RenderPipelines, target: &wgpu::TextureView) {
     let mut encoder = graphics.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
     render_pipelines.default.pre_render(&graphics.device, &mut encoder);
