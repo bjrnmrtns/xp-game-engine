@@ -110,9 +110,9 @@ impl Graphics {
     }
 }
 
-pub fn render_loop(render_pipelines: &Renderables, device: &wgpu::Device, queue: &wgpu::Queue, target: &wgpu::TextureView, depth_attachment: &wgpu::TextureView) {
+pub fn render_loop(renderables: &Renderables, device: &wgpu::Device, queue: &wgpu::Queue, target: &wgpu::TextureView, depth_attachment: &wgpu::TextureView) {
     let mut render_pass_creation_encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
-    let mut pipeline_encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+    let mut renderable_encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
     {
         let mut game_render_pass = render_pass_creation_encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             color_attachments: &[
@@ -139,8 +139,8 @@ pub fn render_loop(render_pipelines: &Renderables, device: &wgpu::Device, queue:
                 clear_stencil: 0,
             }),
         });
-        render_pipelines.default.render(&device, &mut pipeline_encoder, &mut game_render_pass);
-        render_pipelines.clipmap.render(&device, &mut pipeline_encoder, &mut game_render_pass);
+        renderables.default.render(&device, &mut renderable_encoder, &mut game_render_pass);
+        renderables.clipmap.render(&device, &mut renderable_encoder, &mut game_render_pass);
     }
     {
         let mut ui_render_pass = render_pass_creation_encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -160,7 +160,7 @@ pub fn render_loop(render_pipelines: &Renderables, device: &wgpu::Device, queue:
             ],
             depth_stencil_attachment: None
         });
-        render_pipelines.ui.render(&device, &mut pipeline_encoder, &mut ui_render_pass);
+        renderables.ui.render(&device, &mut renderable_encoder, &mut ui_render_pass);
     }
-    queue.submit(&[render_pass_creation_encoder.finish(), pipeline_encoder.finish()]);
+    queue.submit(&[render_pass_creation_encoder.finish(), renderable_encoder.finish()]);
 }

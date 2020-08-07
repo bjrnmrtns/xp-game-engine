@@ -119,7 +119,7 @@ fn game(options: Options) {
                 renderables.ui.update(graphics::ui::Uniforms { projection: projection_2d }, game_state.ui_enabled);
 
                 let target = &graphics.swap_chain.get_next_texture().expect("failed to get next texture").view;
-                graphics::render_loop(&mut renderables, &graphics.device, &graphics.queue, target, &graphics.depth_texture.view);
+                graphics::render_loop(&renderables, &graphics.device, &graphics.queue, target, &graphics.depth_texture.view);
             }
             Event::MainEventsCleared => {
                 window.request_redraw();
