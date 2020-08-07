@@ -2,6 +2,7 @@ use crate::graphics::{texture, Drawable, Mesh};
 use wgpu::*;
 use nalgebra_glm::{Mat4, identity};
 use crate::graphics::error::GraphicsError;
+use crate::graphics;
 
 type Result<T> = std::result::Result<T, GraphicsError>;
 
@@ -73,7 +74,7 @@ pub struct Uniforms {
 unsafe impl bytemuck::Pod for Uniforms {}
 unsafe impl bytemuck::Zeroable for Uniforms {}
 
-pub struct Pipeline {
+pub struct Renderable {
     pub drawables: Vec<Drawable>,
     pub uniform_buffer: wgpu::Buffer,
     pub instance_buffer: wgpu::Buffer,
@@ -82,7 +83,7 @@ pub struct Pipeline {
     uniforms: Uniforms,
     instances: Vec<Instance>,
 }
-impl Pipeline {
+impl Renderable {
     pub async fn new(device: &Device, sc_descriptor: &wgpu::SwapChainDescriptor, _queue: &wgpu::Queue) -> Result<Self> {
         // from here 3D renderpipeline creation
         let vs_spirv = glsl_to_spirv::compile(include_str!("../shader.vert"), glsl_to_spirv::ShaderType::Vertex)?;
@@ -215,10 +216,10 @@ impl Pipeline {
         self.uniforms = uniforms;
         self.instances = instances;
     }
+}
 
-    pub fn draw<'a, 'b>(&'a self, device: &wgpu::Device, encoder: &mut wgpu::CommandEncoder, render_pass: &'b mut wgpu::RenderPass<'a>)
-        where 'a: 'b
-    {
+impl graphics::Renderable for Renderable {
+    fn render<'a, 'b>(&'a self, device: &Device, encoder: &mut CommandEncoder, render_pass: &'b mut RenderPass<'a>) where 'a: 'b {
         let instance_buffer = device.create_buffer_with_data(bytemuck::cast_slice(self.instances.as_slice()), wgpu::BufferUsage::COPY_SRC);
         encoder.copy_buffer_to_buffer(&instance_buffer, 0, &self.instance_buffer, 0,
                                       std::mem::size_of_val(self.instances.as_slice()) as wgpu::BufferAddress);

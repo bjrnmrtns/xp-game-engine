@@ -2,6 +2,7 @@ use crate::graphics::{Mesh, texture, Drawable, Graphics};
 use wgpu::{*};
 use nalgebra_glm::{Mat4, identity};
 use crate::graphics::error::GraphicsError;
+use crate::graphics;
 
 type Result<T> = std::result::Result<T, GraphicsError>;
 
@@ -60,7 +61,7 @@ impl Vertex {
     }
 }
 
-pub struct Pipeline {
+pub struct Renderable {
     pub drawable: Option<Drawable>,
     pub uniform_bind_group: wgpu::BindGroup,
     pub uniform_buffer: wgpu::Buffer,
@@ -71,7 +72,7 @@ pub struct Pipeline {
     enabled: bool,
 }
 
-impl Pipeline {
+impl Renderable {
     pub async fn new(device: &Device, sc_descriptor: &wgpu::SwapChainDescriptor, queue: &wgpu::Queue) -> Result<Self> {
         let vs_ui_spirv = glsl_to_spirv::compile(include_str!("../shader_ui.vert"), glsl_to_spirv::ShaderType::Vertex)?;
         let fs_ui_spirv = glsl_to_spirv::compile(include_str!("../shader_ui.frag"), glsl_to_spirv::ShaderType::Fragment)?;
@@ -221,10 +222,9 @@ impl Pipeline {
         self.enabled = enabled;
         self.uniforms = uniforms;
     }
-
-    pub fn draw<'a, 'b>(&'a self, device: &wgpu::Device, encoder: &mut wgpu::CommandEncoder, render_pass: &'b mut wgpu::RenderPass<'a>)
-        where 'a: 'b
-    {
+}
+impl graphics::Renderable for Renderable {
+    fn render<'a, 'b>(&'a self, device: &Device, encoder: &mut CommandEncoder, render_pass: &'b mut RenderPass<'a>) where 'a: 'b {
         let buffer = device.create_buffer_with_data(bytemuck::cast_slice(&[self.uniforms]), wgpu::BufferUsage::COPY_SRC);
         encoder.copy_buffer_to_buffer(&buffer, 0, &self.uniform_buffer, 0, std::mem::size_of_val(&self.uniforms) as u64);
         if self.enabled {

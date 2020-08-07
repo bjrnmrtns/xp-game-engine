@@ -30,18 +30,23 @@ pub struct Drawable {
     pub index_buffer_len: u32,
 }
 
-pub struct RenderPipelines {
-    pub ui: ui::Pipeline,
-    pub default: default::Pipeline,
-    pub clipmap: clipmap::Pipeline,
+pub struct Renderables {
+    pub ui: ui::Renderable,
+    pub default: default::Renderable,
+    pub clipmap: clipmap::Renderable,
 }
 
-impl RenderPipelines {
+pub trait Renderable {
+    fn render<'a, 'b>(&'a self, device: &wgpu::Device, encoder: &mut wgpu::CommandEncoder, render_pass: &'b mut wgpu::RenderPass<'a>)
+        where 'a: 'b;
+}
+
+impl Renderables {
     pub async fn new(device: &wgpu::Device, queue: &wgpu::Queue, swapchain_descriptor: &wgpu::SwapChainDescriptor) -> Result<Self> {
         Ok(Self {
-            ui: ui::Pipeline::new(&device, &swapchain_descriptor, &queue).await?,
-            default: default::Pipeline::new(&device, &swapchain_descriptor, &queue).await?,
-            clipmap: clipmap::Pipeline::new(&device, &swapchain_descriptor, &queue).await?,
+            ui: ui::Renderable::new(&device, &swapchain_descriptor, &queue).await?,
+            default: default::Renderable::new(&device, &swapchain_descriptor, &queue).await?,
+            clipmap: clipmap::Renderable::new(&device, &swapchain_descriptor, &queue).await?,
         })
     }
 }
@@ -105,7 +110,7 @@ impl Graphics {
     }
 }
 
-pub fn render_loop(render_pipelines: &RenderPipelines, device: &wgpu::Device, queue: &wgpu::Queue, target: &wgpu::TextureView, depth_attachment: &wgpu::TextureView) {
+pub fn render_loop(render_pipelines: &Renderables, device: &wgpu::Device, queue: &wgpu::Queue, target: &wgpu::TextureView, depth_attachment: &wgpu::TextureView) {
     let mut render_pass_creation_encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
     let mut pipeline_encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
     {
@@ -134,8 +139,8 @@ pub fn render_loop(render_pipelines: &RenderPipelines, device: &wgpu::Device, qu
                 clear_stencil: 0,
             }),
         });
-        render_pipelines.default.draw(&device, &mut pipeline_encoder, &mut game_render_pass);
-        render_pipelines.clipmap.draw(&device, &mut pipeline_encoder, &mut game_render_pass);
+        render_pipelines.default.render(&device, &mut pipeline_encoder, &mut game_render_pass);
+        render_pipelines.clipmap.render(&device, &mut pipeline_encoder, &mut game_render_pass);
     }
     {
         let mut ui_render_pass = render_pass_creation_encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -155,7 +160,7 @@ pub fn render_loop(render_pipelines: &RenderPipelines, device: &wgpu::Device, qu
             ],
             depth_stencil_attachment: None
         });
-        render_pipelines.ui.draw(&device, &mut pipeline_encoder, &mut ui_render_pass);
+        render_pipelines.ui.render(&device, &mut pipeline_encoder, &mut ui_render_pass);
     }
     queue.submit(&[render_pass_creation_encoder.finish(), pipeline_encoder.finish()]);
 }

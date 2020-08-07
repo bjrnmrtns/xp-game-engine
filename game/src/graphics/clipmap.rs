@@ -1,7 +1,8 @@
 use crate::graphics::{Drawable, texture};
 use nalgebra_glm::{Mat4, identity, Vec3, vec3};
-use wgpu::{Device, BindingResource, BindGroupLayoutEntry, TextureViewDimension};
+use wgpu::{Device, BindingResource, BindGroupLayoutEntry, TextureViewDimension, RenderPass, CommandEncoder};
 use crate::graphics::error::GraphicsError;
+use crate::graphics;
 
 type Result<T> = std::result::Result<T, GraphicsError>;
 
@@ -52,7 +53,7 @@ pub struct Uniforms {
 unsafe impl bytemuck::Pod for Uniforms {}
 unsafe impl bytemuck::Zeroable for Uniforms {}
 
-pub struct Pipeline {
+pub struct Renderable {
     pub drawables: Vec<Drawable>,
     pub uniforms_buffer: wgpu::Buffer,
     pub instance_buffer: wgpu::Buffer,
@@ -64,7 +65,7 @@ pub struct Pipeline {
     clipmap_data: Vec<f32>,
 }
 
-impl Pipeline {
+impl Renderable {
     pub async fn new(device: &Device, sc_descriptor: &wgpu::SwapChainDescriptor, _queue: &wgpu::Queue) -> Result<Self> {
         // from here 3D renderpipeline creation
         let vs_spirv = glsl_to_spirv::compile(include_str!("../shader_clipmap.vert"), glsl_to_spirv::ShaderType::Vertex)?;
@@ -220,10 +221,35 @@ impl Pipeline {
         self.uniforms = uniforms;
         self.clipmap_data = clipmap_data;
     }
+}
 
-    pub fn draw<'a, 'b>(&'a self, device: &wgpu::Device, encoder: &mut wgpu::CommandEncoder, render_pass: &'b mut wgpu::RenderPass<'a>)
-        where 'a: 'b
-    {
+pub fn create_clipmap() -> (Vec<Vertex>, Vec<u32>) {
+    const K: u32 = 8;
+    const N: u32 = 255;
+    assert_eq!(N, (2 as u32).pow(K) - 1);
+    let mut vertices: Vec<Vertex> = Vec::new();
+    for z in 0..N+1 {
+        for x in 0..N+1 {
+            vertices.push(Vertex {
+                p: [x as f32, z as f32],
+            })
+        }
+    }
+    let mut indices: Vec<u32> = Vec::new();
+    for z in 0..N {
+        for x in 0..N {
+            let i0 = x + z * (N+1);
+            let i1 = i0 + 1;
+            let i2 = x + (z + 1) * (N+1);
+            let i3 = i2 + 1;
+            indices.extend_from_slice(&[i0, i2, i2, i1, i1, i0, i1, i2, i2, i3, i3, i1]); // line_strip -> wireframe, indexbuffer for filled is remove even indices
+        }
+    }
+    (vertices, indices)
+}
+
+impl graphics::Renderable for Renderable {
+    fn render<'a, 'b>(&'a self, device: &Device, encoder: &mut CommandEncoder, render_pass: &'b mut RenderPass<'a>) where 'a: 'b {
         let uniforms_bufer = device.create_buffer_with_data(bytemuck::cast_slice(&[self.uniforms]), wgpu::BufferUsage::COPY_SRC);
         let height_map_data_buffer = device.create_buffer_with_data(bytemuck::cast_slice(self.clipmap_data.as_slice()), wgpu::BufferUsage::COPY_SRC);
         encoder.copy_buffer_to_texture(wgpu::BufferCopyView{
@@ -253,30 +279,5 @@ impl Pipeline {
         render_pass.set_bind_group(0, &self.bind_group, &[]);
         render_pass.draw_indexed(0..self.drawables[0].index_buffer_len, 0, 0..1);
     }
-}
-
-pub fn create_clipmap() -> (Vec<Vertex>, Vec<u32>) {
-    const K: u32 = 8;
-    const N: u32 = 255;
-    assert_eq!(N, (2 as u32).pow(K) - 1);
-    let mut vertices: Vec<Vertex> = Vec::new();
-    for z in 0..N+1 {
-        for x in 0..N+1 {
-            vertices.push(Vertex {
-                p: [x as f32, z as f32],
-            })
-        }
-    }
-    let mut indices: Vec<u32> = Vec::new();
-    for z in 0..N {
-        for x in 0..N {
-            let i0 = x + z * (N+1);
-            let i1 = i0 + 1;
-            let i2 = x + (z + 1) * (N+1);
-            let i3 = i2 + 1;
-            indices.extend_from_slice(&[i0, i2, i2, i1, i1, i0, i1, i2, i2, i3, i3, i1]); // line_strip -> wireframe, indexbuffer for filled is remove even indices
-        }
-    }
-    (vertices, indices)
 }
 

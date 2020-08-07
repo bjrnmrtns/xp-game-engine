@@ -49,11 +49,11 @@ fn game(options: Options) {
     }});
     ui.layout();
     let mut graphics = futures::executor::block_on(graphics::Graphics::new(&window)).expect("Could not create graphics renderer");
-    let mut render_pipelines = futures::executor::block_on(graphics::RenderPipelines::new(&graphics.device, &graphics.queue, &graphics.sc_descriptor)).expect("Could not create graphics renderer");
-    render_pipelines.default.create_drawable(&graphics.device, &player_mesh);
-    render_pipelines.default.create_drawable(&graphics.device, &axis_mesh);
+    let mut renderables = futures::executor::block_on(graphics::Renderables::new(&graphics.device, &graphics.queue, &graphics.sc_descriptor)).expect("Could not create graphics renderer");
+    renderables.default.create_drawable(&graphics.device, &player_mesh);
+    renderables.default.create_drawable(&graphics.device, &axis_mesh);
     let (clipmap_vertices, clipmap_indices) = clipmap::create_clipmap();
-    render_pipelines.clipmap.add_clipmap(&graphics.device, &clipmap_vertices, &clipmap_indices);
+    renderables.clipmap.add_clipmap(&graphics.device, &clipmap_vertices, &clipmap_indices);
 
     let mut previous_time = Instant::now();
 
@@ -111,15 +111,15 @@ fn game(options: Options) {
                 let mut instances = Vec::new();
                 instances.push( graphics::default::Instance {model: player.pose() });
                 instances.push( graphics::default::Instance {model: identity() });
-                render_pipelines.default.update(graphics::default::Uniforms{ projection: projection_3d.clone() as Mat4, view: view.clone() as Mat4,}, instances,);
+                renderables.default.update(graphics::default::Uniforms{ projection: projection_3d.clone() as Mat4, view: view.clone() as Mat4,}, instances,);
                 let mut height_map_data_update: Vec<f32> = Vec::new();
                 height_map_data_update.extend_from_slice(&[1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0,1.0, 1.0, 1.0, 1.0,]);
-                render_pipelines.clipmap.update(clipmap::Uniforms{ projection: projection_3d.clone() as Mat4, view: view.clone() as Mat4, camera_position: player.position }, height_map_data_update);
-                render_pipelines.ui.create_drawable(&graphics.device, Some(mesh::create_mesh(&ui)));
-                render_pipelines.ui.update(graphics::ui::Uniforms { projection: projection_2d }, game_state.ui_enabled);
+                renderables.clipmap.update(clipmap::Uniforms{ projection: projection_3d.clone() as Mat4, view: view.clone() as Mat4, camera_position: player.position }, height_map_data_update);
+                renderables.ui.create_drawable(&graphics.device, Some(mesh::create_mesh(&ui)));
+                renderables.ui.update(graphics::ui::Uniforms { projection: projection_2d }, game_state.ui_enabled);
 
                 let target = &graphics.swap_chain.get_next_texture().expect("failed to get next texture").view;
-                graphics::render_loop( &mut render_pipelines, &graphics.device, &graphics.queue, target, &graphics.depth_texture.view);
+                graphics::render_loop(&mut renderables, &graphics.device, &graphics.queue, target, &graphics.depth_texture.view);
             }
             Event::MainEventsCleared => {
                 window.request_redraw();
