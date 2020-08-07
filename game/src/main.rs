@@ -178,7 +178,15 @@ fn game(options: Options) {
                             state: ElementState::Pressed,
                             virtual_keycode: Some(VirtualKeyCode::Q),
                             ..
-                        }, true) => *control_flow = ControlFlow::Exit,
+                        }, _) => *control_flow = ControlFlow::Exit,
+                        (KeyboardInput {
+                            state: ElementState::Pressed,
+                            virtual_keycode: Some(VirtualKeyCode::C),
+                            ..
+                        }, _) => match game_state.camera {
+                            camera::CameraType::FreeLook => game_state.camera = camera::CameraType::Follow,
+                            camera::CameraType::Follow => game_state.camera = camera::CameraType::FreeLook,
+                        },
                         _ => inputs.push_keyboard_input(input),
                     }
                 }

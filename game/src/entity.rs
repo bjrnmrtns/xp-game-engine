@@ -40,7 +40,7 @@ impl Posable for Entity {
 
 impl Followable for Entity {
     fn follow(&self) -> Mat4 {
-        let direction =  vec4_to_vec3(&(quat_to_mat4(&self.orientation) * vec4(0.0, -2.0, -3.0, 1.0)));
+        let direction =  vec4_to_vec3(&(quat_to_mat4(&self.orientation) * vec4(0.0, -1.5, -4.0, 1.0)));
         let eye =  &self.position - &direction;
         look_at(&eye, &self.position, &vec3(0.0, 1.0, 0.0))
     }
