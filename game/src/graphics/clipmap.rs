@@ -217,9 +217,10 @@ impl Renderable {
         self.drawables.push(Drawable { vertex_buffer, index_buffer, index_buffer_len: indices.len() as u32, });
     }
 
-    pub fn update(&mut self, uniforms: Uniforms, clipmap_data: Vec<f32>) {
+    pub fn update(&mut self, uniforms: Uniforms) {
+        let sine = Sine {};
         self.uniforms = uniforms;
-        self.clipmap_data = clipmap_data;
+        self.clipmap_data = create_heightmap(&[uniforms.camera_position.x as i32, uniforms.camera_position.z as i32], 8, &sine);
     }
 }
 
@@ -255,20 +256,20 @@ impl graphics::Renderable for Renderable {
         encoder.copy_buffer_to_texture(wgpu::BufferCopyView {
             buffer: &height_map_data_buffer,
             offset: 0,
-            bytes_per_row: 16,
-            rows_per_image: 4
+            bytes_per_row: 16 * 4,
+            rows_per_image: 16
         }, wgpu::TextureCopyView{
             texture: &self.texture.texture,
             mip_level: 0,
             array_layer: 0,
             origin: wgpu::Origin3d{
-                x: 4,
-                y: 4,
+                x: 0,
+                y: 0,
                 z: 1
             }
         }, wgpu::Extent3d{
-            width: 4,
-            height: 4,
+            width: 16,
+            height: 16,
             depth: 1
         });
 
@@ -281,11 +282,19 @@ impl graphics::Renderable for Renderable {
     }
 }
 
+struct Sine;
+
+impl graphics::clipmap::Generator for Sine {
+    fn generate(&self, pos: [f32; 2]) -> f32 {
+        pos[0].sin() + pos[1].cos()
+    }
+}
+
 pub trait Generator {
     fn generate(&self, pos: [f32; 2]) -> f32;
 }
 
-pub fn create_heightmap<T: Generator>(pos: [i32; 2], offset: i32, generator: &T) -> Vec<f32> {
+fn create_heightmap<T: Generator>(pos: &[i32; 2], offset: i32, generator: &T) -> Vec<f32> {
     let mut heightmap = Vec::new();
     heightmap.reserve(256);
     for z in pos[1]-offset..pos[1]+offset {
