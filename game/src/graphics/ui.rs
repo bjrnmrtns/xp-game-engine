@@ -68,6 +68,7 @@ pub struct Pipeline {
     pub texture_bind_group: wgpu::BindGroup,
     pub glyph_brush: wgpu_glyph::GlyphBrush<()>,
     uniforms: Uniforms,
+    enabled: bool,
 }
 
 impl Pipeline {
@@ -196,6 +197,7 @@ impl Pipeline {
             uniform_buffer,
             glyph_brush,
             uniforms,
+            enabled: false,
         })
     }
 
@@ -215,7 +217,8 @@ impl Pipeline {
         }
     }
 
-    pub fn update(&mut self, uniforms: Uniforms) {
+    pub fn update(&mut self, uniforms: Uniforms, enabled: bool) {
+        self.enabled = enabled;
         self.uniforms = uniforms;
     }
 
@@ -227,13 +230,15 @@ impl Pipeline {
     pub fn draw<'a, 'b>(&'a self, render_pass: &'b mut wgpu::RenderPass<'a>)
         where 'a: 'b
     {
-        if let Some(drawable) = &self.drawable {
-            render_pass.set_pipeline(&self.render_pipeline);
-            render_pass.set_vertex_buffer(0, &drawable.vertex_buffer, 0, 0);
-            render_pass.set_index_buffer(&drawable.index_buffer, 0, 0);
-            render_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
-            render_pass.set_bind_group(1, &self.texture_bind_group, &[]);
-            render_pass.draw_indexed(0..drawable.index_buffer_len, 0, 0..1);
+        if self.enabled {
+            if let Some(drawable) = &self.drawable {
+                render_pass.set_pipeline(&self.render_pipeline);
+                render_pass.set_vertex_buffer(0, &drawable.vertex_buffer, 0, 0);
+                render_pass.set_index_buffer(&drawable.index_buffer, 0, 0);
+                render_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
+                render_pass.set_bind_group(1, &self.texture_bind_group, &[]);
+                render_pass.draw_indexed(0..drawable.index_buffer_len, 0, 0..1);
+            }
         }
     }
 }

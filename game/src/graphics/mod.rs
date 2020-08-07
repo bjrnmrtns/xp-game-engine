@@ -105,8 +105,8 @@ impl Graphics {
     }
 }
 
-pub async fn render_loop(graphics: &mut Graphics, render_pipelines: &mut RenderPipelines, render_ui: bool) {
-    let frame = graphics.swap_chain.get_next_texture().expect("failed to get next texture");
+pub async fn render_loop(graphics: &mut Graphics, render_pipelines: &RenderPipelines) {
+    let target = &graphics.swap_chain.get_next_texture().expect("failed to get next texture").view;
     let mut encoder = graphics.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
     render_pipelines.default.pre_render(&graphics.device, &mut encoder);
@@ -118,7 +118,7 @@ pub async fn render_loop(graphics: &mut Graphics, render_pipelines: &mut RenderP
         let mut game_render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             color_attachments: &[
                 wgpu::RenderPassColorAttachmentDescriptor {
-                    attachment: &frame.view,
+                    attachment: target,
                     resolve_target: None,
                     load_op: wgpu::LoadOp::Clear,
                     store_op: wgpu::StoreOp::Store,
@@ -145,12 +145,11 @@ pub async fn render_loop(graphics: &mut Graphics, render_pipelines: &mut RenderP
         &render_pipelines.clipmap.draw(&mut game_render_pass);
     }
 
-    if render_ui
     {
         let mut ui_render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             color_attachments: &[
                 wgpu::RenderPassColorAttachmentDescriptor {
-                    attachment: &frame.view,
+                    attachment: target,
                     resolve_target: None,
                     load_op: wgpu::LoadOp::Load,
                     store_op: wgpu::StoreOp::Store,
@@ -166,8 +165,10 @@ pub async fn render_loop(graphics: &mut Graphics, render_pipelines: &mut RenderP
         });
         &render_pipelines.ui.draw(&mut ui_render_pass);
     }
-    if render_ui {
-        render_pipelines.ui.glyph_brush.draw_queued(&graphics.device, &mut encoder, &frame.view, graphics.sc_descriptor.width, graphics.sc_descriptor.height,).expect("Cannot draw glyph_brush");
+/*    if render_ui {
+        render_pipelines.ui.glyph_brush.draw_queued(&graphics.device, &mut encoder, target, graphics.sc_descriptor.width, graphics.sc_descriptor.height,).expect("Cannot draw glyph_brush");
     }
+
+ */
     graphics.queue.submit(&[encoder.finish()]);
 }

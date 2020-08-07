@@ -116,9 +116,9 @@ fn game(options: Options) {
                 height_map_data_update.extend_from_slice(&[1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0,1.0, 1.0, 1.0, 1.0,]);
                 render_pipelines.clipmap.update(clipmap::Uniforms{ projection: projection_3d.clone() as Mat4, view: view.clone() as Mat4, camera_position: player.position }, height_map_data_update);
                 render_pipelines.ui.create_drawable(&graphics.device, Some(mesh::create_mesh(&ui)));
-                render_pipelines.ui.update(graphics::ui::Uniforms { projection: projection_2d });
+                render_pipelines.ui.update(graphics::ui::Uniforms { projection: projection_2d }, game_state.ui_enabled);
 
-                futures::executor::block_on(graphics::render_loop(&mut graphics, &mut render_pipelines, game_state.ui_enabled));
+                futures::executor::block_on(graphics::render_loop(&mut graphics, &mut render_pipelines));
             }
             Event::MainEventsCleared => {
                 window.request_redraw();
