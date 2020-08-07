@@ -6,7 +6,7 @@ pub enum CameraType {
 }
 
 pub struct FreeLook {
-    position: Vec3,
+    pub position: Vec3,
     direction: Vec3,
 }
 impl FreeLook {

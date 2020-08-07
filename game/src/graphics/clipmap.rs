@@ -224,23 +224,23 @@ impl Renderable {
 }
 
 pub fn create_clipmap() -> (Vec<Vertex>, Vec<u32>) {
-    const K: u32 = 8;
-    const N: u32 = 255;
+    const K: u32 = 4;
+    const N: u32 = 15;
     assert_eq!(N, (2 as u32).pow(K) - 1);
     let mut vertices: Vec<Vertex> = Vec::new();
-    for z in 0..N+1 {
-        for x in 0..N+1 {
+    for z in 0..N {
+        for x in 0..N {
             vertices.push(Vertex {
                 p: [x as f32, z as f32],
             })
         }
     }
     let mut indices: Vec<u32> = Vec::new();
-    for z in 0..N {
-        for x in 0..N {
-            let i0 = x + z * (N+1);
+    for z in 0..N-1 {
+        for x in 0..N-1 {
+            let i0 = x + z * N;
             let i1 = i0 + 1;
-            let i2 = x + (z + 1) * (N+1);
+            let i2 = x + (z + 1) * N;
             let i3 = i2 + 1;
             indices.extend_from_slice(&[i0, i2, i2, i1, i1, i0, i1, i2, i2, i3, i3, i1]); // line_strip -> wireframe, indexbuffer for filled is remove even indices
         }
@@ -252,7 +252,7 @@ impl graphics::Renderable for Renderable {
     fn render<'a, 'b>(&'a self, device: &Device, encoder: &mut CommandEncoder, render_pass: &'b mut RenderPass<'a>) where 'a: 'b {
         let uniforms_bufer = device.create_buffer_with_data(bytemuck::cast_slice(&[self.uniforms]), wgpu::BufferUsage::COPY_SRC);
         let height_map_data_buffer = device.create_buffer_with_data(bytemuck::cast_slice(self.clipmap_data.as_slice()), wgpu::BufferUsage::COPY_SRC);
-        encoder.copy_buffer_to_texture(wgpu::BufferCopyView{
+        encoder.copy_buffer_to_texture(wgpu::BufferCopyView {
             buffer: &height_map_data_buffer,
             offset: 0,
             bytes_per_row: 16,
@@ -279,5 +279,20 @@ impl graphics::Renderable for Renderable {
         render_pass.set_bind_group(0, &self.bind_group, &[]);
         render_pass.draw_indexed(0..self.drawables[0].index_buffer_len, 0, 0..1);
     }
+}
+
+pub trait Generator {
+    fn generate(&self, pos: [f32; 2]) -> f32;
+}
+
+pub fn create_heightmap<T: Generator>(pos: [i32; 2], offset: i32, generator: &T) -> Vec<f32> {
+    let mut heightmap = Vec::new();
+    heightmap.reserve(256);
+    for z in pos[1]-offset..pos[1]+offset {
+        for x in pos[0]-offset..pos[0]+offset {
+            heightmap.push(generator.generate([x as f32, z as f32]));
+        }
+    }
+    heightmap
 }
 

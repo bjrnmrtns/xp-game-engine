@@ -6,7 +6,7 @@ use winit::event_loop::{EventLoop, ControlFlow};
 use winit::event::{WindowEvent, ElementState, VirtualKeyCode, Event, KeyboardInput, MouseButton};
 use winit::window::WindowBuilder;
 use winit::event::DeviceEvent::{MouseMotion};
-use nalgebra_glm::{identity, ortho, perspective, Mat4};
+use nalgebra_glm::{identity, ortho, perspective, Mat4, Vec3};
 use game::*;
 use game::command_queue::CommandQueue;
 use game::entity::{Posable, Followable};
@@ -29,8 +29,16 @@ pub struct UIContext {
     pub camera: camera::CameraType,
 }
 
+struct Sine;
+
+impl graphics::clipmap::Generator for Sine {
+    fn generate(&self, pos: [f32; 2]) -> f32 {
+        pos[0].sin() + pos[1].cos()
+    }
+}
+
 fn game(options: Options) {
-    let mut game_state = UIContext { ui_enabled: false, camera: camera::CameraType::Follow, };
+    let mut game_state = UIContext { ui_enabled: false, camera: camera::CameraType::FreeLook, };
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()
         .build(&event_loop).expect("Could not create window");
@@ -113,8 +121,9 @@ fn game(options: Options) {
                 instances.push( graphics::default::Instance {model: identity() });
                 renderables.default.update(graphics::default::Uniforms{ projection: projection_3d.clone() as Mat4, view: view.clone() as Mat4,}, instances,);
                 let mut height_map_data_update: Vec<f32> = Vec::new();
-                height_map_data_update.extend_from_slice(&[1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0,1.0, 1.0, 1.0, 1.0,]);
-                renderables.clipmap.update(clipmap::Uniforms{ projection: projection_3d.clone() as Mat4, view: view.clone() as Mat4, camera_position: player.position }, height_map_data_update);
+                height_map_data_update.extend_from_slice(&[1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0,]);
+                let snapped_position = Vec3::new(simulation.freelook_camera.position.x.floor(), simulation.freelook_camera.position.y.floor(), simulation.freelook_camera.position.z.floor());
+                renderables.clipmap.update(clipmap::Uniforms{ projection: projection_3d.clone() as Mat4, view: view.clone() as Mat4, camera_position: snapped_position }, height_map_data_update);
                 renderables.ui.create_drawable(&graphics.device, Some(mesh::create_mesh(&ui)));
                 renderables.ui.update(graphics::ui::Uniforms { projection: projection_2d }, game_state.ui_enabled);
 
