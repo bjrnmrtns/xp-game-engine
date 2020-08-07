@@ -224,4 +224,20 @@ impl Pipeline {
         let buffer = device.create_buffer_with_data(bytemuck::cast_slice(&[self.uniforms]), wgpu::BufferUsage::COPY_SRC);
         encoder.copy_buffer_to_buffer(&buffer, 0, &self.uniform_buffer, 0, std::mem::size_of_val(&self.uniforms) as u64);
     }
+
+    pub fn draw<'a, 'b>(&'a self, render_pass: &'b mut wgpu::RenderPass<'a>)
+        where 'a: 'b
+    {
+        render_pass.set_pipeline(&self.render_pipeline);
+
+        render_pass.set_vertex_buffer(0, &self.drawables[0].vertex_buffer, 0, 0);
+        render_pass.set_index_buffer(&self.drawables[0].index_buffer, 0, 0);
+        render_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
+        render_pass.draw_indexed(0..self.drawables[0].index_buffer_len, 0, 0..1);
+
+        render_pass.set_vertex_buffer(0, &self.drawables[1].vertex_buffer, 0, 0);
+        render_pass.set_index_buffer(&self.drawables[1].index_buffer, 0, 0);
+        render_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
+        render_pass.draw_indexed(0..self.drawables[1].index_buffer_len, 0, 1..2);
+    }
 }

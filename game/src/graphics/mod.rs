@@ -141,18 +141,7 @@ pub async fn render_loop(graphics: &mut Graphics, render_pipelines: &mut RenderP
             }),
         });
 
-        game_render_pass.set_pipeline(&render_pipelines.default.render_pipeline);
-
-        game_render_pass.set_vertex_buffer(0, &render_pipelines.default.drawables[0].vertex_buffer, 0, 0);
-        game_render_pass.set_index_buffer(&render_pipelines.default.drawables[0].index_buffer, 0, 0);
-        game_render_pass.set_bind_group(0, &render_pipelines.default.uniform_bind_group, &[]);
-        game_render_pass.draw_indexed(0..render_pipelines.default.drawables[0].index_buffer_len, 0, 0..1);
-
-        game_render_pass.set_vertex_buffer(0, &render_pipelines.default.drawables[1].vertex_buffer, 0, 0);
-        game_render_pass.set_index_buffer(&render_pipelines.default.drawables[1].index_buffer, 0, 0);
-        game_render_pass.set_bind_group(0, &render_pipelines.default.uniform_bind_group, &[]);
-        game_render_pass.draw_indexed(0..render_pipelines.default.drawables[1].index_buffer_len, 0, 1..2);
-
+        &render_pipelines.default.draw(&mut game_render_pass);
         &render_pipelines.clipmap.draw(&mut game_render_pass);
     }
 
@@ -175,14 +164,7 @@ pub async fn render_loop(graphics: &mut Graphics, render_pipelines: &mut RenderP
             ],
             depth_stencil_attachment: None
         });
-        ui_render_pass.set_pipeline(&render_pipelines.ui.render_pipeline);
-        if let Some(drawable) = &render_pipelines.ui.drawable {
-            ui_render_pass.set_vertex_buffer(0, &drawable.vertex_buffer, 0, 0);
-            ui_render_pass.set_index_buffer(&drawable.index_buffer, 0, 0);
-            ui_render_pass.set_bind_group(0, &render_pipelines.ui.uniform_bind_group, &[]);
-            ui_render_pass.set_bind_group(1, &render_pipelines.ui.texture_bind_group, &[]);
-            ui_render_pass.draw_indexed(0..drawable.index_buffer_len, 0, 0..1);
-        }
+        &render_pipelines.ui.draw(&mut ui_render_pass);
     }
     if render_ui {
         render_pipelines.ui.glyph_brush.draw_queued(&graphics.device, &mut encoder, &frame.view, graphics.sc_descriptor.width, graphics.sc_descriptor.height,).expect("Cannot draw glyph_brush");
