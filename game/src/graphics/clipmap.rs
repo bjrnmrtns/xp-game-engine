@@ -245,6 +245,15 @@ impl Pipeline {
         });
         encoder.copy_buffer_to_buffer(&uniforms_bufer, 0, &self.uniforms_buffer, 0, std::mem::size_of_val(&self.uniforms) as u64);
     }
+    pub fn draw<'a, 'b>(&'a self, render_pass: &'b mut wgpu::RenderPass<'a>)
+        where 'a: 'b
+    {
+        render_pass.set_pipeline(&self.render_pipeline);
+        render_pass.set_vertex_buffer(0, &self.drawables[0].vertex_buffer, 0, 0);
+        render_pass.set_index_buffer(&self.drawables[0].index_buffer, 0, 0);
+        render_pass.set_bind_group(0, &self.bind_group, &[]);
+        render_pass.draw_indexed(0..self.drawables[0].index_buffer_len, 0, 0..1);
+    }
 }
 
 pub fn create_clipmap() -> (Vec<Vertex>, Vec<u32>) {

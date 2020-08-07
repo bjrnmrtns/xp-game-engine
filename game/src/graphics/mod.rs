@@ -153,11 +153,7 @@ pub async fn render_loop(graphics: &mut Graphics, render_pipelines: &mut RenderP
         game_render_pass.set_bind_group(0, &render_pipelines.default.uniform_bind_group, &[]);
         game_render_pass.draw_indexed(0..render_pipelines.default.drawables[1].index_buffer_len, 0, 1..2);
 
-        game_render_pass.set_pipeline(&render_pipelines.clipmap.render_pipeline);
-        game_render_pass.set_vertex_buffer(0, &render_pipelines.clipmap.drawables[0].vertex_buffer, 0, 0);
-        game_render_pass.set_index_buffer(&render_pipelines.clipmap.drawables[0].index_buffer, 0, 0);
-        game_render_pass.set_bind_group(0, &render_pipelines.clipmap.bind_group, &[]);
-        game_render_pass.draw_indexed(0..render_pipelines.clipmap.drawables[0].index_buffer_len, 0, 0..1);
+        &render_pipelines.clipmap.draw(&mut game_render_pass);
     }
 
     if render_ui
