@@ -9,7 +9,6 @@ use winit::event::DeviceEvent::{MouseMotion};
 use nalgebra_glm::{identity, ortho, perspective, Mat4, Vec3};
 use game::*;
 use game::command_queue::CommandQueue;
-use game::entity::{Posable, Followable};
 use xp_ui::{UI, DEFAULT_LAYOUT, Label, ActionType};
 use xp_ui::Widget::LabelW;
 use game::graphics::clipmap;
@@ -45,7 +44,8 @@ fn game(options: Options) {
     let camera_button_id =ui.add(LabelW(DEFAULT_LAYOUT, Label::build("camera").with_color([0, 0, 255, 255])));
     ui.add_action_for_id(camera_button_id, ActionType::OnClick, |context|{ match context.camera {
         camera::CameraType::Follow => { context.camera = camera::CameraType::FreeLook },
-        camera::CameraType::FreeLook => { context.camera = camera::CameraType::Follow },
+        camera::CameraType::FreeLook => { context.camera = camera::CameraType::FreeLook2 },
+        camera::CameraType::FreeLook2 => { context.camera = camera::CameraType::Follow },
     }});
     ui.layout();
     let mut graphics = futures::executor::block_on(graphics::Graphics::new(&window)).expect("Could not create graphics renderer");
@@ -96,7 +96,8 @@ fn game(options: Options) {
                 // for the view matrix we can also use player_move and player_rotate, and use the inverse of the resulting matrix
                 let view = match game_state.camera {
                     camera::CameraType::FreeLook => simulation.freelook_camera.view(),
-                    camera::CameraType::Follow => player.follow(),
+                    camera::CameraType::FreeLook2 => simulation.freelook_camera2.view(),
+                    camera::CameraType::Follow => camera::view_on(&player.pose),
                 };
                 let current_time = Instant::now();
                 let fps = (1000.0 / (current_time - previous_time).as_millis() as f32) as u32;
@@ -109,7 +110,7 @@ fn game(options: Options) {
 
                 // update all renderers
                 let mut instances = Vec::new();
-                instances.push( graphics::default::Instance {model: player.pose() });
+                instances.push( graphics::default::Instance {model: player.pose.to_mat4() });
                 instances.push( graphics::default::Instance {model: identity() });
                 renderables.default.update(graphics::default::Uniforms{ projection: projection_3d.clone() as Mat4, view: view.clone() as Mat4,}, instances,);
                 let snapped_position = Vec3::new(simulation.freelook_camera.position.x.floor(), simulation.freelook_camera.position.y.floor(), simulation.freelook_camera.position.z.floor());
@@ -183,8 +184,9 @@ fn game(options: Options) {
                             virtual_keycode: Some(VirtualKeyCode::C),
                             ..
                         }, _) => match game_state.camera {
-                            camera::CameraType::FreeLook => game_state.camera = camera::CameraType::Follow,
                             camera::CameraType::Follow => game_state.camera = camera::CameraType::FreeLook,
+                            camera::CameraType::FreeLook => game_state.camera = camera::CameraType::FreeLook2,
+                            camera::CameraType::FreeLook2 => game_state.camera = camera::CameraType::Follow,
                         },
                         _ => inputs.push_keyboard_input(input),
                     }

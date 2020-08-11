@@ -1,7 +1,9 @@
 use nalgebra_glm::*;
+use crate::entity::Pose;
 
 pub enum CameraType {
     FreeLook,
+    FreeLook2,
     Follow,
 }
 
@@ -9,6 +11,7 @@ pub struct FreeLook {
     pub position: Vec3,
     direction: Vec3,
 }
+
 impl FreeLook {
     fn right_vector(&self) -> Vec3 {
         cross(&self.direction, &vec3(0.0, 1.0, 0.0))
@@ -30,4 +33,10 @@ impl FreeLook {
     pub fn view(&self) -> Mat4 {
         look_at(&self.position, &(&self.position + &self.direction), &vec3(0.0, 1.0, 0.0))
     }
+}
+
+pub fn view_on(pose: &Pose) -> Mat4 {
+    let direction =  vec4_to_vec3(&(quat_to_mat4(&pose.orientation) * vec4(0.0, -1.5, -4.0, 1.0)));
+    let eye =  &pose.position - &direction;
+    look_at(&eye, &pose.position, &vec3(0.0, 1.0, 0.0))
 }
