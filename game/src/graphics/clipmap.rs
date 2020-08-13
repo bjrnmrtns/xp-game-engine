@@ -1,5 +1,5 @@
 use crate::graphics::{Drawable, texture, create_drawable_from};
-use nalgebra_glm::{Mat4, identity, Vec3, vec3};
+use nalgebra_glm::{Mat4, identity, Vec3, vec3, Vec2, vec2};
 use wgpu::{Device, BindingResource, BindGroupLayoutEntry, TextureViewDimension, RenderPass, CommandEncoder};
 use crate::graphics::error::GraphicsError;
 use crate::graphics;
@@ -12,13 +12,11 @@ const CLIPMAP_M: u32 = (CLIPMAP_N + 1) / 4;
 const CLIPMAP_P: u32 = 3; // (CLIPMAP_N - 1) - ((CLIPMAP_M - 1) * 4) + 1 -> always 3
 const CLIPMAP_TEXTURE_SIZE: u32 = CLIPMAP_N + 1;
 const CLIPMAP_TEXTURE_SIZE_HALF: u32 = CLIPMAP_TEXTURE_SIZE / 2;
-const CLIPMAP_MXM_OFFSETS: [[u32; 2]; 12] = [[0, 0], [3, 0], [8, 0], [11, 0],
-                                             [0, 3], [11, 3],
-                                             [0, 8], [11, 8],
-                                             [0, 11], [3, 11], [8, 11], [11, 11]];
-
-const CLIPMAP_PXM_OFFSETS: [[u32; 2]; 2] = [[6, 0], [6, 11]];
-const CLIPMAP_MXP_OFFSETS: [[u32; 2]; 2] = [[0, 6], [11, 6]];
+const CLIPMAP_OFFSETS: [[u32; 2]; 16] = [[0, 0], [3, 0], [6, 0], [8, 0], [11, 0],
+                                         [0, 3], [11, 3],
+                                         [0, 6], [11, 6],
+                                         [0, 8], [11, 8],
+                                         [0, 11], [3, 11], [6, 11], [8, 11], [11, 11]];
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
@@ -49,7 +47,8 @@ impl Vertex {
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct Instance {
-    pub model: Mat4,
+    pub level: i32,
+    pub offset: [u32;2],
 }
 
 unsafe impl bytemuck::Pod for Instance {}
@@ -97,8 +96,8 @@ impl Renderable {
         let uniform_buffer = device.create_buffer_with_data(bytemuck::cast_slice(&[uniforms]),
                                                             wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST);
 
-        let instances = [Instance { model: identity(), }];
-        let instance_buffer = device.create_buffer_with_data(bytemuck::cast_slice(&instances),
+        let instances: Vec<Instance> = CLIPMAP_OFFSETS.iter().map(|offset| Instance { level: 0, offset: *offset } ).collect();
+        let instance_buffer = device.create_buffer_with_data(bytemuck::cast_slice(instances.as_slice()),
                                                              wgpu::BufferUsage::STORAGE | wgpu::BufferUsage::COPY_DST);
 
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {

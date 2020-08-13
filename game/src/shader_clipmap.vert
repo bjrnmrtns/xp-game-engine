@@ -13,7 +13,8 @@ uniform Uniforms {
 
 layout(set=0, binding=1)
 buffer Instances {
-    mat4 models[];
+    int level;
+    uvec2 offset;
 };
 
 const float clipmap_size = 255.0;
