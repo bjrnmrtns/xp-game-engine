@@ -112,7 +112,7 @@ fn game(options: Options) {
                 instances.push( graphics::default::Instance {model: identity() });
                 renderables.default.update(graphics::default::Uniforms{ projection: projection_3d.clone() as Mat4, view: view.clone() as Mat4,}, instances,);
                 let snapped_position = Vec3::new(simulation.freelook_camera.position.x.floor(), simulation.freelook_camera.position.y.floor(), simulation.freelook_camera.position.z.floor());
-                renderables.clipmap.update(clipmap::Uniforms{ projection: projection_3d.clone() as Mat4, view: view.clone() as Mat4, camera_position: snapped_position });
+                renderables.clipmap.update(clipmap::Uniforms{ projection: projection_3d.clone() as Mat4, view: view.clone() as Mat4, camera_position: simulation.freelook_camera.position });
                 renderables.ui.create_drawable(&graphics.device, Some(mesh::create_mesh(&ui)));
                 renderables.ui.update(graphics::ui::Uniforms { projection: projection_2d }, game_state.ui_enabled);
 
