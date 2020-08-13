@@ -52,8 +52,6 @@ fn game(options: Options) {
     let mut renderables = futures::executor::block_on(graphics::Renderables::new(&graphics.device, &graphics.queue, &graphics.sc_descriptor)).expect("Could not create graphics renderer");
     renderables.default.create_drawable(&graphics.device, &player_mesh);
     renderables.default.create_drawable(&graphics.device, &axis_mesh);
-    let (clipmap_vertices, clipmap_indices) = clipmap::create_clipmap();
-    renderables.clipmap.add_clipmap(&graphics.device, &clipmap_vertices, &clipmap_indices);
 
     let mut previous_time = Instant::now();
 

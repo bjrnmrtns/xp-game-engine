@@ -30,6 +30,14 @@ pub struct Drawable {
     pub index_buffer_len: u32,
 }
 
+pub fn create_drawable_from<V: bytemuck::Zeroable + bytemuck::Pod, I: bytemuck::Zeroable + bytemuck::Pod>(device: &wgpu::Device, verts_and_ind: (&[V], &[I])) -> Drawable {
+    Drawable {
+        vertex_buffer: device.create_buffer_with_data(bytemuck::cast_slice(verts_and_ind.0), wgpu::BufferUsage::VERTEX),
+        index_buffer: device.create_buffer_with_data(bytemuck::cast_slice(verts_and_ind.1), wgpu::BufferUsage::INDEX),
+        index_buffer_len: verts_and_ind.1.len() as u32,
+    }
+}
+
 pub struct Renderables {
     pub ui: ui::Renderable,
     pub default: default::Renderable,

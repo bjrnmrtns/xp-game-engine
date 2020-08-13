@@ -1,4 +1,4 @@
-use crate::graphics::{Drawable, texture};
+use crate::graphics::{Drawable, texture, create_drawable_from};
 use nalgebra_glm::{Mat4, identity, Vec3, vec3};
 use wgpu::{Device, BindingResource, BindGroupLayoutEntry, TextureViewDimension, RenderPass, CommandEncoder};
 use crate::graphics::error::GraphicsError;
@@ -8,6 +8,8 @@ type Result<T> = std::result::Result<T, GraphicsError>;
 
 const CLIPMAP_K: u32 = 8;
 const CLIPMAP_N: u32 = 255;
+const CLIPMAP_M: u32 = (CLIPMAP_N + 1) / 4;
+const CLIPMAP_P: u32 = 3; // (CLIPMAP_N - 1) - ((CLIPMAP_M - 1) * 4) + 1 -> always 3
 const CLIPMAP_TEXTURE_SIZE: u32 = CLIPMAP_N + 1;
 const CLIPMAP_TEXTURE_SIZE_HALF: u32 = CLIPMAP_TEXTURE_SIZE / 2;
 
@@ -46,7 +48,6 @@ pub struct Instance {
 unsafe impl bytemuck::Pod for Instance {}
 unsafe impl bytemuck::Zeroable for Instance {}
 
-
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct Uniforms {
@@ -68,6 +69,10 @@ pub struct Renderable {
 
     uniforms: Uniforms,
     clipmap_data: Vec<f32>,
+    clipmap_full: Drawable,
+    clipmap_ring_mxm: Drawable,
+    clipmap_ring_pxm: Drawable,
+    clipmap_ring_mxp: Drawable,
 }
 
 impl Renderable {
@@ -125,6 +130,15 @@ impl Renderable {
         });
 
         let texture = texture::Texture::create_clipmap_texture(&device,  CLIPMAP_TEXTURE_SIZE as u32);
+        assert_eq!(CLIPMAP_N, (2 as u32).pow(CLIPMAP_K) - 1);
+        let (v, i) = create_grid(CLIPMAP_N, CLIPMAP_N);
+        let clipmap_full = create_drawable_from(&device, (v.as_slice(), i.as_slice()));
+        let (v, i) = create_grid(CLIPMAP_M, CLIPMAP_M);
+        let clipmap_ring_mxm = create_drawable_from(&device, (v.as_slice(), i.as_slice()));
+        let (v, i) = create_grid(CLIPMAP_M, CLIPMAP_P);
+        let clipmap_ring_pxm = create_drawable_from(&device, (v.as_slice(), i.as_slice()));
+        let (v, i) = create_grid(CLIPMAP_P, CLIPMAP_M);
+        let clipmap_ring_mxp = create_drawable_from(&device, (v.as_slice(), i.as_slice()));
 
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &bind_group_layout,
@@ -205,6 +219,10 @@ impl Renderable {
         });
 
         Ok(Self {
+            clipmap_full,
+            clipmap_ring_mxm,
+            clipmap_ring_pxm,
+            clipmap_ring_mxp,
             drawables: Vec::new(),
             uniforms_buffer: uniform_buffer,
             instance_buffer,
@@ -216,12 +234,6 @@ impl Renderable {
         })
     }
 
-    pub fn add_clipmap(&mut self, device: &wgpu::Device, vertices: &Vec<Vertex>, indices: &Vec<u32>) {
-        let vertex_buffer = device.create_buffer_with_data(bytemuck::cast_slice(&vertices), wgpu::BufferUsage::VERTEX);
-        let index_buffer = device.create_buffer_with_data(bytemuck::cast_slice(&indices), wgpu::BufferUsage::INDEX);
-        self.drawables.push(Drawable { vertex_buffer, index_buffer, index_buffer_len: indices.len() as u32, });
-    }
-
     pub fn update(&mut self, uniforms: Uniforms) {
         let sine = Sine {};
         self.uniforms = uniforms;
@@ -229,22 +241,21 @@ impl Renderable {
     }
 }
 
-pub fn create_clipmap() -> (Vec<Vertex>, Vec<u32>) {
-    assert_eq!(CLIPMAP_N, (2 as u32).pow(CLIPMAP_K) - 1);
+pub fn create_grid(size_x: u32, size_z: u32) -> (Vec<Vertex>, Vec<u32>) {
     let mut vertices: Vec<Vertex> = Vec::new();
-    for z in 0..CLIPMAP_N {
-        for x in 0..CLIPMAP_N {
+    for z in 0..size_z {
+        for x in 0..size_x {
             vertices.push(Vertex {
                 p: [x as f32, z as f32],
             })
         }
     }
     let mut indices: Vec<u32> = Vec::new();
-    for z in 0..CLIPMAP_N-1 {
-        for x in 0..CLIPMAP_N-1 {
-            let i0 = x + z * CLIPMAP_N;
+    for z in 0..size_z-1 {
+        for x in 0..size_x-1 {
+            let i0 = x + z * size_x;
             let i1 = i0 + 1;
-            let i2 = x + (z + 1) * CLIPMAP_N;
+            let i2 = x + (z + 1) * size_x;
             let i3 = i2 + 1;
             indices.extend_from_slice(&[i0, i2, i2, i1, i1, i0, i1, i2, i2, i3, i3, i1]); // line_strip -> wireframe, indexbuffer for filled is remove even indices
         }
@@ -278,10 +289,10 @@ impl graphics::Renderable for Renderable {
 
         encoder.copy_buffer_to_buffer(&uniforms_bufer, 0, &self.uniforms_buffer, 0, std::mem::size_of_val(&self.uniforms) as u64);
         render_pass.set_pipeline(&self.render_pipeline);
-        render_pass.set_vertex_buffer(0, &self.drawables[0].vertex_buffer, 0, 0);
-        render_pass.set_index_buffer(&self.drawables[0].index_buffer, 0, 0);
+        render_pass.set_vertex_buffer(0, &self.clipmap_full.vertex_buffer, 0, 0);
+        render_pass.set_index_buffer(&self.clipmap_full.index_buffer, 0, 0);
         render_pass.set_bind_group(0, &self.bind_group, &[]);
-        render_pass.draw_indexed(0..self.drawables[0].index_buffer_len, 0, 0..1);
+        render_pass.draw_indexed(0..self.clipmap_full.index_buffer_len, 0, 0..1);
     }
 }
 
