@@ -19,6 +19,7 @@ const CLIPMAP_OFFSETS_MXM: [[u32; 2]; 12] = [[0, 0], [3, 0], [8, 0], [11, 0], //
 
 const CLIPMAP_OFFSETS_MXP: [[u32; 2]; 2] = [[0, 6], [11, 6],]; // instances [14..16) -> mxp
 const CLIPMAP_OFFSETS_PXM: [[u32; 2]; 2] = [[6, 0], [6, 11],]; // instances [12..14) -> pxm
+const CLIPMAP_MAX_LEVELS: u32 = 7;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
@@ -50,6 +51,8 @@ impl Vertex {
 #[derive(Debug, Copy, Clone)]
 pub struct Instance {
     pub offset: [u32;2],
+    pub level: i32,
+    pub padding: i32,
 }
 
 unsafe impl bytemuck::Pod for Instance {}
@@ -96,11 +99,12 @@ impl Renderable {
 
         let uniform_buffer = device.create_buffer_with_data(bytemuck::cast_slice(&[uniforms]),
                                                             wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST);
-
-        let instances: Vec<Instance> = CLIPMAP_OFFSETS_MXM.iter().map(|offset| Instance { offset: *offset } ).collect();
+        let instances = CLIPMAP_OFFSETS_MXM.iter().map(|offset| Instance { offset: offset.clone(), level: 0, padding: 0 } ).collect::<Vec<Instance>>();
         let instance_buffer = device.create_buffer_with_data(bytemuck::cast_slice(instances.as_slice()),
                                                              wgpu::BufferUsage::STORAGE | wgpu::BufferUsage::COPY_DST);
 
+        let data: &[u8] = bytemuck::cast_slice(instances.as_slice());
+        println!("{} {} {}\n", std::mem::size_of::<Instance>(), std::mem::size_of_val(instances.as_slice()), data.len());
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             bindings: &[
                 wgpu::BindGroupLayoutEntry {
@@ -162,7 +166,7 @@ impl Renderable {
                     binding: 1,
                     resource: wgpu::BindingResource::Buffer {
                         buffer: &instance_buffer,
-                        range: 0..std::mem::size_of_val(&instances) as wgpu::BufferAddress,
+                        range: 0..std::mem::size_of_val(instances.as_slice()) as wgpu::BufferAddress,
                     }
                 },
                 wgpu::Binding {
@@ -176,7 +180,6 @@ impl Renderable {
             ],
             label: None,
         });
-
         let render_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             bind_group_layouts: &[&bind_group_layout],
         });

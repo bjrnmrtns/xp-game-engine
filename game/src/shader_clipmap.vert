@@ -11,9 +11,15 @@ uniform Uniforms {
     vec3 camera_position;
 };
 
+struct Instance {
+    uvec2 offset;
+    int level;
+    int padding;
+};
+
 layout(set=0, binding=1)
 buffer Instances {
-    uvec2 offsets_level[];
+    Instance instances[];
 };
 
 const float clipmap_size = 15.0;
@@ -22,7 +28,7 @@ layout(set = 0, binding = 2) uniform texture2D tex;
 layout(set = 0, binding = 3) uniform sampler elevation_sampler;
 
 void main() {
-    uvec2 offset = offsets_level[gl_InstanceIndex].xy;
+    uvec2 offset = instances[gl_InstanceIndex].offset;
     // -7 comes from (15 - 1) / 2, this still needs to be done in a proper way, by initalizing the vertices differently
     vec2 position = vec2(in_position.x + floor(camera_position.x) - 7, in_position.y + floor(camera_position.z) - 7) + offset;
     out_color = vec3(1.0, 1.0, 0.0);
