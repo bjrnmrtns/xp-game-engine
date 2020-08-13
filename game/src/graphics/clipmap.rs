@@ -12,6 +12,13 @@ const CLIPMAP_M: u32 = (CLIPMAP_N + 1) / 4;
 const CLIPMAP_P: u32 = 3; // (CLIPMAP_N - 1) - ((CLIPMAP_M - 1) * 4) + 1 -> always 3
 const CLIPMAP_TEXTURE_SIZE: u32 = CLIPMAP_N + 1;
 const CLIPMAP_TEXTURE_SIZE_HALF: u32 = CLIPMAP_TEXTURE_SIZE / 2;
+const CLIPMAP_MXM_OFFSETS: [[u32; 2]; 12] = [[0, 0], [3, 0], [8, 0], [11, 0],
+                                             [0, 3], [11, 3],
+                                             [0, 8], [11, 8],
+                                             [0, 11], [3, 11], [8, 11], [11, 11]];
+
+const CLIPMAP_PXM_OFFSETS: [[u32; 2]; 2] = [[6, 0], [6, 11]];
+const CLIPMAP_MXP_OFFSETS: [[u32; 2]; 2] = [[0, 6], [11, 6]];
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]

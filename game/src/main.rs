@@ -6,7 +6,7 @@ use winit::event_loop::{EventLoop, ControlFlow};
 use winit::event::{WindowEvent, ElementState, VirtualKeyCode, Event, KeyboardInput, MouseButton};
 use winit::window::WindowBuilder;
 use winit::event::DeviceEvent::{MouseMotion};
-use nalgebra_glm::{identity, ortho, perspective, Mat4, Vec3};
+use nalgebra_glm::{identity, ortho, perspective, Mat4};
 use game::*;
 use game::command_queue::CommandQueue;
 use xp_ui::{UI, DEFAULT_LAYOUT, Label, ActionType};
@@ -111,7 +111,6 @@ fn game(options: Options) {
                 instances.push( graphics::default::Instance {model: player.pose.to_mat4() });
                 instances.push( graphics::default::Instance {model: identity() });
                 renderables.default.update(graphics::default::Uniforms{ projection: projection_3d.clone() as Mat4, view: view.clone() as Mat4,}, instances,);
-                let snapped_position = Vec3::new(simulation.freelook_camera.position.x.floor(), simulation.freelook_camera.position.y.floor(), simulation.freelook_camera.position.z.floor());
                 renderables.clipmap.update(clipmap::Uniforms{ projection: projection_3d.clone() as Mat4, view: view.clone() as Mat4, camera_position: simulation.freelook_camera.position });
                 renderables.ui.create_drawable(&graphics.device, Some(mesh::create_mesh(&ui)));
                 renderables.ui.update(graphics::ui::Uniforms { projection: projection_2d }, game_state.ui_enabled);
