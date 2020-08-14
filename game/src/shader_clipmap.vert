@@ -29,9 +29,9 @@ layout(set = 0, binding = 2) uniform texture2D tex;
 layout(set = 0, binding = 3) uniform sampler elevation_sampler;
 
 void main() {
-    uvec2 instance_offset = instances[gl_InstanceIndex].offset;
+    vec2 instance_offset = instances[gl_InstanceIndex].offset;
     uint clipmap_level = instances[gl_InstanceIndex].clipmap_level;
-    uvec2 center = uvec2(round(camera_position.x), round(camera_position.y));
+    vec2 center = vec2(round(camera_position.x), round(camera_position.z));
     float clipmap_scale = pow(2, clipmap_level + 1);
     float clipmap_offset = (clipmap_size - 1) * clipmap_scale / 2;
 
