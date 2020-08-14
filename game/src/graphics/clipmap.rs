@@ -51,8 +51,8 @@ impl Vertex {
 #[derive(Debug, Copy, Clone)]
 pub struct Instance {
     pub offset: [u32;2],
-    pub level: i32,
-    pub padding: i32,
+    pub level: u32,
+    pub padding: u32,
 }
 
 unsafe impl bytemuck::Pod for Instance {}
@@ -99,7 +99,16 @@ impl Renderable {
 
         let uniform_buffer = device.create_buffer_with_data(bytemuck::cast_slice(&[uniforms]),
                                                             wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST);
-        let instances = CLIPMAP_OFFSETS_MXM.iter().map(|offset| Instance { offset: offset.clone(), level: 0, padding: 0 } ).collect::<Vec<Instance>>();
+        let mut instances: Vec<Instance> = Vec::new();
+        for level in 0..CLIPMAP_MAX_LEVELS {
+            instances.extend(CLIPMAP_OFFSETS_MXM.iter().map(|offset| Instance { offset: offset.clone(), level, padding: 0 } ));
+        }
+        for level in 0..CLIPMAP_MAX_LEVELS {
+            instances.extend(CLIPMAP_OFFSETS_MXP.iter().map(|offset| Instance { offset: offset.clone(), level, padding: 0 } ));
+        }
+        for level in 0..CLIPMAP_MAX_LEVELS {
+            instances.extend(CLIPMAP_OFFSETS_PXM.iter().map(|offset| Instance { offset: offset.clone(), level, padding: 0 } ));
+        }
         let instance_buffer = device.create_buffer_with_data(bytemuck::cast_slice(instances.as_slice()),
                                                              wgpu::BufferUsage::STORAGE | wgpu::BufferUsage::COPY_DST);
 
@@ -304,12 +313,10 @@ impl graphics::Renderable for Renderable {
         render_pass.set_bind_group(0, &self.bind_group, &[]);
         render_pass.draw_indexed(0..self.clipmap_full.index_buffer_len, 0, 0..1);
  */
-        for level in 0..1 {
-            render_pass.set_vertex_buffer(0, &self.clipmap_ring_mxm.vertex_buffer, 0, 0);
-            render_pass.set_index_buffer(&self.clipmap_ring_mxm.index_buffer, 0, 0);
-            render_pass.set_bind_group(0, &self.bind_group, &[]);
-            render_pass.draw_indexed(0..self.clipmap_ring_mxm.index_buffer_len, 0, 0..12);
-        }
+        render_pass.set_vertex_buffer(0, &self.clipmap_ring_mxm.vertex_buffer, 0, 0);
+        render_pass.set_index_buffer(&self.clipmap_ring_mxm.index_buffer, 0, 0);
+        render_pass.set_bind_group(0, &self.bind_group, &[]);
+        render_pass.draw_indexed(0..self.clipmap_ring_mxm.index_buffer_len, 0, 0..(12*CLIPMAP_MAX_LEVELS));
         /*
         for level in 0..1 {
             render_pass.set_vertex_buffer(0, &self.clipmap_ring_mxp.vertex_buffer, 0, 0);
