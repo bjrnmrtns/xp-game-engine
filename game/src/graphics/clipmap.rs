@@ -155,9 +155,9 @@ impl Renderable {
         let clipmap_full = create_drawable_from(&device, (v.as_slice(), i.as_slice()));
         let (v, i) = create_grid(CLIPMAP_M, CLIPMAP_M);
         let clipmap_ring_mxm = create_drawable_from(&device, (v.as_slice(), i.as_slice()));
-        let (v, i) = create_grid(CLIPMAP_M, CLIPMAP_P);
-        let clipmap_ring_pxm = create_drawable_from(&device, (v.as_slice(), i.as_slice()));
         let (v, i) = create_grid(CLIPMAP_P, CLIPMAP_M);
+        let clipmap_ring_pxm = create_drawable_from(&device, (v.as_slice(), i.as_slice()));
+        let (v, i) = create_grid(CLIPMAP_M, CLIPMAP_P);
         let clipmap_ring_mxp = create_drawable_from(&device, (v.as_slice(), i.as_slice()));
 
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -313,21 +313,23 @@ impl graphics::Renderable for Renderable {
         render_pass.set_bind_group(0, &self.bind_group, &[]);
         render_pass.draw_indexed(0..self.clipmap_full.index_buffer_len, 0, 0..1);
  */
+        let end_mxm = 12*CLIPMAP_MAX_LEVELS;
+        let end_mxp = end_mxm + 2*CLIPMAP_MAX_LEVELS;
+        let end_pxm = end_mxp + 2*CLIPMAP_MAX_LEVELS;
         render_pass.set_vertex_buffer(0, &self.clipmap_ring_mxm.vertex_buffer, 0, 0);
         render_pass.set_index_buffer(&self.clipmap_ring_mxm.index_buffer, 0, 0);
         render_pass.set_bind_group(0, &self.bind_group, &[]);
-        render_pass.draw_indexed(0..self.clipmap_ring_mxm.index_buffer_len, 0, 0..(12*CLIPMAP_MAX_LEVELS));
-        /*
-            render_pass.set_vertex_buffer(0, &self.clipmap_ring_mxp.vertex_buffer, 0, 0);
-            render_pass.set_index_buffer(&self.clipmap_ring_mxp.index_buffer, 0, 0);
-            render_pass.set_bind_group(0, &self.bind_group, &[]);
-            render_pass.draw_indexed(0..self.clipmap_ring_mxp.index_buffer_len, 0, 12..14);
+        render_pass.draw_indexed(0..self.clipmap_ring_mxm.index_buffer_len, 0, 0..end_mxm);
 
-            render_pass.set_vertex_buffer(0, &self.clipmap_ring_pxm.vertex_buffer, 0, 0);
-            render_pass.set_index_buffer(&self.clipmap_ring_pxm.index_buffer, 0, 0);
-            render_pass.set_bind_group(0, &self.bind_group, &[]);
-            render_pass.draw_indexed(0..self.clipmap_ring_pxm.index_buffer_len, 0, 14..16);
-        }*/
+        render_pass.set_vertex_buffer(0, &self.clipmap_ring_mxp.vertex_buffer, 0, 0);
+        render_pass.set_index_buffer(&self.clipmap_ring_mxp.index_buffer, 0, 0);
+        render_pass.set_bind_group(0, &self.bind_group, &[]);
+        render_pass.draw_indexed(0..self.clipmap_ring_mxp.index_buffer_len, 0, end_mxm..end_mxp);
+
+        render_pass.set_vertex_buffer(0, &self.clipmap_ring_pxm.vertex_buffer, 0, 0);
+        render_pass.set_index_buffer(&self.clipmap_ring_pxm.index_buffer, 0, 0);
+        render_pass.set_bind_group(0, &self.bind_group, &[]);
+        render_pass.draw_indexed(0..self.clipmap_ring_pxm.index_buffer_len, 0, end_mxp..end_pxm);
     }
 }
 
