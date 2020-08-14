@@ -1,5 +1,5 @@
 use crate::graphics::{Drawable, texture, create_drawable_from};
-use nalgebra_glm::{Mat4, identity, Vec3, vec3, Vec2, vec2};
+use nalgebra_glm::{Mat4, identity, Vec3, vec3};
 use wgpu::{Device, BindingResource, BindGroupLayoutEntry, TextureViewDimension, RenderPass, CommandEncoder};
 use crate::graphics::error::GraphicsError;
 use crate::graphics;
@@ -28,7 +28,6 @@ const CLIPMAP_INSTANCE_SIZE_ONE_NXN: u32 = 1;
 const CLIPMAP_INSTANCE_SIZE_MXM: u32 = CLIPMAP_INSTANCE_SIZE_ONE_MXM * CLIPMAP_MAX_LEVELS;
 const CLIPMAP_INSTANCE_SIZE_MXP: u32 = CLIPMAP_INSTANCE_SIZE_ONE_MXP * CLIPMAP_MAX_LEVELS;
 const CLIPMAP_INSTANCE_SIZE_PXM: u32 = CLIPMAP_INSTANCE_SIZE_ONE_PXM * CLIPMAP_MAX_LEVELS;
-const CLIPMAP_INSTANCE_SIZE_NXN: u32 = CLIPMAP_INSTANCE_SIZE_ONE_NXN * CLIPMAP_MAX_LEVELS;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
@@ -124,7 +123,6 @@ impl Renderable {
         let instance_buffer = device.create_buffer_with_data(bytemuck::cast_slice(instances.as_slice()),
                                                              wgpu::BufferUsage::STORAGE | wgpu::BufferUsage::COPY_DST);
 
-        let data: &[u8] = bytemuck::cast_slice(instances.as_slice());
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             bindings: &[
                 wgpu::BindGroupLayoutEntry {
@@ -325,7 +323,6 @@ impl graphics::Renderable for Renderable {
         let end_mxm = CLIPMAP_INSTANCE_SIZE_MXM;
         let end_mxp = end_mxm + CLIPMAP_INSTANCE_SIZE_MXP;
         let end_pxm = end_mxp + CLIPMAP_INSTANCE_SIZE_PXM;
-        let end_nxn = end_pxm + CLIPMAP_INSTANCE_SIZE_NXN;
         render_pass.set_vertex_buffer(0, &self.clipmap_ring_mxm.vertex_buffer, 0, 0);
         render_pass.set_index_buffer(&self.clipmap_ring_mxm.index_buffer, 0, 0);
         render_pass.set_bind_group(0, &self.bind_group, &[]);
