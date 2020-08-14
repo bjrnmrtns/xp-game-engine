@@ -318,13 +318,11 @@ impl graphics::Renderable for Renderable {
         render_pass.set_bind_group(0, &self.bind_group, &[]);
         render_pass.draw_indexed(0..self.clipmap_ring_mxm.index_buffer_len, 0, 0..(12*CLIPMAP_MAX_LEVELS));
         /*
-        for level in 0..1 {
             render_pass.set_vertex_buffer(0, &self.clipmap_ring_mxp.vertex_buffer, 0, 0);
             render_pass.set_index_buffer(&self.clipmap_ring_mxp.index_buffer, 0, 0);
             render_pass.set_bind_group(0, &self.bind_group, &[]);
             render_pass.draw_indexed(0..self.clipmap_ring_mxp.index_buffer_len, 0, 12..14);
-        }
-        for level in 0..1 {
+
             render_pass.set_vertex_buffer(0, &self.clipmap_ring_pxm.vertex_buffer, 0, 0);
             render_pass.set_index_buffer(&self.clipmap_ring_pxm.index_buffer, 0, 0);
             render_pass.set_bind_group(0, &self.bind_group, &[]);
