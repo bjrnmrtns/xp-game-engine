@@ -19,13 +19,16 @@ const CLIPMAP_OFFSETS_MXM: [[u32; 2]; 12] = [[0, 0], [3, 0], [8, 0], [11, 0], //
 
 const CLIPMAP_OFFSETS_MXP: [[u32; 2]; 2] = [[0, 6], [11, 6],]; // instances [14..16) -> mxp
 const CLIPMAP_OFFSETS_PXM: [[u32; 2]; 2] = [[6, 0], [6, 11],]; // instances [12..14) -> pxm
+const CLIPMAP_OFFSET_NXN: [u32; 2] = [0, 0];
 const CLIPMAP_MAX_LEVELS: u32 = 7;
 const CLIPMAP_INSTANCE_SIZE_ONE_MXM: u32 = 12;
 const CLIPMAP_INSTANCE_SIZE_ONE_MXP: u32 = 2;
 const CLIPMAP_INSTANCE_SIZE_ONE_PXM: u32 = 2;
+const CLIPMAP_INSTANCE_SIZE_ONE_NXN: u32 = 1;
 const CLIPMAP_INSTANCE_SIZE_MXM: u32 = CLIPMAP_INSTANCE_SIZE_ONE_MXM * CLIPMAP_MAX_LEVELS;
 const CLIPMAP_INSTANCE_SIZE_MXP: u32 = CLIPMAP_INSTANCE_SIZE_ONE_MXP * CLIPMAP_MAX_LEVELS;
 const CLIPMAP_INSTANCE_SIZE_PXM: u32 = CLIPMAP_INSTANCE_SIZE_ONE_PXM * CLIPMAP_MAX_LEVELS;
+const CLIPMAP_INSTANCE_SIZE_NXN: u32 = CLIPMAP_INSTANCE_SIZE_ONE_NXN * CLIPMAP_MAX_LEVELS;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
@@ -115,11 +118,13 @@ impl Renderable {
         for level in 0..CLIPMAP_MAX_LEVELS {
             instances.extend(CLIPMAP_OFFSETS_PXM.iter().map(|offset| Instance { offset: offset.clone(), level, padding: 0 } ));
         }
+        for level in 0..CLIPMAP_MAX_LEVELS {
+            instances.push(Instance { offset: CLIPMAP_OFFSET_NXN, level, padding: 0 } );
+        }
         let instance_buffer = device.create_buffer_with_data(bytemuck::cast_slice(instances.as_slice()),
                                                              wgpu::BufferUsage::STORAGE | wgpu::BufferUsage::COPY_DST);
 
         let data: &[u8] = bytemuck::cast_slice(instances.as_slice());
-        println!("{} {} {}\n", std::mem::size_of::<Instance>(), std::mem::size_of_val(instances.as_slice()), data.len());
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             bindings: &[
                 wgpu::BindGroupLayoutEntry {
@@ -316,15 +321,11 @@ impl graphics::Renderable for Renderable {
         render_pass.set_pipeline(&self.render_pipeline);
         let start_ring_level = 1;
         let full_level = start_ring_level - 1;
-/*        render_pass.set_vertex_buffer(0, &self.clipmap_full.vertex_buffer, 0, 0);
-        render_pass.set_index_buffer(&self.clipmap_full.index_buffer, 0, 0);
-        render_pass.set_bind_group(0, &self.bind_group, &[]);
-        render_pass.draw_indexed(0..self.clipmap_full.index_buffer_len, 0, 0..1);
- */
 
         let end_mxm = CLIPMAP_INSTANCE_SIZE_MXM;
         let end_mxp = end_mxm + CLIPMAP_INSTANCE_SIZE_MXP;
         let end_pxm = end_mxp + CLIPMAP_INSTANCE_SIZE_PXM;
+        let end_nxn = end_pxm + CLIPMAP_INSTANCE_SIZE_NXN;
         render_pass.set_vertex_buffer(0, &self.clipmap_ring_mxm.vertex_buffer, 0, 0);
         render_pass.set_index_buffer(&self.clipmap_ring_mxm.index_buffer, 0, 0);
         render_pass.set_bind_group(0, &self.bind_group, &[]);
@@ -338,7 +339,12 @@ impl graphics::Renderable for Renderable {
         render_pass.set_vertex_buffer(0, &self.clipmap_ring_pxm.vertex_buffer, 0, 0);
         render_pass.set_index_buffer(&self.clipmap_ring_pxm.index_buffer, 0, 0);
         render_pass.set_bind_group(0, &self.bind_group, &[]);
-        render_pass.draw_indexed(0..self.clipmap_ring_pxm.index_buffer_len, 0, end_mxp+ start_ring_level * CLIPMAP_INSTANCE_SIZE_ONE_PXM..end_pxm);
+        render_pass.draw_indexed(0..self.clipmap_ring_pxm.index_buffer_len, 0, end_mxp + start_ring_level * CLIPMAP_INSTANCE_SIZE_ONE_PXM..end_pxm);
+
+        render_pass.set_vertex_buffer(0, &self.clipmap_full.vertex_buffer, 0, 0);
+        render_pass.set_index_buffer(&self.clipmap_full.index_buffer, 0, 0);
+        render_pass.set_bind_group(0, &self.bind_group, &[]);
+        render_pass.draw_indexed(0..self.clipmap_full.index_buffer_len, 0, end_pxm + full_level * CLIPMAP_INSTANCE_SIZE_ONE_NXN..(end_pxm + full_level * CLIPMAP_INSTANCE_SIZE_ONE_NXN) + CLIPMAP_INSTANCE_SIZE_ONE_NXN);
     }
 }
 
