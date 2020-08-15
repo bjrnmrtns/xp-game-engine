@@ -29,6 +29,37 @@ const CLIPMAP_INSTANCE_SIZE_MXM: u32 = CLIPMAP_INSTANCE_SIZE_ONE_MXM * CLIPMAP_M
 const CLIPMAP_INSTANCE_SIZE_MXP: u32 = CLIPMAP_INSTANCE_SIZE_ONE_MXP * CLIPMAP_MAX_LEVELS;
 const CLIPMAP_INSTANCE_SIZE_PXM: u32 = CLIPMAP_INSTANCE_SIZE_ONE_PXM * CLIPMAP_MAX_LEVELS;
 
+#[allow(non_snake_case)]
+pub fn create_clipmap_texture2(device: &wgpu::Device, N: u32) -> (wgpu::Texture, wgpu::TextureView, wgpu::Sampler) {
+    let texture = device.create_texture(&wgpu::TextureDescriptor {
+        label: None,
+        size: wgpu::Extent3d {
+            width: N,
+            height: N,
+            depth: 1
+        },
+        array_layer_count: 1,
+        mip_level_count: 1,
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D2,
+        format: wgpu::TextureFormat::R32Float,
+        usage: wgpu::TextureUsage::STORAGE | wgpu::TextureUsage::COPY_DST,
+    });
+    let view = texture.create_default_view();
+    let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+        address_mode_u: wgpu::AddressMode::Repeat,
+        address_mode_v: wgpu::AddressMode::Repeat,
+        address_mode_w: wgpu::AddressMode::Repeat,
+        mag_filter: wgpu::FilterMode::Nearest,
+        min_filter: wgpu::FilterMode::Nearest,
+        mipmap_filter: wgpu::FilterMode::Nearest,
+        lod_min_clamp: -100.0,
+        lod_max_clamp: 100.0,
+        compare: wgpu::CompareFunction::Never,
+    });
+    (texture, view, sampler)
+}
+
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub struct Vertex {
@@ -83,7 +114,9 @@ pub struct Renderable {
     pub instance_buffer: wgpu::Buffer,
     pub bind_group: wgpu::BindGroup,
     pub render_pipeline: wgpu::RenderPipeline,
-    pub texture: texture::Texture,
+    pub texture: wgpu::Texture,
+    pub texture_view: wgpu::TextureView,
+    pub sampler: wgpu::Sampler,
 
     uniforms: Uniforms,
     clipmap_data: Vec<f32>,
@@ -95,7 +128,6 @@ pub struct Renderable {
 
 impl Renderable {
     pub async fn new(device: &Device, sc_descriptor: &wgpu::SwapChainDescriptor, _queue: &wgpu::Queue) -> Result<Self> {
-        // from here 3D renderpipeline creation
         let vs_spirv = glsl_to_spirv::compile(include_str!("../shader_clipmap.vert"), glsl_to_spirv::ShaderType::Vertex)?;
         let fs_spirv = glsl_to_spirv::compile(include_str!("../shader_clipmap.frag"), glsl_to_spirv::ShaderType::Fragment)?;
         let vs_data = wgpu::read_spirv(vs_spirv)?;
@@ -143,22 +175,25 @@ impl Renderable {
                 BindGroupLayoutEntry {
                     binding: 2,
                     visibility: wgpu::ShaderStage::VERTEX,
-                    ty: wgpu::BindingType::SampledTexture {
-                        multisampled: false,
+                    ty: wgpu::BindingType::StorageTexture {
                         component_type: wgpu::TextureComponentType::Float,
+                        format: wgpu::TextureFormat::R32Float,
                         dimension: TextureViewDimension::D2,
+                        readonly: true
                     },
                 },
                 BindGroupLayoutEntry {
                     binding: 3,
                     visibility: wgpu::ShaderStage::VERTEX,
-                    ty: wgpu::BindingType::Sampler { comparison: false },
+                    ty: wgpu::BindingType::Sampler {
+                        comparison: false
+                    },
                 },
             ],
             label: None,
         });
 
-        let texture = texture::Texture::create_clipmap_texture(&device,  CLIPMAP_TEXTURE_SIZE as u32);
+        let (texture, texture_view, sampler) = create_clipmap_texture2(&device,  CLIPMAP_TEXTURE_SIZE as u32);
         assert_eq!(CLIPMAP_N, (2 as u32).pow(CLIPMAP_K) - 1);
         let (v, i) = create_grid(CLIPMAP_N, CLIPMAP_N);
         let clipmap_full = create_drawable_from(&device, (v.as_slice(), i.as_slice()));
@@ -189,11 +224,11 @@ impl Renderable {
                 },
                 wgpu::Binding {
                     binding: 2,
-                    resource: BindingResource::TextureView(&texture.view),
+                    resource: BindingResource::TextureView(&texture_view),
                 },
                 wgpu::Binding {
                     binding: 3,
-                    resource: BindingResource::Sampler(&texture.sampler),
+                    resource: BindingResource::Sampler(&sampler),
                 },
             ],
             label: None,
@@ -257,6 +292,8 @@ impl Renderable {
             bind_group: bind_group,
             render_pipeline,
             texture,
+            texture_view,
+            sampler,
             uniforms,
             clipmap_data: Vec::new(),
         })
@@ -301,7 +338,7 @@ impl graphics::Renderable for Renderable {
             bytes_per_row: CLIPMAP_TEXTURE_SIZE * 4,
             rows_per_image: CLIPMAP_TEXTURE_SIZE
         }, wgpu::TextureCopyView{
-            texture: &self.texture.texture,
+            texture: &self.texture,
             mip_level: 0,
             array_layer: 0,
             origin: wgpu::Origin3d{
@@ -351,22 +388,22 @@ impl graphics::clipmap::Generator for Sine {
     fn generate(&self, pos: [f32; 2]) -> f32 {
         (pos[0].sin()  + pos[1].cos()) / 4.0
     }
-        }
+}
 
-        pub trait Generator {
-            fn generate(&self, pos: [f32; 2]) -> f32;
-        }
+pub trait Generator {
+    fn generate(&self, pos: [f32; 2]) -> f32;
+}
 
-        fn create_heightmap<T: Generator>(pos: &[i32; 2], generator: &T) -> Vec<f32> {
-            const N: i32 = CLIPMAP_TEXTURE_SIZE as i32;
-            const N_HALF: i32 = CLIPMAP_TEXTURE_SIZE_HALF as i32;
-            let mut heightmap = vec!(0.0; (N * N) as usize);
-            for z in pos[1]-N_HALF..pos[1]+N_HALF {
-                for x in pos[0]-N_HALF..pos[0]+N_HALF {
-                    let height = generator.generate([x as f32, z as f32]);
-                    heightmap[x as usize % CLIPMAP_TEXTURE_SIZE as usize + (z as usize % CLIPMAP_TEXTURE_SIZE as usize) * CLIPMAP_TEXTURE_SIZE as usize] = height;
-                }
-            }
-            heightmap
+fn create_heightmap<T: Generator>(pos: &[i32; 2], generator: &T) -> Vec<f32> {
+    const N: i32 = CLIPMAP_TEXTURE_SIZE as i32;
+    const N_HALF: i32 = CLIPMAP_TEXTURE_SIZE_HALF as i32;
+    let mut heightmap = vec!(0.0; (N * N) as usize);
+    for z in pos[1]-N_HALF..pos[1]+N_HALF {
+        for x in pos[0]-N_HALF..pos[0]+N_HALF {
+            let height = generator.generate([x as f32, z as f32]);
+            heightmap[x as usize % CLIPMAP_TEXTURE_SIZE as usize + (z as usize % CLIPMAP_TEXTURE_SIZE as usize) * CLIPMAP_TEXTURE_SIZE as usize] = height;
         }
+    }
+    heightmap
+}
 
