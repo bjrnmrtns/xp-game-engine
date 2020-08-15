@@ -30,8 +30,8 @@ const CLIPMAP_INSTANCE_SIZE_MXP: u32 = CLIPMAP_INSTANCE_SIZE_ONE_MXP * CLIPMAP_M
 const CLIPMAP_INSTANCE_SIZE_PXM: u32 = CLIPMAP_INSTANCE_SIZE_ONE_PXM * CLIPMAP_MAX_LEVELS;
 
 #[allow(non_snake_case)]
-pub fn create_clipmap_texture2(device: &wgpu::Device, N: u32) -> (wgpu::Texture, wgpu::TextureView, wgpu::Sampler) {
-    let texture = device.create_texture(&wgpu::TextureDescriptor {
+pub fn create_clipmap_storage_texture(device: &wgpu::Device, N: u32) -> wgpu::Texture {
+    device.create_texture(&wgpu::TextureDescriptor {
         label: None,
         size: wgpu::Extent3d {
             width: N,
@@ -44,26 +44,13 @@ pub fn create_clipmap_texture2(device: &wgpu::Device, N: u32) -> (wgpu::Texture,
         dimension: wgpu::TextureDimension::D2,
         format: wgpu::TextureFormat::R32Float,
         usage: wgpu::TextureUsage::STORAGE | wgpu::TextureUsage::COPY_DST,
-    });
-    let view = texture.create_default_view();
-    let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-        address_mode_u: wgpu::AddressMode::Repeat,
-        address_mode_v: wgpu::AddressMode::Repeat,
-        address_mode_w: wgpu::AddressMode::Repeat,
-        mag_filter: wgpu::FilterMode::Nearest,
-        min_filter: wgpu::FilterMode::Nearest,
-        mipmap_filter: wgpu::FilterMode::Nearest,
-        lod_min_clamp: -100.0,
-        lod_max_clamp: 100.0,
-        compare: wgpu::CompareFunction::Never,
-    });
-    (texture, view, sampler)
+    })
 }
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub struct Vertex {
-    pub p: [f32; 2],
+    pub p: [i32; 2],
 }
 
 unsafe impl bytemuck::Pod for Vertex {}
@@ -79,7 +66,7 @@ impl Vertex {
                 wgpu::VertexAttributeDescriptor {
                     offset: 0,
                     shader_location: 0,
-                    format: wgpu::VertexFormat::Float2,
+                    format: wgpu::VertexFormat::Int2,
                 },
             ]
         }
@@ -115,8 +102,6 @@ pub struct Renderable {
     pub bind_group: wgpu::BindGroup,
     pub render_pipeline: wgpu::RenderPipeline,
     pub texture: wgpu::Texture,
-    pub texture_view: wgpu::TextureView,
-    pub sampler: wgpu::Sampler,
 
     uniforms: Uniforms,
     clipmap_data: Vec<f32>,
@@ -182,18 +167,11 @@ impl Renderable {
                         readonly: true
                     },
                 },
-                BindGroupLayoutEntry {
-                    binding: 3,
-                    visibility: wgpu::ShaderStage::VERTEX,
-                    ty: wgpu::BindingType::Sampler {
-                        comparison: false
-                    },
-                },
             ],
             label: None,
         });
 
-        let (texture, texture_view, sampler) = create_clipmap_texture2(&device,  CLIPMAP_TEXTURE_SIZE as u32);
+        let texture = create_clipmap_storage_texture(&device, CLIPMAP_TEXTURE_SIZE as u32);
         assert_eq!(CLIPMAP_N, (2 as u32).pow(CLIPMAP_K) - 1);
         let (v, i) = create_grid(CLIPMAP_N, CLIPMAP_N);
         let clipmap_full = create_drawable_from(&device, (v.as_slice(), i.as_slice()));
@@ -224,11 +202,7 @@ impl Renderable {
                 },
                 wgpu::Binding {
                     binding: 2,
-                    resource: BindingResource::TextureView(&texture_view),
-                },
-                wgpu::Binding {
-                    binding: 3,
-                    resource: BindingResource::Sampler(&sampler),
+                    resource: BindingResource::TextureView(&texture.create_default_view()),
                 },
             ],
             label: None,
@@ -292,8 +266,6 @@ impl Renderable {
             bind_group: bind_group,
             render_pipeline,
             texture,
-            texture_view,
-            sampler,
             uniforms,
             clipmap_data: Vec::new(),
         })
@@ -311,7 +283,7 @@ pub fn create_grid(size_x: u32, size_z: u32) -> (Vec<Vertex>, Vec<u32>) {
     for z in 0..size_z {
         for x in 0..size_x {
             vertices.push(Vertex {
-                p: [x as f32, z as f32],
+                p: [x as i32, z as i32],
             })
         }
     }
