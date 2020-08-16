@@ -24,6 +24,7 @@ buffer Instances {
 layout(binding = 2, r32f) coherent uniform image2D heightmap;
 
 const vec3 COLOR_TABLE[8] = vec3[8](vec3(1.0, 1.0, 1.0f), vec3(1.0, 1.0, 0.0f), vec3(1.0, 0.0, 1.0), vec3(1.0, 0.0, 0.0), vec3(0.0, 1.0, 1.0), vec3(0.0, 1.0, 0.0), vec3(0.0, 0.0, 1.0), vec3(0.0, 0.0, 0.0));
+// TODO: add clipmap_index_count as uniform, and unit_length
 const uint clipmap_index_count = 15;
 
 float snap_grid_level(float val, float grid_scale)
