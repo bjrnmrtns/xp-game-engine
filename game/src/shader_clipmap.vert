@@ -4,7 +4,7 @@ layout(location=0) in ivec2 in_position;
 layout(location=0) out vec3 out_color;
 
 struct Instance {
-    uvec2 offset;
+    uvec2 top_left;
     uint clipmap_level;
     uint padding;
 };
@@ -24,7 +24,7 @@ buffer Instances {
 layout(binding = 2, r32f) coherent uniform image2D heightmap;
 
 const vec3 COLOR_TABLE[8] = vec3[8](vec3(1.0, 1.0, 1.0f), vec3(1.0, 1.0, 0.0f), vec3(1.0, 0.0, 1.0), vec3(1.0, 0.0, 0.0), vec3(0.0, 1.0, 1.0), vec3(0.0, 1.0, 0.0), vec3(0.0, 0.0, 1.0), vec3(0.0, 0.0, 0.0));
-const uint clipmap_size = 15;
+const uint clipmap_index_count = 15;
 
 float snap_grid_level(float val, float grid_scale)
 {
@@ -32,17 +32,17 @@ float snap_grid_level(float val, float grid_scale)
 }
 
 void main() {
-    uvec2 instance_offset = instances[gl_InstanceIndex].offset;
+    uvec2 top_left = instances[gl_InstanceIndex].top_left;
     uint clipmap_level = instances[gl_InstanceIndex].clipmap_level;
-    float clipmap_scale = pow(2, clipmap_level + 1);
-    vec2 center_snapped = vec2(snap_grid_level(camera_position.x, clipmap_scale * 2), snap_grid_level(camera_position.z, clipmap_scale * 2));
-    float clipmap_offset = (clipmap_size - 3) * clipmap_scale / 2;
+    float step_size = pow(2, clipmap_level + 1);
+    vec2 center_snapped = vec2(snap_grid_level(camera_position.x, step_size * 2), snap_grid_level(camera_position.z, step_size * 2));
+    float clipmap_correction = (clipmap_index_count - 3) * step_size / 2;
 
-    vec2 position = (in_position + instance_offset) * clipmap_scale - clipmap_offset + center_snapped;
+    vec2 position = (in_position + top_left) * step_size - clipmap_correction + center_snapped;
     out_color = COLOR_TABLE[clipmap_level];
 
-    float u = mod(position.x / clipmap_scale, clipmap_size);
-    float v = mod(position.y / clipmap_scale, clipmap_size);
+    float u = mod(position.x / step_size, clipmap_index_count);
+    float v = mod(position.y / step_size, clipmap_index_count);
 
     float height = imageLoad(heightmap, ivec2(u, v)).r;
     gl_Position = projection * view * vec4(position, height, 1.0).xzyw;
