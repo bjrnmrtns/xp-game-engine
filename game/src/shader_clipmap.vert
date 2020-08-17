@@ -24,8 +24,9 @@ buffer Instances {
 layout(binding = 2, r32f) coherent uniform image2D heightmap;
 
 const vec3 COLOR_TABLE[8] = vec3[8](vec3(1.0, 1.0, 1.0f), vec3(1.0, 1.0, 0.0f), vec3(1.0, 0.0, 1.0), vec3(1.0, 0.0, 0.0), vec3(0.0, 1.0, 1.0), vec3(0.0, 1.0, 0.0), vec3(0.0, 0.0, 1.0), vec3(0.0, 0.0, 0.0));
-// TODO: add clipmap_index_count as uniform, and unit_length
+
 const uint clipmap_index_count = 15;
+const float unit_size = 1.0;
 
 float snap_grid_level(float val, float grid_scale)
 {
@@ -33,9 +34,9 @@ float snap_grid_level(float val, float grid_scale)
 }
 
 void main() {
-    uvec2 top_left = instances[gl_InstanceIndex].top_left;
+    vec2 top_left = instances[gl_InstanceIndex].top_left * unit_size;
     uint clipmap_level = instances[gl_InstanceIndex].clipmap_level;
-    float step_size = pow(2, clipmap_level + 1);
+    float step_size = unit_size * pow(2, clipmap_level + 1);
     vec2 center_snapped = vec2(snap_grid_level(camera_position.x, step_size * 2), snap_grid_level(camera_position.z, step_size * 2));
     float clipmap_correction = (clipmap_index_count - 3) * step_size / 2;
 
