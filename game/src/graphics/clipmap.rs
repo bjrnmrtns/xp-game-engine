@@ -6,28 +6,35 @@ use crate::graphics;
 
 type Result<T> = std::result::Result<T, GraphicsError>;
 
-const CLIPMAP_K: u32 = 4;
-const CLIPMAP_N: u32 = 15;
-const CLIPMAP_M: u32 = (CLIPMAP_N + 1) / 4;
-const CLIPMAP_P: u32 = 3; // (CLIPMAP_N - 1) - ((CLIPMAP_M - 1) * 4) + 1 -> always 3
-const CLIPMAP_TEXTURE_SIZE: u32 = CLIPMAP_N + 1;
-const CLIPMAP_TEXTURE_SIZE_HALF: u32 = CLIPMAP_TEXTURE_SIZE / 2;
-const CLIPMAP_OFFSETS_MXM: [[u32; 2]; 12] = [[0, 0], [3, 0], [8, 0], [11, 0], // instances [0..12) -> mxm
-                                         [0, 3], [11, 3],
-                                         [0, 8], [11, 8],
-                                         [0, 11], [3, 11], [8, 11], [11, 11],];
+const CM_K: u32 = 8;
+const CM_N: u32 = 255;
+const CM_M: u32 = (CM_N + 1) / 4;
+const CM_P: u32 = 3; // (CLIPMAP_N - 1) - ((CLIPMAP_M - 1) * 4) + 1 -> always 3
+const CM_M_SIZE: u32 = CM_M - 1;
+const CM_P_SIZE: u32 = CM_P - 1;
+const CM_TEXTURE_SIZE: u32 = CM_N + 1;
+const CM_TEXTURE_SIZE_HALF: u32 = CM_TEXTURE_SIZE / 2;
+const CM_1M: u32 = CM_M_SIZE;
+const CM_2M: u32 = CM_M_SIZE + CM_M_SIZE;
+const CM_2M1P: u32 = CM_M_SIZE + CM_M_SIZE + CM_P_SIZE;
+const CM_3M1P: u32 = CM_M_SIZE + CM_M_SIZE + CM_M_SIZE + CM_P_SIZE;
 
-const CLIPMAP_OFFSETS_MXP: [[u32; 2]; 2] = [[0, 6], [11, 6],]; // instances [14..16) -> mxp
-const CLIPMAP_OFFSETS_PXM: [[u32; 2]; 2] = [[6, 0], [6, 11],]; // instances [12..14) -> pxm
-const CLIPMAP_OFFSET_NXN: [u32; 2] = [0, 0];
-const CLIPMAP_MAX_LEVELS: u32 = 7;
-const CLIPMAP_INSTANCE_SIZE_ONE_MXM: u32 = 12;
-const CLIPMAP_INSTANCE_SIZE_ONE_MXP: u32 = 2;
-const CLIPMAP_INSTANCE_SIZE_ONE_PXM: u32 = 2;
-const CLIPMAP_INSTANCE_SIZE_ONE_NXN: u32 = 1;
-const CLIPMAP_INSTANCE_SIZE_MXM: u32 = CLIPMAP_INSTANCE_SIZE_ONE_MXM * CLIPMAP_MAX_LEVELS;
-const CLIPMAP_INSTANCE_SIZE_MXP: u32 = CLIPMAP_INSTANCE_SIZE_ONE_MXP * CLIPMAP_MAX_LEVELS;
-const CLIPMAP_INSTANCE_SIZE_PXM: u32 = CLIPMAP_INSTANCE_SIZE_ONE_PXM * CLIPMAP_MAX_LEVELS;
+const CM_OFFSETS_MXM: [[u32; 2]; 12] = [[0, 0], [CM_1M, 0], [CM_2M1P, 0], [CM_3M1P, 0], // instances [0..12) -> mxm
+                                         [0, CM_1M], [CM_3M1P, CM_1M],
+                                         [0, CM_2M1P], [CM_3M1P, CM_2M1P],
+                                         [0, CM_3M1P], [CM_1M, CM_3M1P], [CM_2M1P, CM_3M1P], [CM_3M1P, CM_3M1P],];
+
+const CM_OFFSETS_MXP: [[u32; 2]; 2] = [[0, CM_2M], [CM_3M1P, CM_2M],]; // instances [14..16) -> mxp
+const CM_OFFSETS_PXM: [[u32; 2]; 2] = [[CM_2M, 0], [CM_2M, CM_3M1P],]; // instances [12..14) -> pxm
+const CM_OFFSET_NXN: [u32; 2] = [0, 0];
+const CM_MAX_LEVELS: u32 = 7;
+const CM_INSTANCE_SIZE_ONE_MXM: u32 = 12;
+const CM_INSTANCE_SIZE_ONE_MXP: u32 = 2;
+const CM_INSTANCE_SIZE_ONE_PXM: u32 = 2;
+const CM_INSTANCE_SIZE_ONE_NXN: u32 = 1;
+const CM_INSTANCE_SIZE_MXM: u32 = CM_INSTANCE_SIZE_ONE_MXM * CM_MAX_LEVELS;
+const CM_INSTANCE_SIZE_MXP: u32 = CM_INSTANCE_SIZE_ONE_MXP * CM_MAX_LEVELS;
+const CM_INSTANCE_SIZE_PXM: u32 = CM_INSTANCE_SIZE_ONE_PXM * CM_MAX_LEVELS;
 
 #[allow(non_snake_case)]
 pub fn create_clipmap_storage_texture(device: &wgpu::Device, N: u32) -> wgpu::Texture {
@@ -125,17 +132,17 @@ impl Renderable {
         let uniform_buffer = device.create_buffer_with_data(bytemuck::cast_slice(&[uniforms]),
                                                             wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST);
         let mut instances: Vec<Instance> = Vec::new();
-        for level in 0..CLIPMAP_MAX_LEVELS {
-            instances.extend(CLIPMAP_OFFSETS_MXM.iter().map(|offset| Instance { offset: offset.clone(), level, padding: 0 } ));
+        for level in 0..CM_MAX_LEVELS {
+            instances.extend(CM_OFFSETS_MXM.iter().map(|offset| Instance { offset: offset.clone(), level, padding: 0 } ));
         }
-        for level in 0..CLIPMAP_MAX_LEVELS {
-            instances.extend(CLIPMAP_OFFSETS_MXP.iter().map(|offset| Instance { offset: offset.clone(), level, padding: 0 } ));
+        for level in 0..CM_MAX_LEVELS {
+            instances.extend(CM_OFFSETS_MXP.iter().map(|offset| Instance { offset: offset.clone(), level, padding: 0 } ));
         }
-        for level in 0..CLIPMAP_MAX_LEVELS {
-            instances.extend(CLIPMAP_OFFSETS_PXM.iter().map(|offset| Instance { offset: offset.clone(), level, padding: 0 } ));
+        for level in 0..CM_MAX_LEVELS {
+            instances.extend(CM_OFFSETS_PXM.iter().map(|offset| Instance { offset: offset.clone(), level, padding: 0 } ));
         }
-        for level in 0..CLIPMAP_MAX_LEVELS {
-            instances.push(Instance { offset: CLIPMAP_OFFSET_NXN, level, padding: 0 } );
+        for level in 0..CM_MAX_LEVELS {
+            instances.push(Instance { offset: CM_OFFSET_NXN, level, padding: 0 } );
         }
         let instance_buffer = device.create_buffer_with_data(bytemuck::cast_slice(instances.as_slice()),
                                                              wgpu::BufferUsage::STORAGE | wgpu::BufferUsage::COPY_DST);
@@ -171,15 +178,15 @@ impl Renderable {
             label: None,
         });
 
-        let texture = create_clipmap_storage_texture(&device, CLIPMAP_TEXTURE_SIZE as u32);
-        assert_eq!(CLIPMAP_N, (2 as u32).pow(CLIPMAP_K) - 1);
-        let (v, i) = create_grid(CLIPMAP_N, CLIPMAP_N);
+        let texture = create_clipmap_storage_texture(&device, CM_TEXTURE_SIZE as u32);
+        assert_eq!(CM_N, (2 as u32).pow(CM_K) - 1);
+        let (v, i) = create_grid(CM_N, CM_N);
         let clipmap_full = create_drawable_from(&device, (v.as_slice(), i.as_slice()));
-        let (v, i) = create_grid(CLIPMAP_M, CLIPMAP_M);
+        let (v, i) = create_grid(CM_M, CM_M);
         let clipmap_ring_mxm = create_drawable_from(&device, (v.as_slice(), i.as_slice()));
-        let (v, i) = create_grid(CLIPMAP_P, CLIPMAP_M);
+        let (v, i) = create_grid(CM_P, CM_M);
         let clipmap_ring_pxm = create_drawable_from(&device, (v.as_slice(), i.as_slice()));
-        let (v, i) = create_grid(CLIPMAP_M, CLIPMAP_P);
+        let (v, i) = create_grid(CM_M, CM_P);
         let clipmap_ring_mxp = create_drawable_from(&device, (v.as_slice(), i.as_slice()));
 
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -307,8 +314,8 @@ impl graphics::Renderable for Renderable {
         encoder.copy_buffer_to_texture(wgpu::BufferCopyView {
             buffer: &height_map_data_buffer,
             offset: 0,
-            bytes_per_row: CLIPMAP_TEXTURE_SIZE * 4,
-            rows_per_image: CLIPMAP_TEXTURE_SIZE
+            bytes_per_row: CM_TEXTURE_SIZE * 4,
+            rows_per_image: CM_TEXTURE_SIZE
         }, wgpu::TextureCopyView{
             texture: &self.texture,
             mip_level: 0,
@@ -319,8 +326,8 @@ impl graphics::Renderable for Renderable {
                 z: 1
             }
         }, wgpu::Extent3d{
-            width: CLIPMAP_TEXTURE_SIZE,
-            height: CLIPMAP_TEXTURE_SIZE,
+            width: CM_TEXTURE_SIZE,
+            height: CM_TEXTURE_SIZE,
             depth: 1
         });
 
@@ -329,28 +336,28 @@ impl graphics::Renderable for Renderable {
         let start_ring_level = 1;
         let full_level = start_ring_level - 1;
 
-        let end_mxm = CLIPMAP_INSTANCE_SIZE_MXM;
-        let end_mxp = end_mxm + CLIPMAP_INSTANCE_SIZE_MXP;
-        let end_pxm = end_mxp + CLIPMAP_INSTANCE_SIZE_PXM;
+        let end_mxm = CM_INSTANCE_SIZE_MXM;
+        let end_mxp = end_mxm + CM_INSTANCE_SIZE_MXP;
+        let end_pxm = end_mxp + CM_INSTANCE_SIZE_PXM;
         render_pass.set_vertex_buffer(0, &self.clipmap_ring_mxm.vertex_buffer, 0, 0);
         render_pass.set_index_buffer(&self.clipmap_ring_mxm.index_buffer, 0, 0);
         render_pass.set_bind_group(0, &self.bind_group, &[]);
-        render_pass.draw_indexed(0..self.clipmap_ring_mxm.index_buffer_len, 0, start_ring_level * CLIPMAP_INSTANCE_SIZE_ONE_MXM..end_mxm);
+        render_pass.draw_indexed(0..self.clipmap_ring_mxm.index_buffer_len, 0, start_ring_level * CM_INSTANCE_SIZE_ONE_MXM..end_mxm);
 
         render_pass.set_vertex_buffer(0, &self.clipmap_ring_mxp.vertex_buffer, 0, 0);
         render_pass.set_index_buffer(&self.clipmap_ring_mxp.index_buffer, 0, 0);
         render_pass.set_bind_group(0, &self.bind_group, &[]);
-        render_pass.draw_indexed(0..self.clipmap_ring_mxp.index_buffer_len, 0, end_mxm + start_ring_level * CLIPMAP_INSTANCE_SIZE_ONE_MXP..end_mxp);
+        render_pass.draw_indexed(0..self.clipmap_ring_mxp.index_buffer_len, 0, end_mxm + start_ring_level * CM_INSTANCE_SIZE_ONE_MXP..end_mxp);
 
         render_pass.set_vertex_buffer(0, &self.clipmap_ring_pxm.vertex_buffer, 0, 0);
         render_pass.set_index_buffer(&self.clipmap_ring_pxm.index_buffer, 0, 0);
         render_pass.set_bind_group(0, &self.bind_group, &[]);
-        render_pass.draw_indexed(0..self.clipmap_ring_pxm.index_buffer_len, 0, end_mxp + start_ring_level * CLIPMAP_INSTANCE_SIZE_ONE_PXM..end_pxm);
+        render_pass.draw_indexed(0..self.clipmap_ring_pxm.index_buffer_len, 0, end_mxp + start_ring_level * CM_INSTANCE_SIZE_ONE_PXM..end_pxm);
 
         render_pass.set_vertex_buffer(0, &self.clipmap_full.vertex_buffer, 0, 0);
         render_pass.set_index_buffer(&self.clipmap_full.index_buffer, 0, 0);
         render_pass.set_bind_group(0, &self.bind_group, &[]);
-        render_pass.draw_indexed(0..self.clipmap_full.index_buffer_len, 0, end_pxm + full_level * CLIPMAP_INSTANCE_SIZE_ONE_NXN..(end_pxm + full_level * CLIPMAP_INSTANCE_SIZE_ONE_NXN) + CLIPMAP_INSTANCE_SIZE_ONE_NXN);
+        render_pass.draw_indexed(0..self.clipmap_full.index_buffer_len, 0, end_pxm + full_level * CM_INSTANCE_SIZE_ONE_NXN..(end_pxm + full_level * CM_INSTANCE_SIZE_ONE_NXN) + CM_INSTANCE_SIZE_ONE_NXN);
     }
 }
 
@@ -358,7 +365,8 @@ struct Sine;
 
 impl graphics::clipmap::Generator for Sine {
     fn generate(&self, pos: [f32; 2]) -> f32 {
-        (pos[0].sin()  + pos[1].cos()) / 4.0
+        //(pos[0].sin()  + pos[1].cos()) / 4.0
+        0.0
     }
 }
 
@@ -367,13 +375,13 @@ pub trait Generator {
 }
 
 fn create_heightmap<T: Generator>(pos: &[i32; 2], generator: &T) -> Vec<f32> {
-    const N: i32 = CLIPMAP_TEXTURE_SIZE as i32;
-    const N_HALF: i32 = CLIPMAP_TEXTURE_SIZE_HALF as i32;
+    const N: i32 = CM_TEXTURE_SIZE as i32;
+    const N_HALF: i32 = CM_TEXTURE_SIZE_HALF as i32;
     let mut heightmap = vec!(0.0; (N * N) as usize);
     for z in pos[1]-N_HALF..pos[1]+N_HALF {
         for x in pos[0]-N_HALF..pos[0]+N_HALF {
             let height = generator.generate([x as f32, z as f32]);
-            heightmap[x as usize % CLIPMAP_TEXTURE_SIZE as usize + (z as usize % CLIPMAP_TEXTURE_SIZE as usize) * CLIPMAP_TEXTURE_SIZE as usize] = height;
+            heightmap[x as usize % CM_TEXTURE_SIZE as usize + (z as usize % CM_TEXTURE_SIZE as usize) * CM_TEXTURE_SIZE as usize] = height;
         }
     }
     heightmap

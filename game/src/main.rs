@@ -104,7 +104,7 @@ fn game(options: Options) {
                 }
                 previous_time = current_time;
                 let projection_2d = ortho(0.0, graphics.sc_descriptor.width as f32, 0.0, graphics.sc_descriptor.height as f32, -1.0, 1.0);
-                let projection_3d = perspective(graphics.sc_descriptor.width as f32 / graphics.sc_descriptor.height as f32, 45.0, 0.1, 10000.0);
+                let projection_3d = perspective(graphics.sc_descriptor.width as f32 / graphics.sc_descriptor.height as f32, 45.0, 0.1, 100.0);
 
                 // update all renderers
                 let mut instances = Vec::new();
