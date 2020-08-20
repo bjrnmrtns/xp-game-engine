@@ -46,6 +46,6 @@ void main() {
     float u = mod(position.x / unit_size, clipmap_index_count);
     float v = mod(position.y / unit_size, clipmap_index_count);
 
-    float height = imageLoad(heightmap, ivec3(u, v, 1)).r;
+    float height = imageLoad(heightmap, ivec3(u, v, 0)).r;
     gl_Position = projection * view * vec4(position, height, 1.0).xzyw;
 }
