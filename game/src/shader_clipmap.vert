@@ -21,7 +21,7 @@ buffer Instances {
     Instance instances[];
 };
 
-layout(binding = 2, r32f) coherent uniform image2D heightmap;
+layout(binding = 2, r32f) coherent uniform image3D heightmap;
 
 const vec3 COLOR_TABLE[8] = vec3[8](vec3(1.0, 1.0, 1.0f), vec3(1.0, 1.0, 0.0f), vec3(1.0, 0.0, 1.0), vec3(1.0, 0.0, 0.0), vec3(0.0, 1.0, 1.0), vec3(0.0, 1.0, 0.0), vec3(0.0, 0.0, 1.0), vec3(0.0, 0.0, 0.0));
 
@@ -46,6 +46,6 @@ void main() {
     float u = mod(position.x / unit_size, clipmap_index_count);
     float v = mod(position.y / unit_size, clipmap_index_count);
 
-    float height = imageLoad(heightmap, ivec2(u, v)).r;
+    float height = imageLoad(heightmap, ivec3(u, v, 1)).r;
     gl_Position = projection * view * vec4(position, height, 1.0).xzyw;
 }

@@ -44,12 +44,12 @@ pub fn create_clipmap_storage_texture(device: &wgpu::Device, N: u32) -> wgpu::Te
         size: wgpu::Extent3d {
             width: N,
             height: N,
-            depth: 1
+            depth: CM_MAX_LEVELS
         },
         array_layer_count: 1,
         mip_level_count: 1,
         sample_count: 1,
-        dimension: wgpu::TextureDimension::D2,
+        dimension: wgpu::TextureDimension::D3,
         format: wgpu::TextureFormat::R32Float,
         usage: wgpu::TextureUsage::STORAGE | wgpu::TextureUsage::COPY_DST,
     })
@@ -171,7 +171,7 @@ impl Renderable {
                     ty: wgpu::BindingType::StorageTexture {
                         component_type: wgpu::TextureComponentType::Float,
                         format: wgpu::TextureFormat::R32Float,
-                        dimension: TextureViewDimension::D2,
+                        dimension: TextureViewDimension::D3,
                         readonly: true
                     },
                 },
@@ -285,6 +285,7 @@ impl Renderable {
         let sine = Sine {};
         self.uniforms = uniforms;
         self.clipmap_data = create_heightmap(&topleft_snapped, 0, &sine);
+        self.clipmap_data.extend_from_slice(create_heightmap(&topleft_snapped, 1, &sine).as_slice());
     }
 }
 
@@ -341,6 +342,25 @@ impl graphics::Renderable for Renderable {
         encoder.copy_buffer_to_texture(wgpu::BufferCopyView {
             buffer: &height_map_data_buffer,
             offset: 0,
+            bytes_per_row: CM_TEXTURE_SIZE * 4,
+            rows_per_image: CM_TEXTURE_SIZE
+        }, wgpu::TextureCopyView{
+            texture: &self.texture,
+            mip_level: 0,
+            array_layer: 0,
+            origin: wgpu::Origin3d{
+                x: 0,
+                y: 0,
+                z: 0
+            }
+        }, wgpu::Extent3d{
+            width: CM_TEXTURE_SIZE,
+            height: CM_TEXTURE_SIZE,
+            depth: 1
+        });
+        encoder.copy_buffer_to_texture(wgpu::BufferCopyView {
+            buffer: &height_map_data_buffer,
+            offset: (CM_TEXTURE_SIZE * CM_TEXTURE_SIZE * 4) as wgpu::BufferAddress,
             bytes_per_row: CM_TEXTURE_SIZE * 4,
             rows_per_image: CM_TEXTURE_SIZE
         }, wgpu::TextureCopyView{
