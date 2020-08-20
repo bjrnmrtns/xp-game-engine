@@ -14,7 +14,6 @@ const CM_P: u32 = 3; // (CLIPMAP_N - 1) - ((CLIPMAP_M - 1) * 4) + 1 -> always 3
 const CM_M_SIZE: u32 = CM_M - 1;
 const CM_P_SIZE: u32 = CM_P - 1;
 const CM_TEXTURE_SIZE: u32 = CM_N + 1;
-const CM_TEXTURE_SIZE_HALF: u32 = CM_TEXTURE_SIZE / 2;
 const CM_1M: u32 = CM_M_SIZE;
 const CM_2M: u32 = CM_M_SIZE + CM_M_SIZE;
 const CM_2M1P: u32 = CM_M_SIZE + CM_M_SIZE + CM_P_SIZE;
@@ -280,12 +279,10 @@ impl Renderable {
     }
 
     pub fn update(&mut self, uniforms: Uniforms) {
-        let topleft = [uniforms.camera_position.x - (CM_N as f32 / 2.0) * CM_UNIT_SIZE_SMALLEST as f32, uniforms.camera_position.x - (CM_N as f32 / 2.0) * CM_UNIT_SIZE_SMALLEST as f32];
-        let topleft_snapped = [snap_grid_level(topleft[0], CM_UNIT_SIZE_SMALLEST * 2.0), snap_grid_level(topleft[1], CM_UNIT_SIZE_SMALLEST * 2.0)];
         let sine = Sine {};
         self.uniforms = uniforms;
-        self.clipmap_data = create_heightmap(&topleft_snapped, 0, &sine);
-        self.clipmap_data.extend_from_slice(create_heightmap(&topleft_snapped, 1, &sine).as_slice());
+        self.clipmap_data = create_heightmap([self.uniforms.camera_position.x, self.uniforms.camera_position.z],  0, &sine);
+        self.clipmap_data.extend_from_slice(create_heightmap([self.uniforms.camera_position.x, self.uniforms.camera_position.z], 1, &sine).as_slice());
     }
 }
 
@@ -422,14 +419,16 @@ pub trait Generator {
     fn generate(&self, pos: [f32; 2]) -> f32;
 }
 
-fn create_heightmap<T: Generator>(top_left: &[f32; 2], level: u32, generator: &T) -> Vec<f32> {
-    const N: usize = CM_TEXTURE_SIZE as usize;
-    let mut heightmap = vec!(0.0; (N * N) as usize);
-    for z in 0..N {
-        for x in 0..N {
-            let x_pos = top_left[0] + x as f32 * CM_UNIT_SIZE_SMALLEST * 2i32.pow(level) as f32;
-            let z_pos = top_left[1] + z as f32 * CM_UNIT_SIZE_SMALLEST * 2i32.pow(level) as f32;
-            heightmap[x + z * N] = generator.generate([x_pos, z_pos]);
+fn create_heightmap<T: Generator>(camera_position: [f32; 2], level: u32, generator: &T) -> Vec<f32> {
+    let unit_size = 2u32.pow(level) as f32 * CM_UNIT_SIZE_SMALLEST;
+    let topleft = [camera_position[0] - CM_N as f32 * unit_size / 2.0, camera_position[1] - CM_N as f32 * unit_size / 2.0];
+    let topleft_snapped = [snap_grid_level(topleft[0], unit_size * 2.0), snap_grid_level(topleft[1], unit_size * 2.0)];
+    let mut heightmap = vec!(0.0; (CM_TEXTURE_SIZE * CM_TEXTURE_SIZE) as usize);
+    for z in 0..CM_TEXTURE_SIZE as usize {
+        for x in 0..CM_TEXTURE_SIZE as usize {
+            let x_pos = topleft_snapped[0] + x as f32 * unit_size;
+            let z_pos = topleft_snapped[1] + z as f32 * unit_size;
+            heightmap[x + z * CM_TEXTURE_SIZE as usize] = generator.generate([x_pos, z_pos]);
         }
     }
     heightmap

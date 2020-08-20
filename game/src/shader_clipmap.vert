@@ -1,10 +1,10 @@
 #version 450
 
-layout(location=0) in ivec2 in_position;
+layout(location=0) in ivec2 index_offset_from_part;
 layout(location=0) out vec3 out_color;
 
 struct Instance {
-    uvec2 top_left;
+    uvec2 part_offset_from_base;
     uint clipmap_level;
     uint padding;
 };
@@ -18,7 +18,7 @@ uniform Uniforms {
 
 layout(set=0, binding=1)
 buffer Instances {
-    Instance instances[];
+    Instance clipmap_part_instances[];
 };
 
 layout(binding = 2, r32f) coherent uniform image3D heightmap;
@@ -34,18 +34,17 @@ float snap_grid_level(float val, float snap_size)
 }
 
 void main() {
-    uint clipmap_level = instances[gl_InstanceIndex].clipmap_level;
+    uint clipmap_level = clipmap_part_instances[gl_InstanceIndex].clipmap_level;
     float unit_size = smallest_unit_size * pow(2, clipmap_level + 1);
-    vec2 top_left = instances[gl_InstanceIndex].top_left;
-    vec2 center_snapped = vec2(snap_grid_level(camera_position.x, unit_size * 2), snap_grid_level(camera_position.z, unit_size * 2));
-    float clipmap_correction = (clipmap_index_count - 3) * unit_size / 2;
+    ivec2 part_offset_from_base = ivec2(clipmap_part_instances[gl_InstanceIndex].part_offset_from_base);
 
-    vec2 position = (in_position + top_left) * unit_size - clipmap_correction + center_snapped;
-    out_color = COLOR_TABLE[clipmap_level];
+    vec2 non_snapped_base_coordinate = vec2(camera_position.x - clipmap_index_count * unit_size / 2.0, camera_position.z - clipmap_index_count * unit_size / 2.0);
+    vec2 base_coordinate = vec2(snap_grid_level(non_snapped_base_coordinate.x, unit_size * 2.0), snap_grid_level(non_snapped_base_coordinate.y, unit_size * 2.0));
 
-    float u = mod(position.x / unit_size, clipmap_index_count);
-    float v = mod(position.y / unit_size, clipmap_index_count);
+    vec2 position = base_coordinate + (part_offset_from_base + index_offset_from_part) * unit_size;
+    ivec2 uv = part_offset_from_base + index_offset_from_part;
+    float height = imageLoad(heightmap, ivec3(uv, clipmap_level)).r;
 
-    float height = imageLoad(heightmap, ivec3(u, v, 0)).r;
     gl_Position = projection * view * vec4(position, height, 1.0).xzyw;
+    out_color = COLOR_TABLE[clipmap_level];
 }
