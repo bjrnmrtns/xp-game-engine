@@ -6,8 +6,8 @@ use crate::graphics;
 
 type Result<T> = std::result::Result<T, GraphicsError>;
 
-const CM_K: u32 = 4;
-const CM_N: u32 = 15;
+const CM_K: u32 = 5;
+const CM_N: u32 = 31;
 const CM_UNIT_SIZE_SMALLEST: f32 = 1.0;
 const CM_M: u32 = (CM_N + 1) / 4;
 const CM_P: u32 = 3; // (CLIPMAP_N - 1) - ((CLIPMAP_M - 1) * 4) + 1 -> always 3
@@ -281,8 +281,11 @@ impl Renderable {
     pub fn update(&mut self, uniforms: Uniforms) {
         let sine = Sine {};
         self.uniforms = uniforms;
-        self.clipmap_data = create_heightmap([self.uniforms.camera_position.x, self.uniforms.camera_position.z],  0, &sine);
-        self.clipmap_data.extend_from_slice(create_heightmap([self.uniforms.camera_position.x, self.uniforms.camera_position.z], 1, &sine).as_slice());
+        let mut clipmap_data: Vec<f32> = Vec::new();
+        for level in 0..CM_MAX_LEVELS {
+            clipmap_data.extend_from_slice(create_heightmap([self.uniforms.camera_position.x, self.uniforms.camera_position.z], level, &sine).as_slice());
+        }
+        self.clipmap_data = clipmap_data;
     }
 }
 
@@ -332,44 +335,27 @@ impl graphics::Renderable for Renderable {
     fn render<'a, 'b>(&'a self, device: &Device, encoder: &mut CommandEncoder, render_pass: &'b mut RenderPass<'a>) where 'a: 'b {
         let uniforms_bufer = device.create_buffer_with_data(bytemuck::cast_slice(&[self.uniforms]), wgpu::BufferUsage::COPY_SRC);
         let height_map_data_buffer = device.create_buffer_with_data(bytemuck::cast_slice(self.clipmap_data.as_slice()), wgpu::BufferUsage::COPY_SRC);
-        encoder.copy_buffer_to_texture(wgpu::BufferCopyView {
-            buffer: &height_map_data_buffer,
-            offset: 0,
-            bytes_per_row: CM_TEXTURE_SIZE * 4,
-            rows_per_image: CM_TEXTURE_SIZE
-        }, wgpu::TextureCopyView{
-            texture: &self.texture,
-            mip_level: 0,
-            array_layer: 0,
-            origin: wgpu::Origin3d{
-                x: 0,
-                y: 0,
-                z: 0
-            }
-        }, wgpu::Extent3d{
-            width: CM_TEXTURE_SIZE,
-            height: CM_TEXTURE_SIZE,
-            depth: 1
-        });
-        encoder.copy_buffer_to_texture(wgpu::BufferCopyView {
-            buffer: &height_map_data_buffer,
-            offset: (CM_TEXTURE_SIZE * CM_TEXTURE_SIZE * 4) as wgpu::BufferAddress,
-            bytes_per_row: CM_TEXTURE_SIZE * 4,
-            rows_per_image: CM_TEXTURE_SIZE
-        }, wgpu::TextureCopyView{
-            texture: &self.texture,
-            mip_level: 0,
-            array_layer: 0,
-            origin: wgpu::Origin3d{
-                x: 0,
-                y: 0,
-                z: 1
-            }
-        }, wgpu::Extent3d{
-            width: CM_TEXTURE_SIZE,
-            height: CM_TEXTURE_SIZE,
-            depth: 1
-        });
+        for level in 0..CM_MAX_LEVELS {
+            encoder.copy_buffer_to_texture(wgpu::BufferCopyView {
+                buffer: &height_map_data_buffer,
+                offset: (CM_TEXTURE_SIZE * CM_TEXTURE_SIZE * 4 * level) as wgpu::BufferAddress,
+                bytes_per_row: CM_TEXTURE_SIZE * 4,
+                rows_per_image: CM_TEXTURE_SIZE
+            }, wgpu::TextureCopyView{
+                texture: &self.texture,
+                mip_level: 0,
+                array_layer: 0,
+                origin: wgpu::Origin3d{
+                    x: 0,
+                    y: 0,
+                    z: level
+                }
+            }, wgpu::Extent3d{
+                width: CM_TEXTURE_SIZE,
+                height: CM_TEXTURE_SIZE,
+                depth: 1
+            });
+        }
 
         let orientations = (0..CM_MAX_LEVELS - 1).map(|level| OrientationsFromPostition([self.uniforms.camera_position.x, self.uniforms.camera_position.z], level)).collect::<Vec<Orientation>>();
 
