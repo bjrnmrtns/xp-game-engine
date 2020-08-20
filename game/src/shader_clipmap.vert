@@ -5,7 +5,7 @@ layout(location=0) out vec3 out_color;
 
 struct Instance {
     uvec2 part_offset_from_base;
-    uint clipmap_level;
+    uint level;
     uint padding;
 };
 
@@ -33,18 +33,33 @@ float snap_grid_level(float val, float snap_size)
     return floor(val / snap_size) * snap_size;
 }
 
+float unit_size_for_level(float level)
+{
+    return pow(2, level) * smallest_unit_size;
+}
+
+vec2 snap_position_for_level(vec2 val, uint level)
+{
+    float snap_size = unit_size_for_level(level + 1);
+    return vec2(floor(val.x / snap_size) * snap_size, floor(val.y / snap_size) * snap_size);
+}
+
+float base_offset(uint level) {
+    return unit_size_for_level(level) * (clipmap_index_count - 3.0) / 2.0;
+}
+
 void main() {
-    uint clipmap_level = clipmap_part_instances[gl_InstanceIndex].clipmap_level;
-    float unit_size = smallest_unit_size * pow(2, clipmap_level);
+    uint level = clipmap_part_instances[gl_InstanceIndex].level;
+    float unit_size = unit_size_for_level(level);
     ivec2 part_offset_from_base = ivec2(clipmap_part_instances[gl_InstanceIndex].part_offset_from_base);
 
-    vec2 non_snapped_base_coordinate = vec2(camera_position.x - clipmap_index_count * unit_size / 2.0, camera_position.z - clipmap_index_count * unit_size / 2.0);
-    vec2 base_coordinate = vec2(snap_grid_level(non_snapped_base_coordinate.x, unit_size * 2.0), snap_grid_level(non_snapped_base_coordinate.y, unit_size * 2.0));
+    vec2 snapped_center = snap_position_for_level(vec2(camera_position.x, camera_position.z), level);
+    vec2 base_coordinate = snapped_center - vec2(base_offset(level), base_offset(level));
 
     vec2 position = base_coordinate + (part_offset_from_base + index_offset_from_part) * unit_size;
     ivec2 uv = part_offset_from_base + index_offset_from_part;
-    float height = imageLoad(heightmap, ivec3(uv, clipmap_level)).r;
+    float height = imageLoad(heightmap, ivec3(uv, level)).r;
 
     gl_Position = projection * view * vec4(position, height, 1.0).xzyw;
-    out_color = COLOR_TABLE[clipmap_level];
+    out_color = COLOR_TABLE[level];
 }
