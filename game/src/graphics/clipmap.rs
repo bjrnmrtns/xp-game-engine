@@ -280,9 +280,11 @@ impl Renderable {
     }
 
     pub fn update(&mut self, uniforms: Uniforms) {
+        let topleft = [uniforms.camera_position.x - (CM_N as f32 / 2.0) * CM_UNIT_SIZE_SMALLEST as f32, uniforms.camera_position.x - (CM_N as f32 / 2.0) * CM_UNIT_SIZE_SMALLEST as f32];
+        let topleft_snapped = [snap_grid_level(topleft[0], CM_UNIT_SIZE_SMALLEST * 2.0), snap_grid_level(topleft[1], CM_UNIT_SIZE_SMALLEST * 2.0)];
         let sine = Sine {};
         self.uniforms = uniforms;
-        self.clipmap_data = create_heightmap(&[uniforms.camera_position.x as i32, uniforms.camera_position.z as i32], &sine);
+        self.clipmap_data = create_heightmap(&topleft_snapped, 0, &sine);
     }
 }
 
@@ -392,8 +394,7 @@ struct Sine;
 
 impl graphics::clipmap::Generator for Sine {
     fn generate(&self, pos: [f32; 2]) -> f32 {
-        //(pos[0].sin()  + pos[1].cos()) / 4.0
-        0.0
+        (pos[0].sin()  + pos[1].cos()) / 4.0
     }
 }
 
@@ -401,14 +402,14 @@ pub trait Generator {
     fn generate(&self, pos: [f32; 2]) -> f32;
 }
 
-fn create_heightmap<T: Generator>(pos: &[i32; 2], generator: &T) -> Vec<f32> {
-    const N: i32 = CM_TEXTURE_SIZE as i32;
-    const N_HALF: i32 = CM_TEXTURE_SIZE_HALF as i32;
+fn create_heightmap<T: Generator>(top_left: &[f32; 2], level: u32, generator: &T) -> Vec<f32> {
+    const N: usize = CM_TEXTURE_SIZE as usize;
     let mut heightmap = vec!(0.0; (N * N) as usize);
-    for z in pos[1]-N_HALF..pos[1]+N_HALF {
-        for x in pos[0]-N_HALF..pos[0]+N_HALF {
-            let height = generator.generate([x as f32, z as f32]);
-            heightmap[x as usize % CM_TEXTURE_SIZE as usize + (z as usize % CM_TEXTURE_SIZE as usize) * CM_TEXTURE_SIZE as usize] = height;
+    for z in 0..N {
+        for x in 0..N {
+            let x_pos = top_left[0] + x as f32 * CM_UNIT_SIZE_SMALLEST * 2i32.pow(level) as f32;
+            let z_pos = top_left[1] + z as f32 * CM_UNIT_SIZE_SMALLEST * 2i32.pow(level) as f32;
+            heightmap[x + z * N] = generator.generate([x_pos, z_pos]);
         }
     }
     heightmap
