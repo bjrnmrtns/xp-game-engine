@@ -308,11 +308,6 @@ pub fn create_grid(size_x: u32, size_z: u32) -> (Vec<Vertex>, Vec<u32>) {
     (vertices, indices)
 }
 
-fn snap_grid_level(val: f32, snap_size: f32) -> f32
-{
-    return (val / snap_size).floor() * snap_size;
-}
-
 enum Orientation {
     NORTH_WEST,
     NORTH_EAST,
@@ -321,9 +316,10 @@ enum Orientation {
 }
 
 fn OrientationsFromPostition(position: [f32;2], level: u32) -> Orientation {
-    let unit_size = CM_UNIT_SIZE_SMALLEST * 2u32.pow(level) as f32;
-    let x_diff = snap_grid_level(position[0], unit_size * 2.0) - snap_grid_level(position[0], unit_size * 4.0);
-    let z_diff = snap_grid_level(position[1], unit_size * 2.0) - snap_grid_level(position[1], unit_size * 4.0);
+    let snap_level = snap_position_for_level(position, level);
+    let snap_level_plus_one = snap_position_for_level(position, level + 1);
+    let x_diff = snap_level[0] - snap_level_plus_one[0];
+    let z_diff = snap_level[1] - snap_level_plus_one[1];
     match (x_diff > 0.0001, z_diff > 0.0001) {
         (true, true) => Orientation::SOUTH_WEST,
         (true, false) => Orientation::NORTH_WEST,
@@ -419,15 +415,30 @@ pub trait Generator {
     fn generate(&self, pos: [f32; 2]) -> f32;
 }
 
-fn create_heightmap<T: Generator>(camera_position: [f32; 2], level: u32, generator: &T) -> Vec<f32> {
-    let unit_size = 2u32.pow(level) as f32 * CM_UNIT_SIZE_SMALLEST;
-    let topleft = [camera_position[0] - CM_N as f32 * unit_size / 2.0, camera_position[1] - CM_N as f32 * unit_size / 2.0];
-    let topleft_snapped = [snap_grid_level(topleft[0], unit_size * 2.0), snap_grid_level(topleft[1], unit_size * 2.0)];
+fn unit_size_for_level(level: u32) -> f32
+{
+    2u32.pow(level) as f32 * CM_UNIT_SIZE_SMALLEST
+}
+
+fn snap_position_for_level(val: [f32; 2], level: u32) -> [f32; 2]
+{
+    let snap_size = unit_size_for_level(level + 1);
+    [(val[0] / snap_size).floor() * snap_size, (val[1] / snap_size).floor() * snap_size]
+}
+
+fn base_offset(level: u32) -> f32 {
+    unit_size_for_level(level) * (CM_N - 3) as f32 / 2.0
+}
+
+fn create_heightmap<T: Generator>(center: [f32; 2], level: u32, generator: &T) -> Vec<f32> {
+    let snapped_center = snap_position_for_level(center, level);
+    let snapped_base = [snapped_center[0] - base_offset(level), snapped_center[1] - base_offset(level)];
+    let unit_size = unit_size_for_level(level);
     let mut heightmap = vec!(0.0; (CM_TEXTURE_SIZE * CM_TEXTURE_SIZE) as usize);
     for z in 0..CM_TEXTURE_SIZE as usize {
         for x in 0..CM_TEXTURE_SIZE as usize {
-            let x_pos = topleft_snapped[0] + x as f32 * unit_size;
-            let z_pos = topleft_snapped[1] + z as f32 * unit_size;
+            let x_pos = snapped_base[0] + x as f32 * unit_size;
+            let z_pos = snapped_base[1] + z as f32 * unit_size;
             heightmap[x + z * CM_TEXTURE_SIZE as usize] = generator.generate([x_pos, z_pos]);
         }
     }
