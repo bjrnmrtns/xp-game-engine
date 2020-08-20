@@ -35,7 +35,7 @@ float snap_grid_level(float val, float snap_size)
 
 void main() {
     uint clipmap_level = clipmap_part_instances[gl_InstanceIndex].clipmap_level;
-    float unit_size = smallest_unit_size * pow(2, clipmap_level + 1);
+    float unit_size = smallest_unit_size * pow(2, clipmap_level);
     ivec2 part_offset_from_base = ivec2(clipmap_part_instances[gl_InstanceIndex].part_offset_from_base);
 
     vec2 non_snapped_base_coordinate = vec2(camera_position.x - clipmap_index_count * unit_size / 2.0, camera_position.z - clipmap_index_count * unit_size / 2.0);
