@@ -6,8 +6,9 @@ use crate::graphics;
 
 type Result<T> = std::result::Result<T, GraphicsError>;
 
-const CM_K: u32 = 8;
-const CM_N: u32 = 255;
+const CM_K: u32 = 4;
+const CM_N: u32 = 15;
+const CM_UNIT_SIZE_SMALLEST: f32 = 1.0;
 const CM_M: u32 = (CM_N + 1) / 4;
 const CM_P: u32 = 3; // (CLIPMAP_N - 1) - ((CLIPMAP_M - 1) * 4) + 1 -> always 3
 const CM_M_SIZE: u32 = CM_M - 1;
@@ -307,6 +308,30 @@ pub fn create_grid(size_x: u32, size_z: u32) -> (Vec<Vertex>, Vec<u32>) {
     (vertices, indices)
 }
 
+fn snap_grid_level(val: f32, snap_size: f32) -> f32
+{
+    return (val / snap_size).floor() * snap_size;
+}
+
+enum Orientation {
+    NORTH_WEST,
+    NORTH_EAST,
+    SOUTH_EAST,
+    SOUTH_WEST,
+}
+
+fn OrientationsFromPostition(position: [f32;2], level: u32) -> Orientation {
+    let unit_size = CM_UNIT_SIZE_SMALLEST * 2u32.pow(level) as f32;
+    let x_diff = snap_grid_level(position[0], unit_size * 2.0) - snap_grid_level(position[0], unit_size * 4.0);
+    let z_diff = snap_grid_level(position[1], unit_size * 2.0) - snap_grid_level(position[1], unit_size * 4.0);
+    match (x_diff > 0.0001, z_diff > 0.0001) {
+        (true, true) => Orientation::SOUTH_WEST,
+        (true, false) => Orientation::NORTH_WEST,
+        (false, true) => Orientation::SOUTH_EAST,
+        (false, false) => Orientation::NORTH_EAST,
+    }
+}
+
 impl graphics::Renderable for Renderable {
     fn render<'a, 'b>(&'a self, device: &Device, encoder: &mut CommandEncoder, render_pass: &'b mut RenderPass<'a>) where 'a: 'b {
         let uniforms_bufer = device.create_buffer_with_data(bytemuck::cast_slice(&[self.uniforms]), wgpu::BufferUsage::COPY_SRC);
@@ -330,6 +355,8 @@ impl graphics::Renderable for Renderable {
             height: CM_TEXTURE_SIZE,
             depth: 1
         });
+
+        let orientations = (0..CM_MAX_LEVELS - 1).map(|level| OrientationsFromPostition([self.uniforms.camera_position.x, self.uniforms.camera_position.z], level)).collect::<Vec<Orientation>>();
 
         encoder.copy_buffer_to_buffer(&uniforms_bufer, 0, &self.uniforms_buffer, 0, std::mem::size_of_val(&self.uniforms) as u64);
         render_pass.set_pipeline(&self.render_pipeline);
