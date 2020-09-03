@@ -13,6 +13,7 @@ const CM_M: u32 = (CM_N + 1) / 4;
 const CM_P: u32 = 3; // (CLIPMAP_N - 1) - ((CLIPMAP_M - 1) * 4) + 1 -> always 3
 const CM_M_SIZE: u32 = CM_M - 1;
 const CM_P_SIZE: u32 = CM_P - 1;
+const CM_INTERIOR_SIZE: u32 = CM_M * 2 + 1;
 const CM_TEXTURE_SIZE: u32 = CM_N + 1;
 const CM_1M: u32 = CM_M_SIZE;
 const CM_2M: u32 = CM_M_SIZE + CM_M_SIZE;
@@ -26,15 +27,22 @@ const CM_OFFSETS_MXM: [[u32; 2]; 12] = [[0, 0], [CM_1M, 0], [CM_2M1P, 0], [CM_3M
 
 const CM_OFFSETS_MXP: [[u32; 2]; 2] = [[0, CM_2M], [CM_3M1P, CM_2M],]; // instances [14..16) -> mxp
 const CM_OFFSETS_PXM: [[u32; 2]; 2] = [[CM_2M, 0], [CM_2M, CM_3M1P],]; // instances [12..14) -> pxm
+const CM_OFFSETS_INTERIOR_H_BOTTOM: [u32; 2] = [CM_1M, CM_3M1P - 1];
+const CM_OFFSETS_INTERIOR_H_TOP: [u32; 2] = [CM_1M, CM_1M];
+const CM_OFFSETS_INTERIOR_V_LEFT: [u32; 2] = [CM_1M, CM_1M];
+const CM_OFFSETS_INTERIOR_V_RIGHT: [u32; 2] = [CM_3M1P - 1, CM_1M];
 const CM_OFFSET_NXN: [u32; 2] = [0, 0];
 const CM_MAX_LEVELS: u32 = 7;
 const CM_INSTANCE_SIZE_ONE_MXM: u32 = 12;
 const CM_INSTANCE_SIZE_ONE_MXP: u32 = 2;
 const CM_INSTANCE_SIZE_ONE_PXM: u32 = 2;
+const CM_INSTANCE_SIZE_ONE_INTERIOR: u32 = 1;
 const CM_INSTANCE_SIZE_ONE_NXN: u32 = 1;
 const CM_INSTANCE_SIZE_MXM: u32 = CM_INSTANCE_SIZE_ONE_MXM * CM_MAX_LEVELS;
 const CM_INSTANCE_SIZE_MXP: u32 = CM_INSTANCE_SIZE_ONE_MXP * CM_MAX_LEVELS;
 const CM_INSTANCE_SIZE_PXM: u32 = CM_INSTANCE_SIZE_ONE_PXM * CM_MAX_LEVELS;
+const CM_INSTANCE_SIZE_NXN: u32 = CM_INSTANCE_SIZE_ONE_NXN * CM_MAX_LEVELS;
+const CM_INSTANCE_SIZE_INTERIOR: u32 = CM_INSTANCE_SIZE_ONE_INTERIOR * CM_MAX_LEVELS;
 
 #[allow(non_snake_case)]
 pub fn create_clipmap_storage_texture(device: &wgpu::Device, N: u32) -> wgpu::Texture {
@@ -103,7 +111,6 @@ unsafe impl bytemuck::Pod for Uniforms {}
 unsafe impl bytemuck::Zeroable for Uniforms {}
 
 pub struct Renderable {
-    pub drawables: Vec<Drawable>,
     pub uniforms_buffer: wgpu::Buffer,
     pub instance_buffer: wgpu::Buffer,
     pub bind_group: wgpu::BindGroup,
@@ -116,6 +123,8 @@ pub struct Renderable {
     clipmap_ring_mxm: Drawable,
     clipmap_ring_pxm: Drawable,
     clipmap_ring_mxp: Drawable,
+    clipmap_interior_h: Drawable,
+    clipmap_interior_v: Drawable,
 }
 
 impl Renderable {
@@ -143,6 +152,19 @@ impl Renderable {
         }
         for level in 0..CM_MAX_LEVELS {
             instances.push(Instance { offset: CM_OFFSET_NXN, level, padding: 0 } );
+        }
+
+        for level in 0..CM_MAX_LEVELS {
+            instances.push(Instance { offset: CM_OFFSETS_INTERIOR_H_BOTTOM, level, padding: 1 } );
+        }
+        for level in 0..CM_MAX_LEVELS {
+            instances.push(Instance { offset: CM_OFFSETS_INTERIOR_H_TOP, level, padding: 1 } );
+        }
+        for level in 0..CM_MAX_LEVELS {
+            instances.push(Instance { offset: CM_OFFSETS_INTERIOR_V_LEFT, level, padding: 1 } );
+        }
+        for level in 0..CM_MAX_LEVELS {
+            instances.push(Instance { offset: CM_OFFSETS_INTERIOR_V_RIGHT, level, padding: 1 } );
         }
         let instance_buffer = device.create_buffer_with_data(bytemuck::cast_slice(instances.as_slice()),
                                                              wgpu::BufferUsage::STORAGE | wgpu::BufferUsage::COPY_DST);
@@ -188,6 +210,10 @@ impl Renderable {
         let clipmap_ring_pxm = create_drawable_from(&device, (v.as_slice(), i.as_slice()));
         let (v, i) = create_grid(CM_M, CM_P);
         let clipmap_ring_mxp = create_drawable_from(&device, (v.as_slice(), i.as_slice()));
+        let (v, i) = create_grid(CM_INTERIOR_SIZE, 2);
+        let clipmap_interior_h = create_drawable_from(&device, (v.as_slice(), i.as_slice()));
+        let (v, i) = create_grid(2, CM_INTERIOR_SIZE);
+        let clipmap_interior_v = create_drawable_from(&device, (v.as_slice(), i.as_slice()));
 
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &bind_group_layout,
@@ -267,7 +293,8 @@ impl Renderable {
             clipmap_ring_mxm,
             clipmap_ring_pxm,
             clipmap_ring_mxp,
-            drawables: Vec::new(),
+            clipmap_interior_h,
+            clipmap_interior_v,
             uniforms_buffer: uniform_buffer,
             instance_buffer,
             bind_group: bind_group,
@@ -311,26 +338,6 @@ pub fn create_grid(size_x: u32, size_z: u32) -> (Vec<Vertex>, Vec<u32>) {
     (vertices, indices)
 }
 
-enum Orientation {
-    NORTH_WEST,
-    NORTH_EAST,
-    SOUTH_EAST,
-    SOUTH_WEST,
-}
-
-fn OrientationsFromPostition(position: [f32;2], level: u32) -> Orientation {
-    let snap_level = snap_position_for_level(position, level);
-    let snap_level_plus_one = snap_position_for_level(position, level + 1);
-    let x_diff = snap_level[0] - snap_level_plus_one[0];
-    let z_diff = snap_level[1] - snap_level_plus_one[1];
-    match (x_diff > 0.0001, z_diff > 0.0001) {
-        (true, true) => Orientation::SOUTH_WEST,
-        (true, false) => Orientation::NORTH_WEST,
-        (false, true) => Orientation::SOUTH_EAST,
-        (false, false) => Orientation::NORTH_EAST,
-    }
-}
-
 impl graphics::Renderable for Renderable {
     fn render<'a, 'b>(&'a self, device: &Device, encoder: &mut CommandEncoder, render_pass: &'b mut RenderPass<'a>) where 'a: 'b {
         let uniforms_bufer = device.create_buffer_with_data(bytemuck::cast_slice(&[self.uniforms]), wgpu::BufferUsage::COPY_SRC);
@@ -357,8 +364,6 @@ impl graphics::Renderable for Renderable {
             });
         }
 
-        let orientations = (0..CM_MAX_LEVELS - 1).map(|level| OrientationsFromPostition([self.uniforms.camera_position.x, self.uniforms.camera_position.z], level)).collect::<Vec<Orientation>>();
-
         encoder.copy_buffer_to_buffer(&uniforms_bufer, 0, &self.uniforms_buffer, 0, std::mem::size_of_val(&self.uniforms) as u64);
         render_pass.set_pipeline(&self.render_pipeline);
         let start_ring_level = 1;
@@ -367,6 +372,12 @@ impl graphics::Renderable for Renderable {
         let end_mxm = CM_INSTANCE_SIZE_MXM;
         let end_mxp = end_mxm + CM_INSTANCE_SIZE_MXP;
         let end_pxm = end_mxp + CM_INSTANCE_SIZE_PXM;
+        let end_nxn: u32 = end_pxm + CM_INSTANCE_SIZE_NXN;
+        let end_h_bottom: u32 = end_nxn + CM_INSTANCE_SIZE_INTERIOR;
+        let end_h_top: u32 = end_h_bottom + CM_INSTANCE_SIZE_INTERIOR;
+        let end_v_left: u32 = end_h_top + CM_INSTANCE_SIZE_INTERIOR;
+        let end_v_right: u32 = end_v_left + CM_INSTANCE_SIZE_INTERIOR;
+
         render_pass.set_vertex_buffer(0, &self.clipmap_ring_mxm.vertex_buffer, 0, 0);
         render_pass.set_index_buffer(&self.clipmap_ring_mxm.index_buffer, 0, 0);
         render_pass.set_bind_group(0, &self.bind_group, &[]);
@@ -386,6 +397,26 @@ impl graphics::Renderable for Renderable {
         render_pass.set_index_buffer(&self.clipmap_full.index_buffer, 0, 0);
         render_pass.set_bind_group(0, &self.bind_group, &[]);
         render_pass.draw_indexed(0..self.clipmap_full.index_buffer_len, 0, end_pxm + full_level * CM_INSTANCE_SIZE_ONE_NXN..(end_pxm + full_level * CM_INSTANCE_SIZE_ONE_NXN) + CM_INSTANCE_SIZE_ONE_NXN);
+
+        render_pass.set_vertex_buffer(0, &self.clipmap_interior_h.vertex_buffer, 0, 0);
+        render_pass.set_index_buffer(&self.clipmap_interior_h.index_buffer, 0, 0);
+        render_pass.set_bind_group(0, &self.bind_group, &[]);
+        render_pass.draw_indexed(0..self.clipmap_interior_h.index_buffer_len, 0, end_nxn + start_ring_level * CM_INSTANCE_SIZE_ONE_INTERIOR..end_h_bottom);
+
+        render_pass.set_vertex_buffer(0, &self.clipmap_interior_h.vertex_buffer, 0, 0);
+        render_pass.set_index_buffer(&self.clipmap_interior_h.index_buffer, 0, 0);
+        render_pass.set_bind_group(0, &self.bind_group, &[]);
+        render_pass.draw_indexed(0..self.clipmap_interior_h.index_buffer_len, 0, end_h_bottom + start_ring_level * CM_INSTANCE_SIZE_ONE_INTERIOR..end_h_top);
+
+        render_pass.set_vertex_buffer(0, &self.clipmap_interior_v.vertex_buffer, 0, 0);
+        render_pass.set_index_buffer(&self.clipmap_interior_v.index_buffer, 0, 0);
+        render_pass.set_bind_group(0, &self.bind_group, &[]);
+        render_pass.draw_indexed(0..self.clipmap_interior_v.index_buffer_len, 0, end_h_top + start_ring_level * CM_INSTANCE_SIZE_ONE_INTERIOR..end_v_left);
+
+        render_pass.set_vertex_buffer(0, &self.clipmap_interior_v.vertex_buffer, 0, 0);
+        render_pass.set_index_buffer(&self.clipmap_interior_v.index_buffer, 0, 0);
+        render_pass.set_bind_group(0, &self.bind_group, &[]);
+        render_pass.draw_indexed(0..self.clipmap_interior_v.index_buffer_len, 0, end_v_left + start_ring_level * CM_INSTANCE_SIZE_ONE_INTERIOR..end_v_right);
     }
 }
 
@@ -401,9 +432,25 @@ pub trait Generator {
     fn generate(&self, pos: [f32; 2]) -> f32;
 }
 
+fn level_factor(level: u32) -> u32 {
+    2u32.pow(level)
+}
+
 fn unit_size_for_level(level: u32) -> f32
 {
-    2u32.pow(level) as f32 * CM_UNIT_SIZE_SMALLEST
+    level_factor(level) as f32 * CM_UNIT_SIZE_SMALLEST
+}
+
+enum Alignment {
+    Down,
+    Up
+}
+
+fn alignment(val: i32, level: u32) -> Alignment {
+    match (val / level_factor(level + 1) as i32) % 2 == 0 {
+        true => Alignment::Up,
+        false => Alignment::Down,
+    }
 }
 
 fn snap_position_for_level(val: [f32; 2], level: u32) -> [f32; 2]
@@ -429,5 +476,18 @@ fn create_heightmap<T: Generator>(center: [f32; 2], level: u32, generator: &T) -
         }
     }
     heightmap
+}
+
+#[test]
+fn clipmap_test() {
+    for x in 0u32..16u32 {
+        let snapped_0 = snap_position_for_level([x as f32, x as f32], 0);
+        let snapped_1 = snap_position_for_level([x as f32, x as f32], 1);
+        let snapped_2 = snap_position_for_level([x as f32, x as f32], 2);
+        match alignment(snapped_0[0] as i32, 0) {
+            Alignment::Down => println!("x down: {}, zero: {}, first: {}, second: {}", x, snapped_0[0], snapped_1[0], snapped_2[0]),
+            Alignment::Up => println!("x up: {}, zero: {}, first: {}, second: {}", x, snapped_0[0], snapped_1[0], snapped_2[0]),
+        }
+    }
 }
 
