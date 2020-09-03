@@ -376,7 +376,6 @@ impl graphics::Renderable for Renderable {
         let end_h_bottom: u32 = end_nxn + CM_INSTANCE_SIZE_INTERIOR;
         let end_h_top: u32 = end_h_bottom + CM_INSTANCE_SIZE_INTERIOR;
         let end_v_left: u32 = end_h_top + CM_INSTANCE_SIZE_INTERIOR;
-        let end_v_right: u32 = end_v_left + CM_INSTANCE_SIZE_INTERIOR;
 
         render_pass.set_vertex_buffer(0, &self.clipmap_ring_mxm.vertex_buffer, 0, 0);
         render_pass.set_index_buffer(&self.clipmap_ring_mxm.index_buffer, 0, 0);
@@ -398,25 +397,41 @@ impl graphics::Renderable for Renderable {
         render_pass.set_bind_group(0, &self.bind_group, &[]);
         render_pass.draw_indexed(0..self.clipmap_full.index_buffer_len, 0, end_pxm + full_level * CM_INSTANCE_SIZE_ONE_NXN..(end_pxm + full_level * CM_INSTANCE_SIZE_ONE_NXN) + CM_INSTANCE_SIZE_ONE_NXN);
 
-        render_pass.set_vertex_buffer(0, &self.clipmap_interior_h.vertex_buffer, 0, 0);
-        render_pass.set_index_buffer(&self.clipmap_interior_h.index_buffer, 0, 0);
-        render_pass.set_bind_group(0, &self.bind_group, &[]);
-        render_pass.draw_indexed(0..self.clipmap_interior_h.index_buffer_len, 0, end_nxn + start_ring_level * CM_INSTANCE_SIZE_ONE_INTERIOR..end_h_bottom);
+        for level in start_ring_level..CM_MAX_LEVELS {
+            //h_bottom
+            let start_instance = end_nxn + level * CM_INSTANCE_SIZE_ONE_INTERIOR;
+            render_pass.set_vertex_buffer(0, &self.clipmap_interior_h.vertex_buffer, 0, 0);
+            render_pass.set_index_buffer(&self.clipmap_interior_h.index_buffer, 0, 0);
+            render_pass.set_bind_group(0, &self.bind_group, &[]);
+            render_pass.draw_indexed(0..self.clipmap_interior_h.index_buffer_len, 0, start_instance..start_instance+1);
+        }
 
-        render_pass.set_vertex_buffer(0, &self.clipmap_interior_h.vertex_buffer, 0, 0);
-        render_pass.set_index_buffer(&self.clipmap_interior_h.index_buffer, 0, 0);
-        render_pass.set_bind_group(0, &self.bind_group, &[]);
-        render_pass.draw_indexed(0..self.clipmap_interior_h.index_buffer_len, 0, end_h_bottom + start_ring_level * CM_INSTANCE_SIZE_ONE_INTERIOR..end_h_top);
+        for level in start_ring_level..CM_MAX_LEVELS {
+            //h_top
+            let start_instance = end_h_bottom + level * CM_INSTANCE_SIZE_ONE_INTERIOR;
+            render_pass.set_vertex_buffer(0, &self.clipmap_interior_h.vertex_buffer, 0, 0);
+            render_pass.set_index_buffer(&self.clipmap_interior_h.index_buffer, 0, 0);
+            render_pass.set_bind_group(0, &self.bind_group, &[]);
+            render_pass.draw_indexed(0..self.clipmap_interior_h.index_buffer_len, 0, start_instance..start_instance+1);
+        }
 
-        render_pass.set_vertex_buffer(0, &self.clipmap_interior_v.vertex_buffer, 0, 0);
-        render_pass.set_index_buffer(&self.clipmap_interior_v.index_buffer, 0, 0);
-        render_pass.set_bind_group(0, &self.bind_group, &[]);
-        render_pass.draw_indexed(0..self.clipmap_interior_v.index_buffer_len, 0, end_h_top + start_ring_level * CM_INSTANCE_SIZE_ONE_INTERIOR..end_v_left);
+        for level in start_ring_level..CM_MAX_LEVELS {
+            //v_left
+            let start_instance = end_h_top + level * CM_INSTANCE_SIZE_ONE_INTERIOR;
+            render_pass.set_vertex_buffer(0, &self.clipmap_interior_v.vertex_buffer, 0, 0);
+            render_pass.set_index_buffer(&self.clipmap_interior_v.index_buffer, 0, 0);
+            render_pass.set_bind_group(0, &self.bind_group, &[]);
+            render_pass.draw_indexed(0..self.clipmap_interior_v.index_buffer_len, 0, start_instance..start_instance+1);
+        }
 
-        render_pass.set_vertex_buffer(0, &self.clipmap_interior_v.vertex_buffer, 0, 0);
-        render_pass.set_index_buffer(&self.clipmap_interior_v.index_buffer, 0, 0);
-        render_pass.set_bind_group(0, &self.bind_group, &[]);
-        render_pass.draw_indexed(0..self.clipmap_interior_v.index_buffer_len, 0, end_v_left + start_ring_level * CM_INSTANCE_SIZE_ONE_INTERIOR..end_v_right);
+        for level in start_ring_level..CM_MAX_LEVELS {
+            //v_right
+            let start_instance = end_v_left + level * CM_INSTANCE_SIZE_ONE_INTERIOR;
+            render_pass.set_vertex_buffer(0, &self.clipmap_interior_v.vertex_buffer, 0, 0);
+            render_pass.set_index_buffer(&self.clipmap_interior_v.index_buffer, 0, 0);
+            render_pass.set_bind_group(0, &self.bind_group, &[]);
+            render_pass.draw_indexed(0..self.clipmap_interior_v.index_buffer_len, 0, start_instance..start_instance+1);
+        }
     }
 }
 
