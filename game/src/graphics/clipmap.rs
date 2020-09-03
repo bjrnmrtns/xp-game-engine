@@ -399,38 +399,46 @@ impl graphics::Renderable for Renderable {
 
         for level in start_ring_level..CM_MAX_LEVELS {
             //h_bottom
-            let start_instance = end_nxn + level * CM_INSTANCE_SIZE_ONE_INTERIOR;
-            render_pass.set_vertex_buffer(0, &self.clipmap_interior_h.vertex_buffer, 0, 0);
-            render_pass.set_index_buffer(&self.clipmap_interior_h.index_buffer, 0, 0);
-            render_pass.set_bind_group(0, &self.bind_group, &[]);
-            render_pass.draw_indexed(0..self.clipmap_interior_h.index_buffer_len, 0, start_instance..start_instance+1);
+            if snap_diff(self.uniforms.camera_position.z, level - 1, level) < std::f32::EPSILON {
+                let start_instance = end_nxn + level * CM_INSTANCE_SIZE_ONE_INTERIOR;
+                render_pass.set_vertex_buffer(0, &self.clipmap_interior_h.vertex_buffer, 0, 0);
+                render_pass.set_index_buffer(&self.clipmap_interior_h.index_buffer, 0, 0);
+                render_pass.set_bind_group(0, &self.bind_group, &[]);
+                render_pass.draw_indexed(0..self.clipmap_interior_h.index_buffer_len, 0, start_instance..start_instance + 1);
+            }
         }
 
         for level in start_ring_level..CM_MAX_LEVELS {
             //h_top
-            let start_instance = end_h_bottom + level * CM_INSTANCE_SIZE_ONE_INTERIOR;
-            render_pass.set_vertex_buffer(0, &self.clipmap_interior_h.vertex_buffer, 0, 0);
-            render_pass.set_index_buffer(&self.clipmap_interior_h.index_buffer, 0, 0);
-            render_pass.set_bind_group(0, &self.bind_group, &[]);
-            render_pass.draw_indexed(0..self.clipmap_interior_h.index_buffer_len, 0, start_instance..start_instance+1);
+            if snap_diff(self.uniforms.camera_position.z, level - 1, level) > std::f32::EPSILON {
+                let start_instance = end_h_bottom + level * CM_INSTANCE_SIZE_ONE_INTERIOR;
+                render_pass.set_vertex_buffer(0, &self.clipmap_interior_h.vertex_buffer, 0, 0);
+                render_pass.set_index_buffer(&self.clipmap_interior_h.index_buffer, 0, 0);
+                render_pass.set_bind_group(0, &self.bind_group, &[]);
+                render_pass.draw_indexed(0..self.clipmap_interior_h.index_buffer_len, 0, start_instance..start_instance + 1);
+            }
         }
 
         for level in start_ring_level..CM_MAX_LEVELS {
             //v_left
-            let start_instance = end_h_top + level * CM_INSTANCE_SIZE_ONE_INTERIOR;
-            render_pass.set_vertex_buffer(0, &self.clipmap_interior_v.vertex_buffer, 0, 0);
-            render_pass.set_index_buffer(&self.clipmap_interior_v.index_buffer, 0, 0);
-            render_pass.set_bind_group(0, &self.bind_group, &[]);
-            render_pass.draw_indexed(0..self.clipmap_interior_v.index_buffer_len, 0, start_instance..start_instance+1);
+            if snap_diff(self.uniforms.camera_position.x, level - 1, level) > std::f32::EPSILON {
+                let start_instance = end_h_top + level * CM_INSTANCE_SIZE_ONE_INTERIOR;
+                render_pass.set_vertex_buffer(0, &self.clipmap_interior_v.vertex_buffer, 0, 0);
+                render_pass.set_index_buffer(&self.clipmap_interior_v.index_buffer, 0, 0);
+                render_pass.set_bind_group(0, &self.bind_group, &[]);
+                render_pass.draw_indexed(0..self.clipmap_interior_v.index_buffer_len, 0, start_instance..start_instance + 1);
+            }
         }
 
         for level in start_ring_level..CM_MAX_LEVELS {
             //v_right
-            let start_instance = end_v_left + level * CM_INSTANCE_SIZE_ONE_INTERIOR;
-            render_pass.set_vertex_buffer(0, &self.clipmap_interior_v.vertex_buffer, 0, 0);
-            render_pass.set_index_buffer(&self.clipmap_interior_v.index_buffer, 0, 0);
-            render_pass.set_bind_group(0, &self.bind_group, &[]);
-            render_pass.draw_indexed(0..self.clipmap_interior_v.index_buffer_len, 0, start_instance..start_instance+1);
+            if snap_diff(self.uniforms.camera_position.x, level - 1, level) < std::f32::EPSILON {
+                let start_instance = end_v_left + level * CM_INSTANCE_SIZE_ONE_INTERIOR;
+                render_pass.set_vertex_buffer(0, &self.clipmap_interior_v.vertex_buffer, 0, 0);
+                render_pass.set_index_buffer(&self.clipmap_interior_v.index_buffer, 0, 0);
+                render_pass.set_bind_group(0, &self.bind_group, &[]);
+                render_pass.draw_indexed(0..self.clipmap_interior_v.index_buffer_len, 0, start_instance..start_instance + 1);
+            }
         }
     }
 }
@@ -456,22 +464,18 @@ fn unit_size_for_level(level: u32) -> f32
     level_factor(level) as f32 * CM_UNIT_SIZE_SMALLEST
 }
 
-enum Alignment {
-    Down,
-    Up
+fn snap_diff(val: f32, level_a: u32, level_b: u32) -> f32 {
+    snap_value_for_level(val, level_a) - snap_value_for_level(val, level_b)
 }
 
-fn alignment(val: i32, level: u32) -> Alignment {
-    match (val / level_factor(level + 1) as i32) % 2 == 0 {
-        true => Alignment::Up,
-        false => Alignment::Down,
-    }
+fn snap_value_for_level(val: f32, level: u32) -> f32 {
+    let snap_size = unit_size_for_level(level + 1);
+    (val / snap_size).floor() * snap_size
 }
 
 fn snap_position_for_level(val: [f32; 2], level: u32) -> [f32; 2]
 {
-    let snap_size = unit_size_for_level(level + 1);
-    [(val[0] / snap_size).floor() * snap_size, (val[1] / snap_size).floor() * snap_size]
+    [snap_value_for_level(val[0], level), snap_value_for_level(val[1], level)]
 }
 
 fn base_offset(level: u32) -> f32 {
@@ -494,15 +498,11 @@ fn create_heightmap<T: Generator>(center: [f32; 2], level: u32, generator: &T) -
 }
 
 #[test]
-fn clipmap_test() {
-    for x in 0u32..16u32 {
-        let snapped_0 = snap_position_for_level([x as f32, x as f32], 0);
-        let snapped_1 = snap_position_for_level([x as f32, x as f32], 1);
-        let snapped_2 = snap_position_for_level([x as f32, x as f32], 2);
-        match alignment(snapped_0[0] as i32, 0) {
-            Alignment::Down => println!("x down: {}, zero: {}, first: {}, second: {}", x, snapped_0[0], snapped_1[0], snapped_2[0]),
-            Alignment::Up => println!("x up: {}, zero: {}, first: {}, second: {}", x, snapped_0[0], snapped_1[0], snapped_2[0]),
-        }
+fn snap_up_down_test() {
+    for val in 0..10 {
+        let val = val as f32;
+        let snapped_0 = snap_value_for_level(val, 0);
+        let snapped_1 = snap_value_for_level(val, 1);
+        println!("val: {}, snap_diff: {}", val, snapped_0 - snapped_1);
     }
 }
-
