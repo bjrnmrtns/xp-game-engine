@@ -148,7 +148,10 @@ pub fn render_loop(renderables: &Renderables, device: &wgpu::Device, queue: &wgp
             }),
         });
         renderables.default.render(&device, &mut renderable_encoder, &mut game_render_pass);
+        let time_before_clipmap_render = std::time::Instant::now();
         renderables.clipmap.render(&device, &mut renderable_encoder, &mut game_render_pass);
+        let time_after_clipmap_render = std::time::Instant::now();
+        println!("clipmap-render ms: {}", (time_after_clipmap_render - time_before_clipmap_render).as_micros());
     }
     {
         let mut ui_render_pass = render_pass_creation_encoder.begin_render_pass(&wgpu::RenderPassDescriptor {

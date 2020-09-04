@@ -647,3 +647,29 @@ fn create_heightmap<T: Generator>(center: [f32; 2], level: u32, generator: &T) -
     heightmap
 }
 
+#[test]
+fn calculate_update_region_test() {
+    let size = 4;
+
+    let from_position_x = 2;
+    let to_position_x = 0;
+    let update_offset_x = if from_position_x < to_position_x { size } else { -size };
+
+    let from_position_z = 2;
+    let to_position_z = 0;
+    let update_offset_z = if from_position_z < to_position_z { size } else { -size };
+
+    let x_update_range_begin = from_position_x + update_offset_x;
+    let x_update_range_end = to_position_x + update_offset_x;
+    let z_update_range_begin = from_position_z + update_offset_z;
+    let z_update_range_end = to_position_z + update_offset_z;
+
+    let zs_with_x_begin = to_position_z;
+    let zs_with_x_end = to_position_z + update_offset_z;
+
+    let xs_with_z_begin = to_position_x;
+    let xs_with_z_end = to_position_x + update_offset_x;
+    println!("[{}..{}), [{}..{}) .... [{}..{}), [{}..{})", x_update_range_begin, x_update_range_end, zs_with_x_begin, zs_with_x_end, xs_with_z_begin, xs_with_z_end, z_update_range_begin, z_update_range_end);
+}
+
+
