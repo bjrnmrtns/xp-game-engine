@@ -60,8 +60,5 @@ void main() {
     float height = imageLoad(heightmap, ivec3(uv, level)).r;
 
     gl_Position = projection * view * vec4(position, height, 1.0).xzyw;
-    out_color = COLOR_TABLE[level];
-    if(clipmap_part_instances[gl_InstanceIndex].padding == 1) {
-        out_color = COLOR_TABLE[2];
-    }
+    out_color = COLOR_TABLE[clipmap_part_instances[gl_InstanceIndex].padding];
 }

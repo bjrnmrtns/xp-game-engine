@@ -19,6 +19,7 @@ const CM_1M: u32 = CM_M_SIZE;
 const CM_2M: u32 = CM_M_SIZE + CM_M_SIZE;
 const CM_2M1P: u32 = CM_M_SIZE + CM_M_SIZE + CM_P_SIZE;
 const CM_3M1P: u32 = CM_M_SIZE + CM_M_SIZE + CM_M_SIZE + CM_P_SIZE;
+const CM_4M1P: u32 = CM_M_SIZE + CM_M_SIZE + CM_M_SIZE + CM_M_SIZE + CM_P_SIZE;
 
 const CM_OFFSETS_MXM: [[u32; 2]; 12] = [[0, 0], [CM_1M, 0], [CM_2M1P, 0], [CM_3M1P, 0], // instances [0..12) -> mxm
                                          [0, CM_1M], [CM_3M1P, CM_1M],
@@ -31,17 +32,23 @@ const CM_OFFSETS_INTERIOR_H_BOTTOM: [u32; 2] = [CM_1M, CM_3M1P - 1];
 const CM_OFFSETS_INTERIOR_H_TOP: [u32; 2] = [CM_1M, CM_1M];
 const CM_OFFSETS_INTERIOR_V_LEFT: [u32; 2] = [CM_1M, CM_1M];
 const CM_OFFSETS_INTERIOR_V_RIGHT: [u32; 2] = [CM_3M1P - 1, CM_1M];
+const CM_OFFSETS_DEGENERATES_H_TOP: [u32; 2] = [0, 0];
+const CM_OFFSETS_DEGENERATES_H_BOTTOM: [u32; 2] = [0, CM_4M1P];
+const CM_OFFSETS_DEGENERATES_V_LEFT: [u32; 2] = [0, 0];
+const CM_OFFSETS_DEGENERATES_V_RIGHT: [u32; 2] = [CM_4M1P, 0];
 const CM_OFFSET_NXN: [u32; 2] = [0, 0];
 const CM_MAX_LEVELS: u32 = 7;
 const CM_INSTANCE_SIZE_ONE_MXM: u32 = 12;
 const CM_INSTANCE_SIZE_ONE_MXP: u32 = 2;
 const CM_INSTANCE_SIZE_ONE_PXM: u32 = 2;
 const CM_INSTANCE_SIZE_ONE_INTERIOR: u32 = 1;
+const CM_INSTANCE_SIZE_ONE_DEGENERATE: u32 = 1;
 const CM_INSTANCE_SIZE_ONE_NXN: u32 = 1;
 const CM_INSTANCE_SIZE_MXM: u32 = CM_INSTANCE_SIZE_ONE_MXM * CM_MAX_LEVELS;
 const CM_INSTANCE_SIZE_MXP: u32 = CM_INSTANCE_SIZE_ONE_MXP * CM_MAX_LEVELS;
 const CM_INSTANCE_SIZE_PXM: u32 = CM_INSTANCE_SIZE_ONE_PXM * CM_MAX_LEVELS;
 const CM_INSTANCE_SIZE_NXN: u32 = CM_INSTANCE_SIZE_ONE_NXN * CM_MAX_LEVELS;
+const CM_INSTANCE_SIZE_DEGENERATES: u32 = CM_INSTANCE_SIZE_ONE_DEGENERATE * CM_MAX_LEVELS;
 const CM_INSTANCE_SIZE_INTERIOR: u32 = CM_INSTANCE_SIZE_ONE_INTERIOR * CM_MAX_LEVELS;
 
 #[allow(non_snake_case)]
@@ -125,6 +132,10 @@ pub struct Renderable {
     clipmap_ring_mxp: Drawable,
     clipmap_interior_h: Drawable,
     clipmap_interior_v: Drawable,
+    clipmap_degenerates_h_top: Drawable,
+    clipmap_degenerates_h_bottom: Drawable,
+    clipmap_degenerates_v_left: Drawable,
+    clipmap_degenerates_v_right: Drawable,
 }
 
 impl Renderable {
@@ -145,26 +156,39 @@ impl Renderable {
             instances.extend(CM_OFFSETS_MXM.iter().map(|offset| Instance { offset: offset.clone(), level, padding: 0 } ));
         }
         for level in 0..CM_MAX_LEVELS {
-            instances.extend(CM_OFFSETS_MXP.iter().map(|offset| Instance { offset: offset.clone(), level, padding: 0 } ));
+            instances.extend(CM_OFFSETS_MXP.iter().map(|offset| Instance { offset: offset.clone(), level, padding: 1 } ));
         }
         for level in 0..CM_MAX_LEVELS {
-            instances.extend(CM_OFFSETS_PXM.iter().map(|offset| Instance { offset: offset.clone(), level, padding: 0 } ));
+            instances.extend(CM_OFFSETS_PXM.iter().map(|offset| Instance { offset: offset.clone(), level, padding: 2 } ));
         }
         for level in 0..CM_MAX_LEVELS {
-            instances.push(Instance { offset: CM_OFFSET_NXN, level, padding: 0 } );
+            instances.push(Instance { offset: CM_OFFSET_NXN, level, padding: 3 } );
         }
 
         for level in 0..CM_MAX_LEVELS {
-            instances.push(Instance { offset: CM_OFFSETS_INTERIOR_H_BOTTOM, level, padding: 1 } );
+            instances.push(Instance { offset: CM_OFFSETS_INTERIOR_H_BOTTOM, level, padding: 4 } );
         }
         for level in 0..CM_MAX_LEVELS {
-            instances.push(Instance { offset: CM_OFFSETS_INTERIOR_H_TOP, level, padding: 1 } );
+            instances.push(Instance { offset: CM_OFFSETS_INTERIOR_H_TOP, level, padding: 4 } );
         }
         for level in 0..CM_MAX_LEVELS {
-            instances.push(Instance { offset: CM_OFFSETS_INTERIOR_V_LEFT, level, padding: 1 } );
+            instances.push(Instance { offset: CM_OFFSETS_INTERIOR_V_LEFT, level, padding: 4 } );
         }
         for level in 0..CM_MAX_LEVELS {
-            instances.push(Instance { offset: CM_OFFSETS_INTERIOR_V_RIGHT, level, padding: 1 } );
+            instances.push(Instance { offset: CM_OFFSETS_INTERIOR_V_RIGHT, level, padding: 4 } );
+        }
+
+        for level in 0..CM_MAX_LEVELS {
+            instances.push(Instance { offset: CM_OFFSETS_DEGENERATES_H_TOP, level, padding: 5 } );
+        }
+        for level in 0..CM_MAX_LEVELS {
+            instances.push(Instance { offset: CM_OFFSETS_DEGENERATES_H_BOTTOM, level, padding: 5 } );
+        }
+        for level in 0..CM_MAX_LEVELS {
+            instances.push(Instance { offset: CM_OFFSETS_DEGENERATES_V_LEFT, level, padding: 5 } );
+        }
+        for level in 0..CM_MAX_LEVELS {
+            instances.push(Instance { offset: CM_OFFSETS_DEGENERATES_V_RIGHT, level, padding: 5 } );
         }
         let instance_buffer = device.create_buffer_with_data(bytemuck::cast_slice(instances.as_slice()),
                                                              wgpu::BufferUsage::STORAGE | wgpu::BufferUsage::COPY_DST);
@@ -214,6 +238,14 @@ impl Renderable {
         let clipmap_interior_h = create_drawable_from(&device, (v.as_slice(), i.as_slice()));
         let (v, i) = create_grid(2, CM_INTERIOR_SIZE);
         let clipmap_interior_v = create_drawable_from(&device, (v.as_slice(), i.as_slice()));
+        let (v, i) = create_degenerates_top(CM_N);
+        let clipmap_degenerates_h_top = create_drawable_from(&device, (v.as_slice(), i.as_slice()));
+        let (v, i) = create_degenerates_bottom(CM_N);
+        let clipmap_degenerates_h_bottom = create_drawable_from(&device, (v.as_slice(), i.as_slice()));
+        let (v, i) = create_degenerates_left(CM_N);
+        let clipmap_degenerates_v_left = create_drawable_from(&device, (v.as_slice(), i.as_slice()));
+        let (v, i) = create_degenerates_right(CM_N);
+        let clipmap_degenerates_v_right = create_drawable_from(&device, (v.as_slice(), i.as_slice()));
 
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &bind_group_layout,
@@ -295,6 +327,10 @@ impl Renderable {
             clipmap_ring_mxp,
             clipmap_interior_h,
             clipmap_interior_v,
+            clipmap_degenerates_h_top,
+            clipmap_degenerates_h_bottom,
+            clipmap_degenerates_v_left,
+            clipmap_degenerates_v_right,
             uniforms_buffer: uniform_buffer,
             instance_buffer,
             bind_group: bind_group,
@@ -316,8 +352,76 @@ impl Renderable {
     }
 }
 
+pub fn create_degenerates_top(size: u32) -> (Vec<Vertex>, Vec<u32>) {
+    assert!((size + 1) % 2 == 0);
+    let mut vertices = Vec::new();
+    let mut indices = Vec::new();
+    for x in 0..size {
+        vertices.push(Vertex { p: [x as i32, 0], });
+    }
+    for x in (0..size - 1).step_by(2) {
+        let i0 = x;
+        let i1 = x + 1;
+        let i2 = x + 2;
+        indices.extend_from_slice(&[i0, i1, i1, i2, i2, i0]);
+
+    }
+    (vertices, indices)
+}
+
+pub fn create_degenerates_bottom(size: u32) -> (Vec<Vertex>, Vec<u32>) {
+    assert!((size + 1) % 2 == 0);
+    let mut vertices = Vec::new();
+    let mut indices = Vec::new();
+    for x in 0..size {
+        vertices.push(Vertex { p: [x as i32, 0], });
+    }
+    for x in (0..size - 1).step_by(2) {
+        let i0 = x;
+        let i1 = x + 2;
+        let i2 = x + 1;
+        indices.extend_from_slice(&[i0, i1, i1, i2, i2, i0]);
+
+    }
+    (vertices, indices)
+}
+
+pub fn create_degenerates_left(size: u32) -> (Vec<Vertex>, Vec<u32>) {
+    assert!((size + 1) % 2 == 0);
+    let mut vertices = Vec::new();
+    let mut indices = Vec::new();
+    for z in 0..size {
+        vertices.push(Vertex { p: [0, z as i32], });
+    }
+    for z in (0..size - 1).step_by(2) {
+        let i0 = z;
+        let i1 = z + 2;
+        let i2 = z + 1;
+        indices.extend_from_slice(&[i0, i1, i1, i2, i2, i0]);
+
+    }
+    (vertices, indices)
+}
+
+pub fn create_degenerates_right(size: u32) -> (Vec<Vertex>, Vec<u32>) {
+    assert!((size + 1) % 2 == 0);
+    let mut vertices = Vec::new();
+    let mut indices = Vec::new();
+    for z in 0..size {
+        vertices.push(Vertex { p: [0, z as i32], });
+    }
+    for z in (0..size - 1).step_by(2) {
+        let i0 = z;
+        let i1 = z + 1;
+        let i2 = z + 2;
+        indices.extend_from_slice(&[i0, i1, i1, i2, i2, i0]);
+
+    }
+    (vertices, indices)
+}
+
 pub fn create_grid(size_x: u32, size_z: u32) -> (Vec<Vertex>, Vec<u32>) {
-    let mut vertices: Vec<Vertex> = Vec::new();
+    let mut vertices = Vec::new();
     for z in 0..size_z {
         for x in 0..size_x {
             vertices.push(Vertex {
@@ -325,7 +429,7 @@ pub fn create_grid(size_x: u32, size_z: u32) -> (Vec<Vertex>, Vec<u32>) {
             })
         }
     }
-    let mut indices: Vec<u32> = Vec::new();
+    let mut indices = Vec::new();
     for z in 0..size_z-1 {
         for x in 0..size_x-1 {
             let i0 = x + z * size_x;
@@ -373,9 +477,14 @@ impl graphics::Renderable for Renderable {
         let end_mxp = end_mxm + CM_INSTANCE_SIZE_MXP;
         let end_pxm = end_mxp + CM_INSTANCE_SIZE_PXM;
         let end_nxn: u32 = end_pxm + CM_INSTANCE_SIZE_NXN;
-        let end_h_bottom: u32 = end_nxn + CM_INSTANCE_SIZE_INTERIOR;
-        let end_h_top: u32 = end_h_bottom + CM_INSTANCE_SIZE_INTERIOR;
-        let end_v_left: u32 = end_h_top + CM_INSTANCE_SIZE_INTERIOR;
+        let end_interior_h_bottom: u32 = end_nxn + CM_INSTANCE_SIZE_INTERIOR;
+        let end_interior_h_top: u32 = end_interior_h_bottom + CM_INSTANCE_SIZE_INTERIOR;
+        let end_interior_v_left: u32 = end_interior_h_top + CM_INSTANCE_SIZE_INTERIOR;
+        let end_interior_v_right: u32 = end_interior_v_left + CM_INSTANCE_SIZE_INTERIOR;
+        let end_degen_h_top: u32 = end_interior_v_right + CM_INSTANCE_SIZE_DEGENERATES;
+        let end_degen_h_bottom: u32 = end_degen_h_top + CM_INSTANCE_SIZE_DEGENERATES;
+        let end_degen_v_left: u32 = end_degen_h_bottom + CM_INSTANCE_SIZE_DEGENERATES;
+        let end_degen_v_right: u32 = end_degen_v_left + CM_INSTANCE_SIZE_DEGENERATES;
 
         render_pass.set_vertex_buffer(0, &self.clipmap_ring_mxm.vertex_buffer, 0, 0);
         render_pass.set_index_buffer(&self.clipmap_ring_mxm.index_buffer, 0, 0);
@@ -411,7 +520,7 @@ impl graphics::Renderable for Renderable {
         for level in start_ring_level..CM_MAX_LEVELS {
             //h_top
             if snap_diff(self.uniforms.camera_position.z, level - 1, level) > std::f32::EPSILON {
-                let start_instance = end_h_bottom + level * CM_INSTANCE_SIZE_ONE_INTERIOR;
+                let start_instance = end_interior_h_bottom + level * CM_INSTANCE_SIZE_ONE_INTERIOR;
                 render_pass.set_vertex_buffer(0, &self.clipmap_interior_h.vertex_buffer, 0, 0);
                 render_pass.set_index_buffer(&self.clipmap_interior_h.index_buffer, 0, 0);
                 render_pass.set_bind_group(0, &self.bind_group, &[]);
@@ -422,7 +531,7 @@ impl graphics::Renderable for Renderable {
         for level in start_ring_level..CM_MAX_LEVELS {
             //v_left
             if snap_diff(self.uniforms.camera_position.x, level - 1, level) > std::f32::EPSILON {
-                let start_instance = end_h_top + level * CM_INSTANCE_SIZE_ONE_INTERIOR;
+                let start_instance = end_interior_h_top + level * CM_INSTANCE_SIZE_ONE_INTERIOR;
                 render_pass.set_vertex_buffer(0, &self.clipmap_interior_v.vertex_buffer, 0, 0);
                 render_pass.set_index_buffer(&self.clipmap_interior_v.index_buffer, 0, 0);
                 render_pass.set_bind_group(0, &self.bind_group, &[]);
@@ -433,13 +542,33 @@ impl graphics::Renderable for Renderable {
         for level in start_ring_level..CM_MAX_LEVELS {
             //v_right
             if snap_diff(self.uniforms.camera_position.x, level - 1, level) < std::f32::EPSILON {
-                let start_instance = end_v_left + level * CM_INSTANCE_SIZE_ONE_INTERIOR;
+                let start_instance = end_interior_v_left + level * CM_INSTANCE_SIZE_ONE_INTERIOR;
                 render_pass.set_vertex_buffer(0, &self.clipmap_interior_v.vertex_buffer, 0, 0);
                 render_pass.set_index_buffer(&self.clipmap_interior_v.index_buffer, 0, 0);
                 render_pass.set_bind_group(0, &self.bind_group, &[]);
                 render_pass.draw_indexed(0..self.clipmap_interior_v.index_buffer_len, 0, start_instance..start_instance + 1);
             }
         }
+
+        render_pass.set_vertex_buffer(0, &self.clipmap_degenerates_h_top.vertex_buffer, 0, 0);
+        render_pass.set_index_buffer(&self.clipmap_degenerates_h_top.index_buffer, 0, 0);
+        render_pass.set_bind_group(0, &self.bind_group, &[]);
+        render_pass.draw_indexed(0..self.clipmap_degenerates_h_top.index_buffer_len, 0, end_interior_v_right + full_level * CM_INSTANCE_SIZE_ONE_DEGENERATE..end_degen_h_top);
+
+        render_pass.set_vertex_buffer(0, &self.clipmap_degenerates_h_bottom.vertex_buffer, 0, 0);
+        render_pass.set_index_buffer(&self.clipmap_degenerates_h_bottom.index_buffer, 0, 0);
+        render_pass.set_bind_group(0, &self.bind_group, &[]);
+        render_pass.draw_indexed(0..self.clipmap_degenerates_h_bottom.index_buffer_len, 0, end_degen_h_top + full_level * CM_INSTANCE_SIZE_ONE_DEGENERATE..end_degen_h_bottom);
+
+        render_pass.set_vertex_buffer(0, &self.clipmap_degenerates_v_left.vertex_buffer, 0, 0);
+        render_pass.set_index_buffer(&self.clipmap_degenerates_v_left.index_buffer, 0, 0);
+        render_pass.set_bind_group(0, &self.bind_group, &[]);
+        render_pass.draw_indexed(0..self.clipmap_degenerates_v_left.index_buffer_len, 0, end_degen_h_bottom + full_level * CM_INSTANCE_SIZE_ONE_DEGENERATE..end_degen_v_left);
+
+        render_pass.set_vertex_buffer(0, &self.clipmap_degenerates_v_right.vertex_buffer, 0, 0);
+        render_pass.set_index_buffer(&self.clipmap_degenerates_v_right.index_buffer, 0, 0);
+        render_pass.set_bind_group(0, &self.bind_group, &[]);
+        render_pass.draw_indexed(0..self.clipmap_degenerates_v_right.index_buffer_len, 0, end_degen_v_left + full_level * CM_INSTANCE_SIZE_ONE_DEGENERATE..end_degen_v_right);
     }
 }
 
