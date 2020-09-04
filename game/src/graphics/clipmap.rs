@@ -6,7 +6,7 @@ use crate::graphics;
 
 type Result<T> = std::result::Result<T, GraphicsError>;
 
-const WIRE_FRAME: bool = false;
+const WIRE_FRAME: bool = true;
 
 const CM_K: u32 = 5;
 const CM_N: u32 = 31;
@@ -647,12 +647,3 @@ fn create_heightmap<T: Generator>(center: [f32; 2], level: u32, generator: &T) -
     heightmap
 }
 
-#[test]
-fn snap_up_down_test() {
-    for val in 0..10 {
-        let val = val as f32;
-        let snapped_0 = snap_value_for_level(val, 0);
-        let snapped_1 = snap_value_for_level(val, 1);
-        println!("val: {}, snap_diff: {}", val, snapped_0 - snapped_1);
-    }
-}
