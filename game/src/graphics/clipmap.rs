@@ -6,6 +6,8 @@ use crate::graphics;
 
 type Result<T> = std::result::Result<T, GraphicsError>;
 
+const WIRE_FRAME: bool = false;
+
 const CM_K: u32 = 5;
 const CM_N: u32 = 31;
 const CM_UNIT_SIZE_SMALLEST: f32 = 1.0;
@@ -276,6 +278,8 @@ impl Renderable {
             bind_group_layouts: &[&bind_group_layout],
         });
 
+        let primitive_topology = if  WIRE_FRAME {  wgpu::PrimitiveTopology::LineList } else { wgpu::PrimitiveTopology::TriangleList };
+
         let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             layout: &render_pipeline_layout,
             vertex_stage: wgpu::ProgrammableStageDescriptor {
@@ -301,7 +305,7 @@ impl Renderable {
                     write_mask: wgpu::ColorWrite::ALL,
                 }
             ],
-            primitive_topology: wgpu::PrimitiveTopology::LineList,
+            primitive_topology,
             depth_stencil_state: Some(wgpu::DepthStencilStateDescriptor {
                 format: texture::Texture::DEPTH_FORMAT,
                 depth_write_enabled: true,
@@ -363,7 +367,11 @@ pub fn create_degenerates_top(size: u32) -> (Vec<Vertex>, Vec<u32>) {
         let i0 = x;
         let i1 = x + 1;
         let i2 = x + 2;
-        indices.extend_from_slice(&[i0, i1, i1, i2, i2, i0]);
+        if WIRE_FRAME {
+            indices.extend_from_slice(&[i0, i1, i1, i2, i2, i0]);
+        } else {
+            indices.extend_from_slice(&[i0, i1, i2]);
+        }
 
     }
     (vertices, indices)
@@ -380,8 +388,11 @@ pub fn create_degenerates_bottom(size: u32) -> (Vec<Vertex>, Vec<u32>) {
         let i0 = x;
         let i1 = x + 2;
         let i2 = x + 1;
-        indices.extend_from_slice(&[i0, i1, i1, i2, i2, i0]);
-
+        if WIRE_FRAME {
+            indices.extend_from_slice(&[i0, i1, i1, i2, i2, i0]);
+        } else {
+            indices.extend_from_slice(&[i0, i1, i2]);
+        }
     }
     (vertices, indices)
 }
@@ -397,8 +408,11 @@ pub fn create_degenerates_left(size: u32) -> (Vec<Vertex>, Vec<u32>) {
         let i0 = z;
         let i1 = z + 2;
         let i2 = z + 1;
-        indices.extend_from_slice(&[i0, i1, i1, i2, i2, i0]);
-
+        if WIRE_FRAME {
+            indices.extend_from_slice(&[i0, i1, i1, i2, i2, i0]);
+        } else {
+            indices.extend_from_slice(&[i0, i1, i2]);
+        }
     }
     (vertices, indices)
 }
@@ -414,8 +428,11 @@ pub fn create_degenerates_right(size: u32) -> (Vec<Vertex>, Vec<u32>) {
         let i0 = z;
         let i1 = z + 1;
         let i2 = z + 2;
-        indices.extend_from_slice(&[i0, i1, i1, i2, i2, i0]);
-
+        if WIRE_FRAME {
+            indices.extend_from_slice(&[i0, i1, i1, i2, i2, i0]);
+        } else {
+            indices.extend_from_slice(&[i0, i1, i2]);
+        }
     }
     (vertices, indices)
 }
@@ -436,7 +453,11 @@ pub fn create_grid(size_x: u32, size_z: u32) -> (Vec<Vertex>, Vec<u32>) {
             let i1 = i0 + 1;
             let i2 = x + (z + 1) * size_x;
             let i3 = i2 + 1;
-            indices.extend_from_slice(&[i0, i2, i2, i1, i1, i0, i1, i2, i2, i3, i3, i1]); // line_strip -> wireframe, indexbuffer for filled is remove even indices
+            if WIRE_FRAME {
+                indices.extend_from_slice(&[i0, i2, i2, i1, i1, i0, i1, i2, i2, i3, i3, i1]);
+            } else {
+                indices.extend_from_slice(&[i0, i2, i1, i1, i2, i3]);
+            }
         }
     }
     (vertices, indices)
