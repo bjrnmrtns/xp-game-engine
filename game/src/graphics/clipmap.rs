@@ -597,7 +597,7 @@ struct Sine;
 
 impl graphics::clipmap::Generator for Sine {
     fn generate(&self, pos: [f32; 2]) -> f32 {
-        (pos[0].sin()  + pos[1].cos()) / 4.0
+        (pos[0] / 4.0).sin() + (pos[1] / 4.0).sin()
     }
 }
 
@@ -668,8 +668,26 @@ fn calculate_update_region_test() {
     let zs_with_x_end = to_position_z + update_offset_z;
 
     let xs_with_z_begin = to_position_x;
-    let xs_with_z_end = to_position_x + update_offset_x;
+    let xs_with_z_end = x_update_range_begin;
     println!("[{}..{}), [{}..{}) .... [{}..{}), [{}..{})", x_update_range_begin, x_update_range_end, zs_with_x_begin, zs_with_x_end, xs_with_z_begin, xs_with_z_end, z_update_range_begin, z_update_range_end);
 }
 
+fn calculate_update_range_1d(old: i32, new: i32, size: i32) -> (i32, i32) {
+    if (new - old).abs() > size {
+        (new, new + size)
+    } else if old < new {
+        (old + size, new + size)
+    } else {
+        (new, old)
+    }
+}
 
+#[test]
+fn calculate_update_range_1d_test() {
+    assert_eq!(calculate_update_range_1d(0, 1, 4), (4, 5));
+    assert_eq!(calculate_update_range_1d(0, 6, 4), (6, 10));
+    assert_eq!(calculate_update_range_1d(1, 0, 4), (0, 1));
+    assert_eq!(calculate_update_range_1d(0, -1, 4), (-1, 0));
+    assert_eq!(calculate_update_range_1d(0, -10, 4), (-10, -6));
+    assert_eq!(calculate_update_range_1d(0, 3, 1), (3, 4));
+}
