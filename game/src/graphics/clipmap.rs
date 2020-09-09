@@ -672,22 +672,31 @@ fn calculate_update_region_test() {
     println!("[{}..{}), [{}..{}) .... [{}..{}), [{}..{})", x_update_range_begin, x_update_range_end, zs_with_x_begin, zs_with_x_end, xs_with_z_begin, xs_with_z_end, z_update_range_begin, z_update_range_end);
 }
 
-fn calculate_update_range_1d(old: i32, new: i32, size: i32) -> (i32, i32) {
-    if (new - old).abs() > size {
-        (new, new + size)
-    } else if old < new {
-        (old + size, new + size)
+fn calculate_update_range_1d(first: i32, second: i32, size: i32) -> std::ops::Range<i32> {
+    if (second - first).abs() > size {
+        second..second + size
+    } else if first < second {
+        first + size..second + size
     } else {
-        (new, old)
+        second..first
     }
 }
 
 #[test]
 fn calculate_update_range_1d_test() {
-    assert_eq!(calculate_update_range_1d(0, 1, 4), (4, 5));
-    assert_eq!(calculate_update_range_1d(0, 6, 4), (6, 10));
-    assert_eq!(calculate_update_range_1d(1, 0, 4), (0, 1));
-    assert_eq!(calculate_update_range_1d(0, -1, 4), (-1, 0));
-    assert_eq!(calculate_update_range_1d(0, -10, 4), (-10, -6));
-    assert_eq!(calculate_update_range_1d(0, 3, 1), (3, 4));
+    assert_eq!(calculate_update_range_1d(0, 1, 4), 4..5);
+    assert_eq!(calculate_update_range_1d(0, 6, 4), 6..10);
+    assert_eq!(calculate_update_range_1d(1, 0, 4), 0..1);
+    assert_eq!(calculate_update_range_1d(0, -1, 4), -1..0);
+    assert_eq!(calculate_update_range_1d(0, -10, 4), -10..-6);
+    assert_eq!(calculate_update_range_1d(0, 3, 1), 3..4);
+}
+
+fn calculate_update_ranges_2d(x_range: std::ops::Range<i32>, z_range: std::ops::Range<i32>, coord: [i32; 2], size: i32) -> (std::ops::Range<[i32;2]>, std::ops::Range<[i32;2]>, std::ops::Range<[i32;2]>) {
+    ([x_range.start, coord[1]]..[x_range.end, coord[1] + size], [coord[0], z_range.start]..[x_range.start, z_range.end],  [x_range.end, z_range.start]..[coord[0] + size, z_range.end])
+}
+
+#[test]
+fn calculate_update_ranges_2d_test() {
+    assert_eq!(calculate_update_ranges_2d(1..3, 2..4, [0, 0], 4), ([0, 0]..[0, 0], [0, 0]..[0, 0], [0, 0]..[0, 0]));
 }
