@@ -128,7 +128,7 @@ pub struct Renderable {
     pub texture: wgpu::Texture,
 
     uniforms: Uniforms,
-    clipmap_data: Vec<f32>,
+    pub clipmap_data: Clipmap,
     clipmap_full: Drawable,
     clipmap_ring_mxm: Drawable,
     clipmap_ring_pxm: Drawable,
@@ -342,18 +342,16 @@ impl Renderable {
             render_pipeline,
             texture,
             uniforms,
-            clipmap_data: Vec::new(),
+            clipmap_data: Clipmap::new(CM_MAX_LEVELS),
         })
     }
 
     pub fn update(&mut self, uniforms: Uniforms) {
         let sine = Sine {};
         self.uniforms = uniforms;
-        let mut clipmap_data: Vec<f32> = Vec::new();
         for level in 0..CM_MAX_LEVELS {
-            clipmap_data.extend_from_slice(create_heightmap([self.uniforms.camera_position.x, self.uniforms.camera_position.z], level, &sine).as_slice());
+            update_heightmap(&mut self.clipmap_data, [self.uniforms.camera_position.x, self.uniforms.camera_position.z], level, &sine);
         }
-        self.clipmap_data = clipmap_data;
     }
 }
 
@@ -467,7 +465,7 @@ pub fn create_grid(size_x: u32, size_z: u32) -> (Vec<Vertex>, Vec<u32>) {
 impl graphics::Renderable for Renderable {
     fn render<'a, 'b>(&'a self, device: &Device, encoder: &mut CommandEncoder, render_pass: &'b mut RenderPass<'a>) where 'a: 'b {
         let uniforms_bufer = device.create_buffer_with_data(bytemuck::cast_slice(&[self.uniforms]), wgpu::BufferUsage::COPY_SRC);
-        let height_map_data_buffer = device.create_buffer_with_data(bytemuck::cast_slice(self.clipmap_data.as_slice()), wgpu::BufferUsage::COPY_SRC);
+        let height_map_data_buffer = device.create_buffer_with_data(bytemuck::cast_slice(self.clipmap_data.data.as_slice()), wgpu::BufferUsage::COPY_SRC);
         for level in 0..CM_MAX_LEVELS {
             encoder.copy_buffer_to_texture(wgpu::BufferCopyView {
                 buffer: &height_map_data_buffer,
@@ -629,21 +627,36 @@ fn snap_to_index_for_level(val: f32, level: u32) -> i32 {
     ((val / snap_size).floor() * 2.0) as i32
 }
 
-fn create_heightmap<T: Generator>(center: [f32; 2], level: u32, generator: &T) -> Vec<f32> {
+fn update_heightmap<T: Generator>(clipmap: &mut Clipmap, center: [f32; 2], level: u32, generator: &T) {
     let base_x = snap_to_index_for_level(center[0], level) - BASE_OFFSET as i32;
     let base_z = snap_to_index_for_level(center[1], level) - BASE_OFFSET as i32;
     let unit_size = unit_size_for_level(level);
-    let mut heightmap = vec!(0.0; (CM_TEXTURE_SIZE * CM_TEXTURE_SIZE) as usize);
     for z in base_z..base_z + CM_TEXTURE_SIZE as i32 {
         for x in base_x..base_x + CM_TEXTURE_SIZE as i32 {
             let x_pos = x as f32 * unit_size;
             let z_pos = z as f32 * unit_size;
-            let x_mod = (x as u32 % CM_TEXTURE_SIZE) as usize;
-            let z_mod = (z as u32 % CM_TEXTURE_SIZE) as usize;
-            heightmap[x_mod + z_mod * CM_TEXTURE_SIZE as usize] = generator.generate([x_pos, z_pos]);
+            let x_mod = x as u32 % CM_TEXTURE_SIZE;
+            let z_mod = z as u32 % CM_TEXTURE_SIZE;
+            clipmap.set(x_mod, z_mod, level, generator.generate([x_pos, z_pos]));
         }
     }
-    heightmap
+}
+
+pub struct Clipmap {
+    data: Vec<f32>,
+    pos: Vec<Option<[f32; 2]>>
+}
+
+impl Clipmap {
+    pub fn new(levels: u32) -> Self {
+        Self {
+            data: vec!(0.0; (levels * CM_TEXTURE_SIZE * CM_TEXTURE_SIZE) as usize),
+            pos: Vec::new(),
+        }
+    }
+    pub fn set(&mut self, x: u32, z: u32, level: u32, val: f32) {
+        self.data[((CM_TEXTURE_SIZE * CM_TEXTURE_SIZE * level) + x + z * CM_TEXTURE_SIZE) as usize] = val;
+    }
 }
 
 #[test]
