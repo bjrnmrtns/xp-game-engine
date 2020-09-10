@@ -111,12 +111,17 @@ fn game(options: Options) {
                 instances.push( graphics::default::Instance {model: player.pose.to_mat4() });
                 instances.push( graphics::default::Instance {model: identity() });
                 renderables.default.update(graphics::default::Uniforms{ projection: projection_3d.clone() as Mat4, view: view.clone() as Mat4,}, instances,);
+                let time_before_clipmap_update = std::time::Instant::now();
                 renderables.clipmap.update(clipmap::Uniforms{ projection: projection_3d.clone() as Mat4, view: view.clone() as Mat4, camera_position: simulation.freelook_camera.position });
+                let time_after_clipmap_update = std::time::Instant::now();
                 renderables.ui.create_drawable(&graphics.device, Some(mesh::create_mesh(&ui)));
                 renderables.ui.update(graphics::ui::Uniforms { projection: projection_2d }, game_state.ui_enabled);
 
                 let target = &graphics.swap_chain.get_next_texture().expect("failed to get next texture").view;
+                let time_before_render = std::time::Instant::now();
                 graphics::render_loop(&renderables, &graphics.device, &graphics.queue, target, &graphics.depth_texture.view);
+                let time_after_render = std::time::Instant::now();
+                println!("clipmap-update us: {} render us: {}", (time_after_clipmap_update - time_before_clipmap_update).as_micros(), (time_after_render - time_before_render).as_micros());
             }
             Event::MainEventsCleared => {
                 window.request_redraw();
