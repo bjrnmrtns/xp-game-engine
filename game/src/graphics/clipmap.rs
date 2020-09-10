@@ -682,6 +682,23 @@ fn calculate_update_range_1d(first: i32, second: i32, size: i32) -> std::ops::Ra
     }
 }
 
+fn calculate_copy_range_1d(range: std::ops::Range<i32>, size: u32) -> (Option<std::ops::Range<u32>>, Option<std::ops::Range<u32>>) {
+    assert!(range.start <= range.end);
+    let start = range.start as u32 % size;
+    let end = range.end as u32 % size;
+    if (range.end - range.start).abs() as u32 >= size {
+        (Some(0..4), None)
+    } else if start < end {
+        (Some(start..end), None)
+    } else {
+        (Some(0..end), Some(start..size))
+    }
+}
+
+fn calculate_update_ranges_2d(x_range: std::ops::Range<i32>, z_range: std::ops::Range<i32>, coord: [i32; 2], size: i32) -> (std::ops::Range<[i32;2]>, std::ops::Range<[i32;2]>, std::ops::Range<[i32;2]>) {
+    ([x_range.start, coord[1]]..[x_range.end, coord[1] + size], [coord[0], z_range.start]..[x_range.start, z_range.end],  [x_range.end, z_range.start]..[coord[0] + size, z_range.end])
+}
+
 #[test]
 fn calculate_update_range_1d_test() {
     assert_eq!(calculate_update_range_1d(0, 1, 4), 4..5);
@@ -692,11 +709,20 @@ fn calculate_update_range_1d_test() {
     assert_eq!(calculate_update_range_1d(0, 3, 1), 3..4);
 }
 
-fn calculate_update_ranges_2d(x_range: std::ops::Range<i32>, z_range: std::ops::Range<i32>, coord: [i32; 2], size: i32) -> (std::ops::Range<[i32;2]>, std::ops::Range<[i32;2]>, std::ops::Range<[i32;2]>) {
-    ([x_range.start, coord[1]]..[x_range.end, coord[1] + size], [coord[0], z_range.start]..[x_range.start, z_range.end],  [x_range.end, z_range.start]..[coord[0] + size, z_range.end])
+#[test]
+fn calculate_update_ranges_2d_test() {
+    assert_eq!(calculate_update_ranges_2d(1..3, 2..4, [0, 0], 4), ([1, 0]..[3, 4], [0, 2]..[1, 4], [3, 2]..[4, 4]));
 }
 
 #[test]
-fn calculate_update_ranges_2d_test() {
-    assert_eq!(calculate_update_ranges_2d(1..3, 2..4, [0, 0], 4), ([0, 0]..[0, 0], [0, 0]..[0, 0], [0, 0]..[0, 0]));
+fn calculate_copy_range_1d_test() {
+    assert_eq!(calculate_copy_range_1d(3..5, 4), (Some(0..1), Some(3..4)));
+    assert_eq!(calculate_copy_range_1d(0..4, 4), (Some(0..4), None));
+    assert_eq!(calculate_copy_range_1d(1..5, 4), (Some(0..4), None));
+    assert_eq!(calculate_copy_range_1d(2..5, 4), (Some(0..1), Some(2..4)));
+    assert_eq!(calculate_copy_range_1d(-6..-1, 4), (Some(0..4), None));
+    assert_eq!(calculate_copy_range_1d(-3..-1, 4), (Some(1..3), None));
+    assert_eq!(calculate_copy_range_1d(-2..1, 4), (Some(0..1), Some(2..4)));
+    assert_eq!(calculate_copy_range_1d(-2..2, 4), (Some(0..4), None));
 }
+
