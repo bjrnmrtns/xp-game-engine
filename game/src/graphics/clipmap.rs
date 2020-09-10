@@ -52,6 +52,7 @@ const CM_INSTANCE_SIZE_PXM: u32 = CM_INSTANCE_SIZE_ONE_PXM * CM_MAX_LEVELS;
 const CM_INSTANCE_SIZE_NXN: u32 = CM_INSTANCE_SIZE_ONE_NXN * CM_MAX_LEVELS;
 const CM_INSTANCE_SIZE_DEGENERATES: u32 = CM_INSTANCE_SIZE_ONE_DEGENERATE * CM_MAX_LEVELS;
 const CM_INSTANCE_SIZE_INTERIOR: u32 = CM_INSTANCE_SIZE_ONE_INTERIOR * CM_MAX_LEVELS;
+const BASE_OFFSET: u32 = (CM_N - 3) / 2;
 
 #[allow(non_snake_case)]
 pub fn create_clipmap_storage_texture(device: &wgpu::Device, N: u32) -> wgpu::Texture {
@@ -623,25 +624,23 @@ fn snap_value_for_level(val: f32, level: u32) -> f32 {
     (val / snap_size).floor() * snap_size
 }
 
-fn snap_position_for_level(val: [f32; 2], level: u32) -> [f32; 2]
-{
-    [snap_value_for_level(val[0], level), snap_value_for_level(val[1], level)]
-}
-
-fn base_offset(level: u32) -> f32 {
-    unit_size_for_level(level) * (CM_N - 3) as f32 / 2.0
+fn snap_to_index_for_level(val: f32, level: u32) -> i32 {
+    let snap_size = unit_size_for_level(level + 1);
+    ((val / snap_size).floor() * 2.0) as i32
 }
 
 fn create_heightmap<T: Generator>(center: [f32; 2], level: u32, generator: &T) -> Vec<f32> {
-    let snapped_center = snap_position_for_level(center, level);
-    let snapped_base = [snapped_center[0] - base_offset(level), snapped_center[1] - base_offset(level)];
+    let base_x = snap_to_index_for_level(center[0], level) - BASE_OFFSET as i32;
+    let base_z = snap_to_index_for_level(center[1], level) - BASE_OFFSET as i32;
     let unit_size = unit_size_for_level(level);
     let mut heightmap = vec!(0.0; (CM_TEXTURE_SIZE * CM_TEXTURE_SIZE) as usize);
-    for z in 0..CM_TEXTURE_SIZE as usize {
-        for x in 0..CM_TEXTURE_SIZE as usize {
-            let x_pos = snapped_base[0] + x as f32 * unit_size;
-            let z_pos = snapped_base[1] + z as f32 * unit_size;
-            heightmap[x + z * CM_TEXTURE_SIZE as usize] = generator.generate([x_pos, z_pos]);
+    for z in base_z..base_z + CM_TEXTURE_SIZE as i32 {
+        for x in base_x..base_x + CM_TEXTURE_SIZE as i32 {
+            let x_pos = x as f32 * unit_size;
+            let z_pos = z as f32 * unit_size;
+            let x_mod = (x as u32 % CM_TEXTURE_SIZE) as usize;
+            let z_mod = (z as u32 % CM_TEXTURE_SIZE) as usize;
+            heightmap[x_mod + z_mod * CM_TEXTURE_SIZE as usize] = generator.generate([x_pos, z_pos]);
         }
     }
     heightmap
