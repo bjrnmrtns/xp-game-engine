@@ -3,6 +3,7 @@ use nalgebra_glm::{Mat4, identity, Vec3, vec3};
 use wgpu::{Device, BindingResource, BindGroupLayoutEntry, TextureViewDimension, RenderPass, CommandEncoder};
 use crate::graphics::error::GraphicsError;
 use crate::graphics;
+use crate::commands::Command::CameraMove;
 
 type Result<T> = std::result::Result<T, GraphicsError>;
 
@@ -349,6 +350,7 @@ impl Renderable {
     pub fn update(&mut self, uniforms: Uniforms) {
         let sine = Sine {};
         self.uniforms = uniforms;
+        self.clipmap_data.copy_regions.clear();
         for level in 0..CM_MAX_LEVELS {
             update_heightmap(&mut self.clipmap_data, [self.uniforms.camera_position.x, self.uniforms.camera_position.z], level, &sine);
         }
@@ -465,30 +467,31 @@ pub fn create_grid(size_x: u32, size_z: u32) -> (Vec<Vertex>, Vec<u32>) {
 impl graphics::Renderable for Renderable {
     fn render<'a, 'b>(&'a self, device: &Device, encoder: &mut CommandEncoder, render_pass: &'b mut RenderPass<'a>) where 'a: 'b {
         let uniforms_bufer = device.create_buffer_with_data(bytemuck::cast_slice(&[self.uniforms]), wgpu::BufferUsage::COPY_SRC);
-
         let height_map_data_buffer = device.create_buffer_with_data(bytemuck::cast_slice(self.clipmap_data.data.as_slice()), wgpu::BufferUsage::COPY_SRC);
-        for level in 0..CM_MAX_LEVELS {
+        const ELEMENT_SIZE: u32 = 4;
+        println!("{}", self.clipmap_data.copy_regions.len());
+        for copy_region in &self.clipmap_data.copy_regions {
+            let offset_in_level = copy_region.x.start + (copy_region.z.start * CM_TEXTURE_SIZE);
             encoder.copy_buffer_to_texture(wgpu::BufferCopyView {
                 buffer: &height_map_data_buffer,
-                offset: (CM_TEXTURE_SIZE * CM_TEXTURE_SIZE * 4 * level) as wgpu::BufferAddress,
-                bytes_per_row: CM_TEXTURE_SIZE * 4,
-                rows_per_image: CM_TEXTURE_SIZE
+                offset: ((CM_TEXTURE_SIZE * CM_TEXTURE_SIZE * copy_region.level + offset_in_level) * ELEMENT_SIZE) as wgpu::BufferAddress,
+                bytes_per_row: copy_region.x.len() as u32  * ELEMENT_SIZE,
+                rows_per_image: copy_region.z.len() as u32,
             }, wgpu::TextureCopyView{
                 texture: &self.texture,
                 mip_level: 0,
                 array_layer: 0,
                 origin: wgpu::Origin3d{
-                    x: 0,
-                    y: 0,
-                    z: level
+                    x: copy_region.x.start,
+                    y: copy_region.z.start,
+                    z: copy_region.level
                 }
             }, wgpu::Extent3d{
-                width: CM_TEXTURE_SIZE,
-                height: CM_TEXTURE_SIZE,
+                width: copy_region.x.len() as u32,
+                height: copy_region.z.len() as u32,
                 depth: 1
             });
         }
-
         encoder.copy_buffer_to_buffer(&uniforms_bufer, 0, &self.uniforms_buffer, 0, std::mem::size_of_val(&self.uniforms) as u64);
 
         render_pass.set_pipeline(&self.render_pipeline);
@@ -649,20 +652,7 @@ fn update_heightmap<T: Generator>(mut clipmap: &mut Clipmap, center: [f32; 2], l
         let ranges = calculate_update_range2d(previous, [base_x, base_z], level);
         update_range(&mut clipmap, &ranges.0, level, generator);
         update_range(&mut clipmap, &ranges.1, level, generator);
-        for x_range in calculate_copy_ranges_1d(&ranges.0.x, CM_TEXTURE_SIZE) {
-            clipmap.copy_regions.push(Range2d {
-                x: x_range,
-                z: 0..CM_TEXTURE_SIZE,
-                level
-            });
-        }
-        for z_range in calculate_copy_ranges_1d(&ranges.1.z, CM_TEXTURE_SIZE) {
-            clipmap.copy_regions.push(Range2d {
-                x: 0..CM_TEXTURE_SIZE,
-                z: z_range,
-                level
-            });
-        }
+        clipmap.copy_regions.push(Range2d {x: 0..CM_TEXTURE_SIZE, z: 0..CM_TEXTURE_SIZE, level });
     } else {
         update_range(&mut clipmap, &Range2d { x: base_x..base_x + CM_TEXTURE_SIZE as i32, z: base_z..base_z + CM_TEXTURE_SIZE as i32, level, }, level, generator);
         clipmap.copy_regions.push(Range2d {x: 0..CM_TEXTURE_SIZE, z: 0..CM_TEXTURE_SIZE, level });
@@ -708,14 +698,16 @@ fn calculate_update_range_1d(first: i32, second: i32, size: i32) -> std::ops::Ra
 fn calculate_copy_ranges_1d(range: &std::ops::Range<i32>, size: u32) -> Vec<std::ops::Range<u32>> {
     assert!(range.start <= range.end);
     let mut ranges = Vec::new();
-    let start = range.start as u32 % size;
-    let end = range.end as u32 % size;
-    if (range.end - range.start).abs() as u32 >= size {
-        ranges.push(0..size);
-    } else if start < end {
-        ranges.push(start..end);
-    } else {
-        ranges.push(0..end); ranges.push(start..size);
+    if range.start != range.end {
+        let start = range.start as u32 % size;
+        let end = range.end as u32 % size;
+        if (range.end - range.start).abs() as u32 >= size {
+            ranges.push(0..size);
+        } else if start < end {
+            ranges.push(start..end);
+        } else {
+            ranges.push(0..end); ranges.push(start..size);
+        }
     }
     ranges
 }
