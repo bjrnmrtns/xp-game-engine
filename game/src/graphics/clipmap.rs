@@ -465,6 +465,7 @@ pub fn create_grid(size_x: u32, size_z: u32) -> (Vec<Vertex>, Vec<u32>) {
 impl graphics::Renderable for Renderable {
     fn render<'a, 'b>(&'a self, device: &Device, encoder: &mut CommandEncoder, render_pass: &'b mut RenderPass<'a>) where 'a: 'b {
         let uniforms_bufer = device.create_buffer_with_data(bytemuck::cast_slice(&[self.uniforms]), wgpu::BufferUsage::COPY_SRC);
+
         let height_map_data_buffer = device.create_buffer_with_data(bytemuck::cast_slice(self.clipmap_data.data.as_slice()), wgpu::BufferUsage::COPY_SRC);
         for level in 0..CM_MAX_LEVELS {
             encoder.copy_buffer_to_texture(wgpu::BufferCopyView {
@@ -489,6 +490,7 @@ impl graphics::Renderable for Renderable {
         }
 
         encoder.copy_buffer_to_buffer(&uniforms_bufer, 0, &self.uniforms_buffer, 0, std::mem::size_of_val(&self.uniforms) as u64);
+
         render_pass.set_pipeline(&self.render_pipeline);
         let start_ring_level = 1;
         let full_level = start_ring_level - 1;
@@ -627,7 +629,7 @@ fn snap_to_index_for_level(val: f32, level: u32) -> i32 {
     ((val / snap_size).floor() * 2.0) as i32
 }
 
-fn update_range<T: Generator>(clipmap: &mut Clipmap, range: Range2d, level: u32, generator: &T) {
+fn update_range<T: Generator>(clipmap: &mut Clipmap, range: &Range2d<i32>, level: u32, generator: &T) {
     let unit_size = unit_size_for_level(level);
     for z in range.z.clone() {
         for x in range.x.clone() {
@@ -643,22 +645,41 @@ fn update_range<T: Generator>(clipmap: &mut Clipmap, range: Range2d, level: u32,
 fn update_heightmap<T: Generator>(mut clipmap: &mut Clipmap, center: [f32; 2], level: u32, generator: &T) {
     let base_x = snap_to_index_for_level(center[0], level) - BASE_OFFSET as i32;
     let base_z = snap_to_index_for_level(center[1], level) - BASE_OFFSET as i32;
-    let ranges = calculate_update_range2d(clipmap.base[level as usize], [base_x, base_z], level);
-    update_range(&mut clipmap, ranges.0, level, generator);
-    update_range(&mut clipmap, ranges.1, level, generator);
+    if let Some(previous) = clipmap.base[level as usize] {
+        let ranges = calculate_update_range2d(previous, [base_x, base_z], level);
+        update_range(&mut clipmap, &ranges.0, level, generator);
+        update_range(&mut clipmap, &ranges.1, level, generator);
+        for x_range in calculate_copy_ranges_1d(&ranges.0.x, CM_TEXTURE_SIZE) {
+            clipmap.copy_regions.push(Range2d {
+                x: x_range,
+                z: 0..CM_TEXTURE_SIZE,
+                level
+            });
+        }
+        for z_range in calculate_copy_ranges_1d(&ranges.1.z, CM_TEXTURE_SIZE) {
+            clipmap.copy_regions.push(Range2d {
+                x: 0..CM_TEXTURE_SIZE,
+                z: z_range,
+                level
+            });
+        }
+    } else {
+        update_range(&mut clipmap, &Range2d { x: base_x..base_x + CM_TEXTURE_SIZE as i32, z: base_z..base_z + CM_TEXTURE_SIZE as i32, level, }, level, generator);
+        clipmap.copy_regions.push(Range2d {x: 0..CM_TEXTURE_SIZE, z: 0..CM_TEXTURE_SIZE, level });
+    }
     clipmap.base[level as usize] = Some([base_x, base_z]);
 }
 
-struct Range2d {
-    pub x: std::ops::Range<i32>,
-    pub z: std::ops::Range<i32>,
+struct Range2d<T> {
+    pub x: std::ops::Range<T>,
+    pub z: std::ops::Range<T>,
     pub level: u32,
 }
 
 pub struct Clipmap {
     data: Vec<f32>,
     base: Vec<Option<[i32; 2]>>,
-    copy_regions: Vec<Range2d>,
+    copy_regions: Vec<Range2d<u32>>,
 }
 
 impl Clipmap {
@@ -684,27 +705,24 @@ fn calculate_update_range_1d(first: i32, second: i32, size: i32) -> std::ops::Ra
     }
 }
 
-fn calculate_copy_ranges_1d(range: std::ops::Range<i32>, size: u32) -> (Option<std::ops::Range<u32>>, Option<std::ops::Range<u32>>) {
+fn calculate_copy_ranges_1d(range: &std::ops::Range<i32>, size: u32) -> Vec<std::ops::Range<u32>> {
     assert!(range.start <= range.end);
+    let mut ranges = Vec::new();
     let start = range.start as u32 % size;
     let end = range.end as u32 % size;
     if (range.end - range.start).abs() as u32 >= size {
-        (Some(0..size), None)
+        ranges.push(0..size);
     } else if start < end {
-        (Some(start..end), None)
+        ranges.push(start..end);
     } else {
-        (Some(0..end), Some(start..size))
+        ranges.push(0..end); ranges.push(start..size);
     }
+    ranges
 }
 
-fn calculate_update_range2d(previous: Option<[i32;2]>, current: [i32;2], level: u32) -> (Range2d, Range2d) {
-    if let Some(previous) = previous {
-        (Range2d { x: calculate_update_range_1d(previous[0], current[0], CM_TEXTURE_SIZE as i32), z: current[1]..current[1] + CM_TEXTURE_SIZE as i32, level, },
-         Range2d { x: current[0]..current[0] + CM_TEXTURE_SIZE as i32, z: calculate_update_range_1d(previous[1], current[1], CM_TEXTURE_SIZE as i32), level, })
-
-    } else  {
-        (Range2d { x: current[0]..current[0] + CM_TEXTURE_SIZE as i32, z: current[1]..current[1] + CM_TEXTURE_SIZE as i32, level, }, Range2d { x: 0..0, z: 0..0, level, })
-    }
+fn calculate_update_range2d(previous: [i32;2], current: [i32;2], level: u32) -> (Range2d<i32>, Range2d<i32>) {
+    (Range2d { x: calculate_update_range_1d(previous[0], current[0], CM_TEXTURE_SIZE as i32), z: current[1]..current[1] + CM_TEXTURE_SIZE as i32, level, },
+     Range2d { x: current[0]..current[0] + CM_TEXTURE_SIZE as i32, z: calculate_update_range_1d(previous[1], current[1], CM_TEXTURE_SIZE as i32), level, })
 }
 
 #[test]
@@ -719,13 +737,13 @@ fn calculate_update_range_1d_test() {
 
 #[test]
 fn calculate_copy_range_1d_test() {
-    assert_eq!(calculate_copy_ranges_1d(3..5, 4), (Some(0..1), Some(3..4)));
-    assert_eq!(calculate_copy_ranges_1d(0..4, 4), (Some(0..4), None));
-    assert_eq!(calculate_copy_ranges_1d(1..5, 4), (Some(0..4), None));
-    assert_eq!(calculate_copy_ranges_1d(2..5, 4), (Some(0..1), Some(2..4)));
-    assert_eq!(calculate_copy_ranges_1d(-6..-1, 4), (Some(0..4), None));
-    assert_eq!(calculate_copy_ranges_1d(-3..-1, 4), (Some(1..3), None));
-    assert_eq!(calculate_copy_ranges_1d(-2..1, 4), (Some(0..1), Some(2..4)));
-    assert_eq!(calculate_copy_ranges_1d(-2..2, 4), (Some(0..4), None));
+    assert_eq!(calculate_copy_ranges_1d(&(3..5), 4), [0..1, 3..4]);
+    assert_eq!(calculate_copy_ranges_1d(&(0..4), 4), [0..4]);
+    assert_eq!(calculate_copy_ranges_1d(&(1..5), 4), [0..4]);
+    assert_eq!(calculate_copy_ranges_1d(&(2..5), 4), [0..1, 2..4]);
+    assert_eq!(calculate_copy_ranges_1d(&(-6..-1), 4), [0..4]);
+    assert_eq!(calculate_copy_ranges_1d(&(-3..-1), 4), [1..3]);
+    assert_eq!(calculate_copy_ranges_1d(&(-2..1), 4), [0..1, 2..4]);
+    assert_eq!(calculate_copy_ranges_1d(&(-2..2), 4), [0..4]);
 }
 
