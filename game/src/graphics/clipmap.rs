@@ -473,7 +473,7 @@ impl graphics::Renderable for Renderable {
             let offset_in_level = copy_region.x + (copy_region.y * CM_TEXTURE_SIZE);
             encoder.copy_buffer_to_texture(wgpu::BufferCopyView {
                 buffer: &height_map_data_buffer,
-                offset: ((CM_TEXTURE_SIZE * CM_TEXTURE_SIZE * copy_region.level + offset_in_level) * ELEMENT_SIZE) as wgpu::BufferAddress,
+                offset: ((CM_TEXTURE_SIZE * CM_TEXTURE_SIZE * copy_region.level + offset_in_level) * CM_ELEMENT_SIZE) as wgpu::BufferAddress,
                 bytes_per_row: CM_TEXTURE_SIZE  * CM_ELEMENT_SIZE,
                 rows_per_image: CM_TEXTURE_SIZE,
             }, wgpu::TextureCopyView {
@@ -493,9 +493,6 @@ impl graphics::Renderable for Renderable {
         }
         encoder.copy_buffer_to_buffer(&uniforms_bufer, 0, &self.uniforms_buffer, 0, std::mem::size_of_val(&self.uniforms) as u64);
 
-       /* let flat_surface: Vec<f32> = vec!(1.0; 256);
-        let flat_surface_buffer = device.create_buffer_with_data()
-       */
         render_pass.set_pipeline(&self.render_pipeline);
         let start_ring_level = 1;
         let full_level = start_ring_level - 1;
