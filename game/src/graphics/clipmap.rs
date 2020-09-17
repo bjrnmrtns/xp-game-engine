@@ -631,6 +631,10 @@ fn snap_to_index_for_level(val: f32, level: u32) -> i32 {
     ((val / snap_size).floor() * 2.0) as i32
 }
 
+fn equal_coords(first: &[i32;2], second: &[i32;2]) -> bool {
+    first[0] == second[0] && first[1] == second[1]
+}
+
 fn update_xrows<T: Generator>(clipmap: &mut Clipmap, xrange: &std::ops::Range<i32>, zstart: i32, level: u32, generator: &T) {
     let unit_size = unit_size_for_level(level);
     for z in  zstart..zstart+CM_TEXTURE_SIZE as i32{
@@ -661,22 +665,32 @@ fn update_heightmap<T: Generator>(mut clipmap: &mut Clipmap, center: [f32; 2], l
     let base_x = snap_to_index_for_level(center[0], level) - BASE_OFFSET as i32;
     let base_z = snap_to_index_for_level(center[1], level) - BASE_OFFSET as i32;
     if let Some(previous) = clipmap.base[level as usize] {
-        let xrows = calculate_update_range_1d(previous[0], base_x, CM_TEXTURE_SIZE as i32);
-        let zrows = calculate_update_range_1d(previous[1], base_z, CM_TEXTURE_SIZE as i32);
-        update_xrows(&mut clipmap, &xrows, base_z, level, generator);
-        update_zrows(&mut clipmap, &zrows, base_x, level, generator);
+        if !equal_coords(&previous, &[base_x, base_z]) {
+            let xrows = calculate_update_range_1d(previous[0], base_x, CM_TEXTURE_SIZE as i32);
+            let zrows = calculate_update_range_1d(previous[1], base_z, CM_TEXTURE_SIZE as i32);
+            update_xrows(&mut clipmap, &xrows, base_z, level, generator);
+            update_zrows(&mut clipmap, &zrows, base_x, level, generator);
+            clipmap.copy_regions.push(CopyDescription {
+                offset: 0,
+                x: 0,
+                y: 0,
+                xlen: CM_TEXTURE_SIZE,
+                ylen: CM_TEXTURE_SIZE,
+                level,
+            });
+        }
     } else {
         update_xrows(&mut clipmap, &(base_x..base_x + CM_TEXTURE_SIZE as i32), base_z, level, generator);
+        clipmap.copy_regions.push(CopyDescription {
+            offset: 0,
+            x: 0,
+            y: 0,
+            xlen: CM_TEXTURE_SIZE,
+            ylen: CM_TEXTURE_SIZE,
+            level,
+        });
     }
-    //TODO: as bytes_of_row needs to be a multiple of 256 bytes, we will figure this out after adding normals
-    clipmap.copy_regions.push(CopyDescription {
-        offset: 0,
-        x: 0,
-        y: 0,
-        xlen: CM_TEXTURE_SIZE,
-        ylen: CM_TEXTURE_SIZE,
-        level,
-    });
+    //TODO: as bytes_of_row needs to be a multiple of 256 bytes, we will figure the partial copy out after adding normals
     clipmap.base[level as usize] = Some([base_x, base_z]);
 }
 
