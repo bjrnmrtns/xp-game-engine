@@ -665,25 +665,18 @@ fn update_heightmap<T: Generator>(mut clipmap: &mut Clipmap, center: [f32; 2], l
         let zrows = calculate_update_range_1d(previous[1], base_z, CM_TEXTURE_SIZE as i32);
         update_xrows(&mut clipmap, &xrows, base_z, level, generator);
         update_zrows(&mut clipmap, &zrows, base_x, level, generator);
-        clipmap.copy_regions.push(CopyDescription {
-            offset: 0,
-            x: 0,
-            y: 0,
-            xlen: CM_TEXTURE_SIZE,
-            ylen: CM_TEXTURE_SIZE,
-            level,
-        });
     } else {
         update_xrows(&mut clipmap, &(base_x..base_x + CM_TEXTURE_SIZE as i32), base_z, level, generator);
-        clipmap.copy_regions.push(CopyDescription {
-            offset: 0,
-            x: 0,
-            y: 0,
-            xlen: CM_TEXTURE_SIZE,
-            ylen: CM_TEXTURE_SIZE,
-            level,
-        });
     }
+    //TODO: as bytes_of_row needs to be a multiple of 256 bytes, we will figure this out after adding normals
+    clipmap.copy_regions.push(CopyDescription {
+        offset: 0,
+        x: 0,
+        y: 0,
+        xlen: CM_TEXTURE_SIZE,
+        ylen: CM_TEXTURE_SIZE,
+        level,
+    });
     clipmap.base[level as usize] = Some([base_x, base_z]);
 }
 
@@ -693,12 +686,6 @@ struct CopyDescription {
     pub y: u32,
     pub xlen: u32,
     pub ylen: u32,
-    pub level: u32,
-}
-
-struct Range2d<T> {
-    pub x: std::ops::Range<T>,
-    pub z: std::ops::Range<T>,
     pub level: u32,
 }
 
