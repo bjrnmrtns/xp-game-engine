@@ -468,14 +468,13 @@ impl graphics::Renderable for Renderable {
         let uniforms_bufer = device.create_buffer_with_data(bytemuck::cast_slice(&[self.uniforms]), wgpu::BufferUsage::COPY_SRC);
         let height_map_data_buffer = device.create_buffer_with_data(bytemuck::cast_slice(self.clipmap_data.data.as_slice()), wgpu::BufferUsage::COPY_SRC);
         const ELEMENT_SIZE: u32 = 4;
-        println!("{}", self.clipmap_data.copy_regions.len());
         for copy_region in &self.clipmap_data.copy_regions {
             let offset_in_level = copy_region.x + (copy_region.y * CM_TEXTURE_SIZE);
             encoder.copy_buffer_to_texture(wgpu::BufferCopyView {
                 buffer: &height_map_data_buffer,
                 offset: ((CM_TEXTURE_SIZE * CM_TEXTURE_SIZE * copy_region.level + offset_in_level) * ELEMENT_SIZE) as wgpu::BufferAddress,
-                bytes_per_row: copy_region.xlen as u32  * ELEMENT_SIZE,
-                rows_per_image: copy_region.ylen as u32,
+                bytes_per_row: CM_TEXTURE_SIZE  * ELEMENT_SIZE,
+                rows_per_image: CM_TEXTURE_SIZE,
             }, wgpu::TextureCopyView {
                 texture: &self.texture,
                 mip_level: 0,
@@ -493,6 +492,9 @@ impl graphics::Renderable for Renderable {
         }
         encoder.copy_buffer_to_buffer(&uniforms_bufer, 0, &self.uniforms_buffer, 0, std::mem::size_of_val(&self.uniforms) as u64);
 
+       /* let flat_surface: Vec<f32> = vec!(1.0; 256);
+        let flat_surface_buffer = device.create_buffer_with_data()
+       */
         render_pass.set_pipeline(&self.render_pipeline);
         let start_ring_level = 1;
         let full_level = start_ring_level - 1;
@@ -670,14 +672,29 @@ fn update_heightmap<T: Generator>(mut clipmap: &mut Clipmap, center: [f32; 2], l
             let zrows = calculate_update_range_1d(previous[1], base_z, CM_TEXTURE_SIZE as i32);
             update_xrows(&mut clipmap, &xrows, base_z, level, generator);
             update_zrows(&mut clipmap, &zrows, base_x, level, generator);
-            clipmap.copy_regions.push(CopyDescription {
-                offset: 0,
-                x: 0,
-                y: 0,
-                xlen: CM_TEXTURE_SIZE,
-                ylen: CM_TEXTURE_SIZE,
-                level,
-            });
+
+            let xranges = calculate_copy_ranges_1d(&xrows, CM_TEXTURE_SIZE);
+            for xrange in xranges {
+                clipmap.copy_regions.push(CopyDescription {
+                    offset: 0,
+                    x: xrange.start,
+                    y: 0,
+                    xlen: xrange.end - xrange.start,
+                    ylen: CM_TEXTURE_SIZE,
+                    level,
+                });
+            }
+            let zranges = calculate_copy_ranges_1d(&zrows, CM_TEXTURE_SIZE);
+            for zrange in zranges {
+                clipmap.copy_regions.push(CopyDescription {
+                    offset: 0,
+                    x: 0,
+                    y: zrange.start,
+                    xlen: CM_TEXTURE_SIZE,
+                    ylen: zrange.end - zrange.start,
+                    level,
+                });
+            }
         }
     } else {
         update_xrows(&mut clipmap, &(base_x..base_x + CM_TEXTURE_SIZE as i32), base_z, level, generator);
