@@ -6,7 +6,7 @@ use crate::graphics;
 
 type Result<T> = std::result::Result<T, GraphicsError>;
 
-const WIRE_FRAME: bool = true;
+const WIRE_FRAME: bool = false;
 
 const CM_K: u32 = 8;
 const CM_N: u32 = 255;
