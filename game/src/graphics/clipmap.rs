@@ -10,6 +10,8 @@ const WIRE_FRAME: bool = true;
 
 const CM_K: u32 = 8;
 const CM_N: u32 = 255;
+const CM_ELEMENT_SIZE: u32 = 16; // number of bytes of an element (now height(f32) normal(f32;3) -> total: 16
+
 const CM_UNIT_SIZE_SMALLEST: f32 = 0.1;
 const CM_M: u32 = (CM_N + 1) / 4;
 const CM_P: u32 = 3; // (CLIPMAP_N - 1) - ((CLIPMAP_M - 1) * 4) + 1 -> always 3
@@ -67,7 +69,7 @@ pub fn create_clipmap_storage_texture(device: &wgpu::Device, N: u32) -> wgpu::Te
         mip_level_count: 1,
         sample_count: 1,
         dimension: wgpu::TextureDimension::D3,
-        format: wgpu::TextureFormat::R32Float,
+        format: wgpu::TextureFormat::Rgba32Float,
         usage: wgpu::TextureUsage::STORAGE | wgpu::TextureUsage::COPY_DST,
     })
 }
@@ -218,7 +220,7 @@ impl Renderable {
                     visibility: wgpu::ShaderStage::VERTEX,
                     ty: wgpu::BindingType::StorageTexture {
                         component_type: wgpu::TextureComponentType::Float,
-                        format: wgpu::TextureFormat::R32Float,
+                        format: wgpu::TextureFormat::Rgba32Float,
                         dimension: TextureViewDimension::D3,
                         readonly: true
                     },
@@ -467,13 +469,12 @@ impl graphics::Renderable for Renderable {
     fn render<'a, 'b>(&'a self, device: &Device, encoder: &mut CommandEncoder, render_pass: &'b mut RenderPass<'a>) where 'a: 'b {
         let uniforms_bufer = device.create_buffer_with_data(bytemuck::cast_slice(&[self.uniforms]), wgpu::BufferUsage::COPY_SRC);
         let height_map_data_buffer = device.create_buffer_with_data(bytemuck::cast_slice(self.clipmap_data.data.as_slice()), wgpu::BufferUsage::COPY_SRC);
-        const ELEMENT_SIZE: u32 = 4;
         for copy_region in &self.clipmap_data.copy_regions {
             let offset_in_level = copy_region.x + (copy_region.y * CM_TEXTURE_SIZE);
             encoder.copy_buffer_to_texture(wgpu::BufferCopyView {
                 buffer: &height_map_data_buffer,
                 offset: ((CM_TEXTURE_SIZE * CM_TEXTURE_SIZE * copy_region.level + offset_in_level) * ELEMENT_SIZE) as wgpu::BufferAddress,
-                bytes_per_row: CM_TEXTURE_SIZE  * ELEMENT_SIZE,
+                bytes_per_row: CM_TEXTURE_SIZE  * CM_ELEMENT_SIZE,
                 rows_per_image: CM_TEXTURE_SIZE,
             }, wgpu::TextureCopyView {
                 texture: &self.texture,
@@ -645,7 +646,13 @@ fn update_xrows<T: Generator>(clipmap: &mut Clipmap, xrange: &std::ops::Range<i3
             let z_pos = z as f32 * unit_size;
             let x_mod = x as u32 % CM_TEXTURE_SIZE;
             let z_mod = z as u32 % CM_TEXTURE_SIZE;
-            clipmap.set(x_mod, z_mod, level, generator.generate([x_pos, z_pos]));
+            //TODO: calculate normal of point, but expensive to call 4 times noise? -> first create heights, then derive rest
+            let right = generator.generate([x_pos + unit_size, z_pos]);
+            let left = generator.generate([x_pos - unit_size, z_pos]);
+            let bottom = generator.generate([x_pos, z_pos - unit_size]);
+            let top = generator.generate([x_pos, z_pos + unit_size]);
+            let normal: Vec3 = vec3(2.0 * (right - left), 2.0 * (bottom - top), -4.0).normalize();
+            clipmap.set(x_mod, z_mod, level, Element::new(generator.generate([x_pos, z_pos]), normal));
         }
     }
 }
@@ -658,7 +665,13 @@ fn update_zrows<T: Generator>(clipmap: &mut Clipmap, zrange: &std::ops::Range<i3
             let z_pos = z as f32 * unit_size;
             let x_mod = x as u32 % CM_TEXTURE_SIZE;
             let z_mod = z as u32 % CM_TEXTURE_SIZE;
-            clipmap.set(x_mod, z_mod, level, generator.generate([x_pos, z_pos]));
+            //TODO: calculate normal of point, but expensive to call 4 times noise? -> first create heights, then derive rest
+            let right = generator.generate([x_pos + unit_size, z_pos]);
+            let left = generator.generate([x_pos - unit_size, z_pos]);
+            let bottom = generator.generate([x_pos, z_pos - unit_size]);
+            let top = generator.generate([x_pos, z_pos + unit_size]);
+            let normal: Vec3 = vec3(2.0 * (right - left), 2.0 * (bottom - top), -4.0).normalize();
+            clipmap.set(x_mod, z_mod, level, Element::new(generator.generate([x_pos, z_pos]), normal));
         }
     }
 }
@@ -720,8 +733,27 @@ struct CopyDescription {
     pub level: u32,
 }
 
+#[repr(C)]
+#[derive(Copy, Clone, Debug)]
+pub struct Element {
+    height: f32,
+    normal: Vec3,
+}
+
+unsafe impl bytemuck::Pod for Element {}
+unsafe impl bytemuck::Zeroable for Element {}
+
+impl Element {
+    pub fn new(height: f32, normal: Vec3) -> Self {
+        Self {
+            height,
+            normal,
+        }
+    }
+}
+
 pub struct Clipmap {
-    data: Vec<f32>,
+    data: Vec<Element>,
     base: Vec<Option<[i32; 2]>>,
     copy_regions: Vec<CopyDescription>,
 }
@@ -729,12 +761,12 @@ pub struct Clipmap {
 impl Clipmap {
     pub fn new(levels: u32) -> Self {
         Self {
-            data: vec!(0.0; (levels * CM_TEXTURE_SIZE * CM_TEXTURE_SIZE) as usize),
+            data: vec!(Element::new(0.0, vec3(0.0, 1.0, 0.0)); (levels * CM_TEXTURE_SIZE * CM_TEXTURE_SIZE) as usize),
             base: vec!(None; levels as usize),
             copy_regions: Vec::new(),
         }
     }
-    pub fn set(&mut self, x: u32, z: u32, level: u32, val: f32) {
+    pub fn set(&mut self, x: u32, z: u32, level: u32, val: Element) {
         self.data[((CM_TEXTURE_SIZE * CM_TEXTURE_SIZE * level) + x + z * CM_TEXTURE_SIZE) as usize] = val;
     }
 }
