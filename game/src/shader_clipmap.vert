@@ -2,6 +2,7 @@
 
 layout(location=0) in ivec2 offset;
 layout(location=0) out vec3 out_color;
+layout(location=1) out vec3 out_normal;
 
 struct Instance {
     uvec2 offset;
@@ -49,8 +50,8 @@ void main() {
 
     ivec2 uv = ivec2(uint(pos_index.x) % (CM_N + 1), uint(pos_index.y) % (CM_N + 1));
     float height = imageLoad(heightmap, ivec3(uv, level)).r;
-    vec3 normal = imageLoad(heightmap, ivec3(uv, level)).gba;
 
     gl_Position = projection * view * vec4(vec2(pos_index) * unit_size, height, 1.0).xzyw;
     out_color = COLOR_TABLE[part[gl_InstanceIndex].padding];
+    out_normal = imageLoad(heightmap, ivec3(uv, level)).gba;
 }
