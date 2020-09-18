@@ -60,13 +60,8 @@ pub struct Renderables {
 }
 
 pub trait Renderable {
-    fn render<'a, 'b>(
-        &'a self,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        encoder: &mut wgpu::CommandEncoder,
-        render_pass: &'b mut wgpu::RenderPass<'a>,
-    ) where
+    fn render<'a, 'b>(&'a self, queue: &wgpu::Queue, render_pass: &'b mut wgpu::RenderPass<'a>)
+    where
         'a: 'b;
 }
 
@@ -208,12 +203,7 @@ pub fn render_loop(
                     }),
                 }),
             });
-        renderables.default.render(
-            &device,
-            queue,
-            &mut renderable_encoder,
-            &mut game_render_pass,
-        );
+        renderables.default.render(queue, &mut game_render_pass);
         renderables.clipmap.render(
             &device,
             queue,
@@ -234,9 +224,7 @@ pub fn render_loop(
                 }],
                 depth_stencil_attachment: None,
             });
-        renderables
-            .ui
-            .render(&device, queue, &mut renderable_encoder, &mut ui_render_pass);
+        renderables.ui.render(queue, &mut ui_render_pass);
     }
     let mut command_buffers = Vec::new();
     command_buffers.push(render_pass_creation_encoder.finish());

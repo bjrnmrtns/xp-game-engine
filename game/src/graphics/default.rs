@@ -270,13 +270,8 @@ impl Renderable {
 }
 
 impl graphics::Renderable for Renderable {
-    fn render<'a, 'b>(
-        &'a self,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        encoder: &mut wgpu::CommandEncoder,
-        render_pass: &'b mut wgpu::RenderPass<'a>,
-    ) where
+    fn render<'a, 'b>(&'a self, queue: &wgpu::Queue, render_pass: &'b mut wgpu::RenderPass<'a>)
+    where
         'a: 'b,
     {
         queue.write_buffer(

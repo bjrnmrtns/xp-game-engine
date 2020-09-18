@@ -472,116 +472,8 @@ impl Renderable {
             );
         }
     }
-}
 
-pub fn create_degenerates_top(size: u32) -> (Vec<Vertex>, Vec<u32>) {
-    assert!((size + 1) % 2 == 0);
-    let mut vertices = Vec::new();
-    let mut indices = Vec::new();
-    for x in 0..size {
-        vertices.push(Vertex { p: [x as i32, 0] });
-    }
-    for x in (0..size - 1).step_by(2) {
-        let i0 = x;
-        let i1 = x + 1;
-        let i2 = x + 2;
-        if WIRE_FRAME {
-            indices.extend_from_slice(&[i0, i1, i1, i2, i2, i0]);
-        } else {
-            indices.extend_from_slice(&[i0, i1, i2]);
-        }
-    }
-    (vertices, indices)
-}
-
-pub fn create_degenerates_bottom(size: u32) -> (Vec<Vertex>, Vec<u32>) {
-    assert!((size + 1) % 2 == 0);
-    let mut vertices = Vec::new();
-    let mut indices = Vec::new();
-    for x in 0..size {
-        vertices.push(Vertex { p: [x as i32, 0] });
-    }
-    for x in (0..size - 1).step_by(2) {
-        let i0 = x;
-        let i1 = x + 2;
-        let i2 = x + 1;
-        if WIRE_FRAME {
-            indices.extend_from_slice(&[i0, i1, i1, i2, i2, i0]);
-        } else {
-            indices.extend_from_slice(&[i0, i1, i2]);
-        }
-    }
-    (vertices, indices)
-}
-
-pub fn create_degenerates_left(size: u32) -> (Vec<Vertex>, Vec<u32>) {
-    assert!((size + 1) % 2 == 0);
-    let mut vertices = Vec::new();
-    let mut indices = Vec::new();
-    for z in 0..size {
-        vertices.push(Vertex { p: [0, z as i32] });
-    }
-    for z in (0..size - 1).step_by(2) {
-        let i0 = z;
-        let i1 = z + 2;
-        let i2 = z + 1;
-        if WIRE_FRAME {
-            indices.extend_from_slice(&[i0, i1, i1, i2, i2, i0]);
-        } else {
-            indices.extend_from_slice(&[i0, i1, i2]);
-        }
-    }
-    (vertices, indices)
-}
-
-pub fn create_degenerates_right(size: u32) -> (Vec<Vertex>, Vec<u32>) {
-    assert!((size + 1) % 2 == 0);
-    let mut vertices = Vec::new();
-    let mut indices = Vec::new();
-    for z in 0..size {
-        vertices.push(Vertex { p: [0, z as i32] });
-    }
-    for z in (0..size - 1).step_by(2) {
-        let i0 = z;
-        let i1 = z + 1;
-        let i2 = z + 2;
-        if WIRE_FRAME {
-            indices.extend_from_slice(&[i0, i1, i1, i2, i2, i0]);
-        } else {
-            indices.extend_from_slice(&[i0, i1, i2]);
-        }
-    }
-    (vertices, indices)
-}
-
-pub fn create_grid(size_x: u32, size_z: u32) -> (Vec<Vertex>, Vec<u32>) {
-    let mut vertices = Vec::new();
-    for z in 0..size_z {
-        for x in 0..size_x {
-            vertices.push(Vertex {
-                p: [x as i32, z as i32],
-            })
-        }
-    }
-    let mut indices = Vec::new();
-    for z in 0..size_z - 1 {
-        for x in 0..size_x - 1 {
-            let i0 = x + z * size_x;
-            let i1 = i0 + 1;
-            let i2 = x + (z + 1) * size_x;
-            let i3 = i2 + 1;
-            if WIRE_FRAME {
-                indices.extend_from_slice(&[i0, i2, i2, i1, i1, i0, i1, i2, i2, i3, i3, i1]);
-            } else {
-                indices.extend_from_slice(&[i0, i2, i1, i1, i2, i3]);
-            }
-        }
-    }
-    (vertices, indices)
-}
-
-impl graphics::Renderable for Renderable {
-    fn render<'a, 'b>(
+    pub fn render<'a, 'b>(
         &'a self,
         device: &Device,
         queue: &wgpu::Queue,
@@ -781,6 +673,112 @@ impl graphics::Renderable for Renderable {
             end_degen_v_left + full_level * CM_INSTANCE_SIZE_ONE_DEGENERATE..end_degen_v_right,
         );
     }
+}
+
+pub fn create_degenerates_top(size: u32) -> (Vec<Vertex>, Vec<u32>) {
+    assert!((size + 1) % 2 == 0);
+    let mut vertices = Vec::new();
+    let mut indices = Vec::new();
+    for x in 0..size {
+        vertices.push(Vertex { p: [x as i32, 0] });
+    }
+    for x in (0..size - 1).step_by(2) {
+        let i0 = x;
+        let i1 = x + 1;
+        let i2 = x + 2;
+        if WIRE_FRAME {
+            indices.extend_from_slice(&[i0, i1, i1, i2, i2, i0]);
+        } else {
+            indices.extend_from_slice(&[i0, i1, i2]);
+        }
+    }
+    (vertices, indices)
+}
+
+pub fn create_degenerates_bottom(size: u32) -> (Vec<Vertex>, Vec<u32>) {
+    assert!((size + 1) % 2 == 0);
+    let mut vertices = Vec::new();
+    let mut indices = Vec::new();
+    for x in 0..size {
+        vertices.push(Vertex { p: [x as i32, 0] });
+    }
+    for x in (0..size - 1).step_by(2) {
+        let i0 = x;
+        let i1 = x + 2;
+        let i2 = x + 1;
+        if WIRE_FRAME {
+            indices.extend_from_slice(&[i0, i1, i1, i2, i2, i0]);
+        } else {
+            indices.extend_from_slice(&[i0, i1, i2]);
+        }
+    }
+    (vertices, indices)
+}
+
+pub fn create_degenerates_left(size: u32) -> (Vec<Vertex>, Vec<u32>) {
+    assert!((size + 1) % 2 == 0);
+    let mut vertices = Vec::new();
+    let mut indices = Vec::new();
+    for z in 0..size {
+        vertices.push(Vertex { p: [0, z as i32] });
+    }
+    for z in (0..size - 1).step_by(2) {
+        let i0 = z;
+        let i1 = z + 2;
+        let i2 = z + 1;
+        if WIRE_FRAME {
+            indices.extend_from_slice(&[i0, i1, i1, i2, i2, i0]);
+        } else {
+            indices.extend_from_slice(&[i0, i1, i2]);
+        }
+    }
+    (vertices, indices)
+}
+
+pub fn create_degenerates_right(size: u32) -> (Vec<Vertex>, Vec<u32>) {
+    assert!((size + 1) % 2 == 0);
+    let mut vertices = Vec::new();
+    let mut indices = Vec::new();
+    for z in 0..size {
+        vertices.push(Vertex { p: [0, z as i32] });
+    }
+    for z in (0..size - 1).step_by(2) {
+        let i0 = z;
+        let i1 = z + 1;
+        let i2 = z + 2;
+        if WIRE_FRAME {
+            indices.extend_from_slice(&[i0, i1, i1, i2, i2, i0]);
+        } else {
+            indices.extend_from_slice(&[i0, i1, i2]);
+        }
+    }
+    (vertices, indices)
+}
+
+pub fn create_grid(size_x: u32, size_z: u32) -> (Vec<Vertex>, Vec<u32>) {
+    let mut vertices = Vec::new();
+    for z in 0..size_z {
+        for x in 0..size_x {
+            vertices.push(Vertex {
+                p: [x as i32, z as i32],
+            })
+        }
+    }
+    let mut indices = Vec::new();
+    for z in 0..size_z - 1 {
+        for x in 0..size_x - 1 {
+            let i0 = x + z * size_x;
+            let i1 = i0 + 1;
+            let i2 = x + (z + 1) * size_x;
+            let i3 = i2 + 1;
+            if WIRE_FRAME {
+                indices.extend_from_slice(&[i0, i2, i2, i1, i1, i0, i1, i2, i2, i3, i3, i1]);
+            } else {
+                indices.extend_from_slice(&[i0, i2, i1, i1, i2, i3]);
+            }
+        }
+    }
+    (vertices, indices)
 }
 
 struct Sine;
