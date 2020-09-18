@@ -117,7 +117,7 @@ fn game(options: Options) {
                 renderables.ui.create_drawable(&graphics.device, Some(mesh::create_mesh(&ui)));
                 renderables.ui.update(graphics::ui::Uniforms { projection: projection_2d }, game_state.ui_enabled);
 
-                let target = &graphics.swap_chain.get_next_texture().expect("failed to get next texture").view;
+                let target = &graphics.swap_chain.get_current_frame().expect("failed to get next texture").output.view;
                 let time_before_render = std::time::Instant::now();
                 graphics::render_loop(&renderables, &graphics.device, &graphics.queue, target, &graphics.depth_texture.view);
                 let time_after_render = std::time::Instant::now();

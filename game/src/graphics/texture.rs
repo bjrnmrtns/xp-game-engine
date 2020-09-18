@@ -1,4 +1,5 @@
 use wgpu::*;
+use wgpu::util::DeviceExt;
 
 pub struct Texture {
     pub texture: wgpu::Texture,
@@ -17,7 +18,6 @@ impl Texture {
         let desc = wgpu::TextureDescriptor {
             label: None,
             size,
-            array_layer_count: 1,
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
@@ -28,8 +28,9 @@ impl Texture {
         };
         let texture = device.create_texture(&desc);
 
-        let view = texture.create_default_view();
+        let view = texture.create_view(&Default::default());
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor { // 4.
+            label: None,
             address_mode_u: wgpu::AddressMode::ClampToEdge,
             address_mode_v: wgpu::AddressMode::ClampToEdge,
             address_mode_w: wgpu::AddressMode::ClampToEdge,
@@ -38,7 +39,8 @@ impl Texture {
             mipmap_filter: wgpu::FilterMode::Nearest,
             lod_min_clamp: -100.0,
             lod_max_clamp: 100.0,
-            compare: wgpu::CompareFunction::LessEqual, // 5.
+            compare: Some(wgpu::CompareFunction::LessEqual), // 5.
+            anisotropy_clamp: None
         });
 
         Self { texture, view, sampler, }
@@ -48,11 +50,10 @@ impl Texture {
         let texture = device.create_texture(&TextureDescriptor {
             label: None,
             size: Extent3d {
-                width: 100,
-                height: 100,
+                width: 256,
+                height: 256,
                 depth: 1,
             },
-            array_layer_count: 1,
             mip_level_count: 1,
             sample_count: 1,
             dimension: TextureDimension::D2,
@@ -60,31 +61,37 @@ impl Texture {
             usage: TextureUsage::SAMPLED | TextureUsage::COPY_DST,
         });
         //TODO: copy data into texture from argument
-        let data: Vec<u8> = vec![255;100 * 100 * 4]; // should be all white
-        let buffer = device.create_buffer_with_data(data.as_slice(), BufferUsage::COPY_SRC);
+        let data: Vec<u8> = vec![255;256 * 256 * 4]; // should be all white
+        let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: None,
+            contents: bytemuck::cast_slice(data.as_slice()),
+            usage: wgpu::BufferUsage::COPY_SRC
+        });
         let mut encoder = device.create_command_encoder(&CommandEncoderDescriptor {label: None});
         encoder.copy_buffer_to_texture(
             BufferCopyView {
                 buffer: &buffer,
-                offset: 0,
-                bytes_per_row: 100 * 4,
-                rows_per_image: 100,
+                layout: wgpu::TextureDataLayout {
+                    offset: 0,
+                    bytes_per_row: 256 * 4,
+                    rows_per_image: 256,
+                }
             },
             TextureCopyView {
                 texture: &texture,
                 mip_level: 0,
-                array_layer: 0,
                 origin: Origin3d { x: 0, y: 0, z: 0 },
             },
             Extent3d {
-                width: 100,
-                height: 100,
+                width: 256,
+                height: 256,
                 depth: 1,
             }
         );
-        let view = texture.create_default_view();
+        let view = texture.create_view(&Default::default());
 
         let sampler = device.create_sampler(&SamplerDescriptor {
+            label: None,
             address_mode_u: AddressMode::ClampToEdge,
             address_mode_v: AddressMode::ClampToEdge,
             address_mode_w: AddressMode::ClampToEdge,
@@ -93,7 +100,8 @@ impl Texture {
             mipmap_filter: FilterMode::Linear,
             lod_min_clamp: -100.0,
             lod_max_clamp: 100.0,
-            compare: CompareFunction::Always,
+            compare: None,
+            anisotropy_clamp: None
         });
         (Self {
             texture,

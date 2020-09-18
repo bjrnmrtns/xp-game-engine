@@ -1,5 +1,6 @@
 use winit::window::Window;
 use crate::graphics::error::GraphicsError;
+use wgpu::util::DeviceExt;
 
 pub mod default;
 pub mod ui;
@@ -32,8 +33,16 @@ pub struct Drawable {
 
 pub fn create_drawable_from<V: bytemuck::Zeroable + bytemuck::Pod, I: bytemuck::Zeroable + bytemuck::Pod>(device: &wgpu::Device, verts_and_ind: (&[V], &[I])) -> Drawable {
     Drawable {
-        vertex_buffer: device.create_buffer_with_data(bytemuck::cast_slice(verts_and_ind.0), wgpu::BufferUsage::VERTEX),
-        index_buffer: device.create_buffer_with_data(bytemuck::cast_slice(verts_and_ind.1), wgpu::BufferUsage::INDEX),
+        vertex_buffer: device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: None,
+            contents: bytemuck::cast_slice(verts_and_ind.0),
+            usage: wgpu::BufferUsage::VERTEX,
+        }),
+        index_buffer: device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: None,
+            contents: bytemuck::cast_slice(verts_and_ind.1),
+            usage: wgpu::BufferUsage::INDEX,
+        }),
         index_buffer_len: verts_and_ind.1.len() as u32,
     }
 }
@@ -45,7 +54,7 @@ pub struct Renderables {
 }
 
 pub trait Renderable {
-    fn render<'a, 'b>(&'a self, device: &wgpu::Device, encoder: &mut wgpu::CommandEncoder, render_pass: &'b mut wgpu::RenderPass<'a>)
+    fn render<'a, 'b>(&'a self, device: &wgpu::Device, queue: &wgpu::Queue, encoder: &mut wgpu::CommandEncoder, render_pass: &'b mut wgpu::RenderPass<'a>)
         where 'a: 'b;
 }
 
@@ -78,16 +87,18 @@ impl Graphics {
 
     pub async fn new(window: &Window) -> Result<Self> {
         // from here device creation and surface swapchain
-        let surface =  wgpu::Surface::create(window);
-        let adapter = wgpu::Adapter::request(
+        let instance = wgpu::Instance::new(wgpu::BackendBit::PRIMARY);
+        let surface =  unsafe { instance.create_surface(window) };
+        let adapter = instance.request_adapter(
             &wgpu::RequestAdapterOptions { power_preference: wgpu::PowerPreference::Default,
-                compatible_surface: Some(&surface) }, wgpu::BackendBit::PRIMARY).await;
+                compatible_surface: Some(&surface) }).await;
         let adapter = match adapter {
             Some(adapter) => adapter,
             None => { return Err(GraphicsError::RequestAdapter); },
         };
         let (device, queue) = adapter.request_device(&wgpu::DeviceDescriptor
-        { extensions: wgpu::Extensions { anisotropic_filtering: false, }, limits: Default::default(), }).await;
+        { features: Default::default(), limits: Default::default(), shader_validation: false }, None).await.unwrap();
+
         let sc_descriptor = wgpu::SwapChainDescriptor{
             usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
             format: wgpu::TextureFormat::Bgra8UnormSrgb,
@@ -127,28 +138,22 @@ pub fn render_loop(renderables: &Renderables, device: &wgpu::Device, queue: &wgp
                 wgpu::RenderPassColorAttachmentDescriptor {
                     attachment: target,
                     resolve_target: None,
-                    load_op: wgpu::LoadOp::Clear,
-                    store_op: wgpu::StoreOp::Store,
-                    clear_color: wgpu::Color {
+                    ops: wgpu::Operations { load: wgpu::LoadOp::Clear(wgpu::Color {
                         r: 0.0,
                         g: 0.0,
                         b: 0.0,
-                        a: 1.0,
-                    }
+                        a: 1.0
+                    }), store: true }
                 }
             ],
             depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachmentDescriptor {
                 attachment: &depth_attachment,
-                depth_load_op: wgpu::LoadOp::Clear,
-                depth_store_op: wgpu::StoreOp::Store,
-                clear_depth: 1.0,
-                stencil_load_op: wgpu::LoadOp::Clear,
-                stencil_store_op: wgpu::StoreOp::Store,
-                clear_stencil: 0,
+                depth_ops: Some(wgpu::Operations { load: wgpu::LoadOp::Clear(1.0), store: true }),
+                stencil_ops: Some(wgpu::Operations { load: wgpu::LoadOp::Clear(0), store: true }),
             }),
         });
-        renderables.default.render(&device, &mut renderable_encoder, &mut game_render_pass);
-        renderables.clipmap.render(&device, &mut renderable_encoder, &mut game_render_pass);
+        renderables.default.render(&device, queue, &mut renderable_encoder, &mut game_render_pass);
+        renderables.clipmap.render(&device, queue, &mut renderable_encoder, &mut game_render_pass);
     }
     {
         let mut ui_render_pass = render_pass_creation_encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -156,19 +161,15 @@ pub fn render_loop(renderables: &Renderables, device: &wgpu::Device, queue: &wgp
                 wgpu::RenderPassColorAttachmentDescriptor {
                     attachment: target,
                     resolve_target: None,
-                    load_op: wgpu::LoadOp::Load,
-                    store_op: wgpu::StoreOp::Store,
-                    clear_color: wgpu::Color {
-                        r: 0.0,
-                        g: 0.0,
-                        b: 0.0,
-                        a: 1.0,
-                    }
+                    ops: wgpu::Operations { load: wgpu::LoadOp::Load, store: true },
                 }
             ],
             depth_stencil_attachment: None
         });
-        renderables.ui.render(&device, &mut renderable_encoder, &mut ui_render_pass);
+        renderables.ui.render(&device, queue, &mut renderable_encoder, &mut ui_render_pass);
     }
-    queue.submit(&[render_pass_creation_encoder.finish(), renderable_encoder.finish()]);
+    let mut command_buffers = Vec::new();
+    command_buffers.push(render_pass_creation_encoder.finish());
+    command_buffers.push(renderable_encoder.finish());
+    queue.submit(command_buffers);
 }

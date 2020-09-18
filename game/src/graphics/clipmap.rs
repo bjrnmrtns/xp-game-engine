@@ -1,8 +1,10 @@
 use crate::graphics::{Drawable, texture, create_drawable_from};
 use nalgebra_glm::{Mat4, identity, Vec3, vec3};
-use wgpu::{Device, BindingResource, BindGroupLayoutEntry, TextureViewDimension, RenderPass, CommandEncoder};
+use wgpu::{Device, BindingResource, TextureViewDimension, RenderPass, CommandEncoder };
 use crate::graphics::error::GraphicsError;
 use crate::graphics;
+use wgpu::util::DeviceExt;
+use std::io::Read;
 
 type Result<T> = std::result::Result<T, GraphicsError>;
 
@@ -65,7 +67,6 @@ pub fn create_clipmap_storage_texture(device: &wgpu::Device, N: u32) -> wgpu::Te
             height: N,
             depth: CM_MAX_LEVELS
         },
-        array_layer_count: 1,
         mip_level_count: 1,
         sample_count: 1,
         dimension: wgpu::TextureDimension::D3,
@@ -145,17 +146,28 @@ pub struct Renderable {
 
 impl Renderable {
     pub async fn new(device: &Device, sc_descriptor: &wgpu::SwapChainDescriptor, _queue: &wgpu::Queue) -> Result<Self> {
-        let vs_spirv = glsl_to_spirv::compile(include_str!("../shader_clipmap.vert"), glsl_to_spirv::ShaderType::Vertex)?;
-        let fs_spirv = glsl_to_spirv::compile(include_str!("../shader_clipmap.frag"), glsl_to_spirv::ShaderType::Fragment)?;
-        let vs_data = wgpu::read_spirv(vs_spirv)?;
-        let fs_data = wgpu::read_spirv(fs_spirv)?;
-        let vs_module = device.create_shader_module(&vs_data);
-        let fs_module = device.create_shader_module(&fs_data);
+        let (mut spirv_vs_bytes, mut spirv_fs_bytes) = (Vec::new(), Vec::new());
+        match glsl_to_spirv::compile(include_str!("../shader_clipmap.vert"), glsl_to_spirv::ShaderType::Vertex) {
+            Ok(mut spirv_vs_output) => { spirv_vs_output.read_to_end(&mut spirv_vs_bytes).unwrap(); },
+            Err(ref e) => { return Err(GraphicsError::from(e.clone())); },
+        }
+        match glsl_to_spirv::compile(include_str!("../shader_clipmap.frag"), glsl_to_spirv::ShaderType::Fragment) {
+            Ok(mut spirv_vs_output) => { spirv_vs_output.read_to_end(&mut spirv_fs_bytes).unwrap(); },
+            Err(ref e) => { return Err(GraphicsError::from(e.clone())); },
+        }
+        let vs_module_source = wgpu::util::make_spirv(spirv_vs_bytes.as_slice());
+        let fs_module_source = wgpu::util::make_spirv(spirv_fs_bytes.as_slice());
+        let vs_module = device.create_shader_module(vs_module_source);
+        let fs_module = device.create_shader_module(fs_module_source);
 
         let uniforms = Uniforms { projection: identity(), view: identity(), camera_position: vec3(0.0, 0.0, 0.0) };
 
-        let uniform_buffer = device.create_buffer_with_data(bytemuck::cast_slice(&[uniforms]),
-                                                            wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST);
+        let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: None,
+            contents: bytemuck::cast_slice(&[uniforms]),
+            usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
+        });
+
         let mut instances: Vec<Instance> = Vec::new();
         for level in 0..CM_MAX_LEVELS {
             instances.extend(CM_OFFSETS_MXM.iter().map(|offset| Instance { offset: offset.clone(), level, padding: 0 } ));
@@ -195,35 +207,42 @@ impl Renderable {
         for level in 0..CM_MAX_LEVELS {
             instances.push(Instance { offset: CM_OFFSETS_DEGENERATES_V_RIGHT, level, padding: 5 } );
         }
-        let instance_buffer = device.create_buffer_with_data(bytemuck::cast_slice(instances.as_slice()),
-                                                             wgpu::BufferUsage::STORAGE | wgpu::BufferUsage::COPY_DST);
+        let instance_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: None,
+            contents: bytemuck::cast_slice(instances.as_slice()),
+            usage: wgpu::BufferUsage::STORAGE | wgpu::BufferUsage::COPY_DST,
+        });
 
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            bindings: &[
+            entries: &[
                 wgpu::BindGroupLayoutEntry {
                     binding: 0,
                     visibility: wgpu::ShaderStage::VERTEX | wgpu::ShaderStage::FRAGMENT,
                     ty: wgpu::BindingType::UniformBuffer {
                         dynamic: false,
+                        min_binding_size: None
                     },
+                    count: None
                 },
                 wgpu::BindGroupLayoutEntry {
                     binding: 1,
                     visibility: wgpu::ShaderStage::VERTEX,
                     ty: wgpu::BindingType::StorageBuffer {
                         dynamic: false,
+                        min_binding_size: None,
                         readonly: false,
                     },
+                    count: None
                 },
-                BindGroupLayoutEntry {
+                wgpu::BindGroupLayoutEntry {
                     binding: 2,
                     visibility: wgpu::ShaderStage::VERTEX,
                     ty: wgpu::BindingType::StorageTexture {
-                        component_type: wgpu::TextureComponentType::Float,
                         format: wgpu::TextureFormat::Rgba32Float,
                         dimension: TextureViewDimension::D3,
                         readonly: true
                     },
+                    count: None
                 },
             ],
             label: None,
@@ -254,37 +273,33 @@ impl Renderable {
 
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &bind_group_layout,
-            bindings: &[
-                wgpu::Binding {
+            entries: &[
+                wgpu::BindGroupEntry {
                     binding: 0,
-                    resource: wgpu::BindingResource::Buffer {
-                        buffer: &uniform_buffer,
-                        // FYI: you can share a single buffer between bindings.
-                        range: 0..std::mem::size_of_val(&uniforms) as wgpu::BufferAddress,
-                    }
+                    resource: wgpu::BindingResource::Buffer(uniform_buffer.slice(0..std::mem::size_of_val(&uniforms) as u64))
                 },
-                wgpu::Binding {
+                wgpu::BindGroupEntry {
                     binding: 1,
-                    resource: wgpu::BindingResource::Buffer {
-                        buffer: &instance_buffer,
-                        range: 0..std::mem::size_of_val(instances.as_slice()) as wgpu::BufferAddress,
-                    }
+                    resource: wgpu::BindingResource::Buffer(instance_buffer.slice(0..std::mem::size_of_val(&instances) as u64))
                 },
-                wgpu::Binding {
+                wgpu::BindGroupEntry {
                     binding: 2,
-                    resource: BindingResource::TextureView(&texture.create_default_view()),
+                    resource: BindingResource::TextureView(&texture.create_view(&Default::default())),
                 },
             ],
             label: None,
         });
         let render_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: None,
             bind_group_layouts: &[&bind_group_layout],
+            push_constant_ranges: &[]
         });
 
         let primitive_topology = if  WIRE_FRAME {  wgpu::PrimitiveTopology::LineList } else { wgpu::PrimitiveTopology::TriangleList };
 
         let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            layout: &render_pipeline_layout,
+            label: None,
+            layout: Some(&render_pipeline_layout),
             vertex_stage: wgpu::ProgrammableStageDescriptor {
                 module: &vs_module,
                 entry_point: "main",
@@ -296,6 +311,7 @@ impl Renderable {
             rasterization_state: Some(wgpu::RasterizationStateDescriptor {
                 front_face: wgpu::FrontFace::Ccw,
                 cull_mode: wgpu::CullMode::Back,
+                clamp_depth: false,
                 depth_bias: 0,
                 depth_bias_slope_scale: 0.0,
                 depth_bias_clamp: 0.0,
@@ -313,10 +329,12 @@ impl Renderable {
                 format: texture::Texture::DEPTH_FORMAT,
                 depth_write_enabled: true,
                 depth_compare: wgpu::CompareFunction::Less,
-                stencil_front: wgpu::StencilStateFaceDescriptor::IGNORE,
-                stencil_back: wgpu::StencilStateFaceDescriptor::IGNORE,
-                stencil_read_mask: 0,
-                stencil_write_mask: 0,
+                stencil: wgpu::StencilStateDescriptor {
+                    front: wgpu::StencilStateFaceDescriptor::IGNORE,
+                    back: wgpu::StencilStateFaceDescriptor::IGNORE,
+                    read_mask: 0,
+                    write_mask: 0
+                },
             }),
             vertex_state: wgpu::VertexStateDescriptor {
                 index_format: wgpu::IndexFormat::Uint32,
@@ -466,20 +484,29 @@ pub fn create_grid(size_x: u32, size_z: u32) -> (Vec<Vertex>, Vec<u32>) {
 }
 
 impl graphics::Renderable for Renderable {
-    fn render<'a, 'b>(&'a self, device: &Device, encoder: &mut CommandEncoder, render_pass: &'b mut RenderPass<'a>) where 'a: 'b {
-        let uniforms_bufer = device.create_buffer_with_data(bytemuck::cast_slice(&[self.uniforms]), wgpu::BufferUsage::COPY_SRC);
-        let height_map_data_buffer = device.create_buffer_with_data(bytemuck::cast_slice(self.clipmap_data.data.as_slice()), wgpu::BufferUsage::COPY_SRC);
+    fn render<'a, 'b>(&'a self, device: &Device, queue: &wgpu::Queue, encoder: &mut CommandEncoder, render_pass: &'b mut RenderPass<'a>) where 'a: 'b {
+        let uniforms_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: None,
+            contents: bytemuck::cast_slice(&[self.uniforms]),
+            usage: wgpu::BufferUsage::COPY_SRC
+        });
+        let heightmap_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: None,
+            contents: bytemuck::cast_slice(self.clipmap_data.data.as_slice()),
+            usage: wgpu::BufferUsage::COPY_SRC
+        });
         for copy_region in &self.clipmap_data.copy_regions {
             let offset_in_level = copy_region.x + (copy_region.y * CM_TEXTURE_SIZE);
             encoder.copy_buffer_to_texture(wgpu::BufferCopyView {
-                buffer: &height_map_data_buffer,
-                offset: ((CM_TEXTURE_SIZE * CM_TEXTURE_SIZE * copy_region.level + offset_in_level) * CM_ELEMENT_SIZE) as wgpu::BufferAddress,
-                bytes_per_row: CM_TEXTURE_SIZE  * CM_ELEMENT_SIZE,
-                rows_per_image: CM_TEXTURE_SIZE,
+                buffer: &heightmap_buffer,
+                layout: wgpu::TextureDataLayout {
+                    offset: ((CM_TEXTURE_SIZE * CM_TEXTURE_SIZE * copy_region.level + offset_in_level) * CM_ELEMENT_SIZE) as wgpu::BufferAddress,
+                    bytes_per_row: CM_TEXTURE_SIZE  * CM_ELEMENT_SIZE,
+                    rows_per_image: CM_TEXTURE_SIZE,
+                }
             }, wgpu::TextureCopyView {
                 texture: &self.texture,
                 mip_level: 0,
-                array_layer: 0,
                 origin: wgpu::Origin3d {
                     x: copy_region.x,
                     y: copy_region.y,
@@ -491,7 +518,7 @@ impl graphics::Renderable for Renderable {
                 depth: 1
             });
         }
-        encoder.copy_buffer_to_buffer(&uniforms_bufer, 0, &self.uniforms_buffer, 0, std::mem::size_of_val(&self.uniforms) as u64);
+        encoder.copy_buffer_to_buffer(&uniforms_buffer, 0, &self.uniforms_buffer, 0, std::mem::size_of_val(&self.uniforms) as u64);
 
         render_pass.set_pipeline(&self.render_pipeline);
         let start_ring_level = 1;
@@ -510,23 +537,23 @@ impl graphics::Renderable for Renderable {
         let end_degen_v_left: u32 = end_degen_h_bottom + CM_INSTANCE_SIZE_DEGENERATES;
         let end_degen_v_right: u32 = end_degen_v_left + CM_INSTANCE_SIZE_DEGENERATES;
 
-        render_pass.set_vertex_buffer(0, &self.clipmap_ring_mxm.vertex_buffer, 0, 0);
-        render_pass.set_index_buffer(&self.clipmap_ring_mxm.index_buffer, 0, 0);
+        render_pass.set_vertex_buffer(0, self.clipmap_ring_mxm.vertex_buffer.slice(..));
+        render_pass.set_index_buffer(self.clipmap_ring_mxm.index_buffer.slice(..));
         render_pass.set_bind_group(0, &self.bind_group, &[]);
         render_pass.draw_indexed(0..self.clipmap_ring_mxm.index_buffer_len, 0, start_ring_level * CM_INSTANCE_SIZE_ONE_MXM..end_mxm);
 
-        render_pass.set_vertex_buffer(0, &self.clipmap_ring_mxp.vertex_buffer, 0, 0);
-        render_pass.set_index_buffer(&self.clipmap_ring_mxp.index_buffer, 0, 0);
+        render_pass.set_vertex_buffer(0, self.clipmap_ring_mxp.vertex_buffer.slice(..));
+        render_pass.set_index_buffer(self.clipmap_ring_mxp.index_buffer.slice(..));
         render_pass.set_bind_group(0, &self.bind_group, &[]);
         render_pass.draw_indexed(0..self.clipmap_ring_mxp.index_buffer_len, 0, end_mxm + start_ring_level * CM_INSTANCE_SIZE_ONE_MXP..end_mxp);
 
-        render_pass.set_vertex_buffer(0, &self.clipmap_ring_pxm.vertex_buffer, 0, 0);
-        render_pass.set_index_buffer(&self.clipmap_ring_pxm.index_buffer, 0, 0);
+        render_pass.set_vertex_buffer(0, self.clipmap_ring_pxm.vertex_buffer.slice(..));
+        render_pass.set_index_buffer(self.clipmap_ring_pxm.index_buffer.slice(..));
         render_pass.set_bind_group(0, &self.bind_group, &[]);
         render_pass.draw_indexed(0..self.clipmap_ring_pxm.index_buffer_len, 0, end_mxp + start_ring_level * CM_INSTANCE_SIZE_ONE_PXM..end_pxm);
 
-        render_pass.set_vertex_buffer(0, &self.clipmap_full.vertex_buffer, 0, 0);
-        render_pass.set_index_buffer(&self.clipmap_full.index_buffer, 0, 0);
+        render_pass.set_vertex_buffer(0, self.clipmap_full.vertex_buffer.slice(..));
+        render_pass.set_index_buffer(self.clipmap_full.index_buffer.slice(..));
         render_pass.set_bind_group(0, &self.bind_group, &[]);
         render_pass.draw_indexed(0..self.clipmap_full.index_buffer_len, 0, end_pxm + full_level * CM_INSTANCE_SIZE_ONE_NXN..(end_pxm + full_level * CM_INSTANCE_SIZE_ONE_NXN) + CM_INSTANCE_SIZE_ONE_NXN);
 
@@ -534,8 +561,8 @@ impl graphics::Renderable for Renderable {
             //h_bottom
             if snap_diff(self.uniforms.camera_position.z, level - 1, level) < std::f32::EPSILON {
                 let start_instance = end_nxn + level * CM_INSTANCE_SIZE_ONE_INTERIOR;
-                render_pass.set_vertex_buffer(0, &self.clipmap_interior_h.vertex_buffer, 0, 0);
-                render_pass.set_index_buffer(&self.clipmap_interior_h.index_buffer, 0, 0);
+                render_pass.set_vertex_buffer(0, self.clipmap_interior_h.vertex_buffer.slice(..));
+                render_pass.set_index_buffer(self.clipmap_interior_h.index_buffer.slice(..));
                 render_pass.set_bind_group(0, &self.bind_group, &[]);
                 render_pass.draw_indexed(0..self.clipmap_interior_h.index_buffer_len, 0, start_instance..start_instance + 1);
             }
@@ -545,8 +572,8 @@ impl graphics::Renderable for Renderable {
             //h_top
             if snap_diff(self.uniforms.camera_position.z, level - 1, level) > std::f32::EPSILON {
                 let start_instance = end_interior_h_bottom + level * CM_INSTANCE_SIZE_ONE_INTERIOR;
-                render_pass.set_vertex_buffer(0, &self.clipmap_interior_h.vertex_buffer, 0, 0);
-                render_pass.set_index_buffer(&self.clipmap_interior_h.index_buffer, 0, 0);
+                render_pass.set_vertex_buffer(0, self.clipmap_interior_h.vertex_buffer.slice(..));
+                render_pass.set_index_buffer(self.clipmap_interior_h.index_buffer.slice(..));
                 render_pass.set_bind_group(0, &self.bind_group, &[]);
                 render_pass.draw_indexed(0..self.clipmap_interior_h.index_buffer_len, 0, start_instance..start_instance + 1);
             }
@@ -556,8 +583,8 @@ impl graphics::Renderable for Renderable {
             //v_left
             if snap_diff(self.uniforms.camera_position.x, level - 1, level) > std::f32::EPSILON {
                 let start_instance = end_interior_h_top + level * CM_INSTANCE_SIZE_ONE_INTERIOR;
-                render_pass.set_vertex_buffer(0, &self.clipmap_interior_v.vertex_buffer, 0, 0);
-                render_pass.set_index_buffer(&self.clipmap_interior_v.index_buffer, 0, 0);
+                render_pass.set_vertex_buffer(0, self.clipmap_interior_v.vertex_buffer.slice(..));
+                render_pass.set_index_buffer(self.clipmap_interior_v.index_buffer.slice(..));
                 render_pass.set_bind_group(0, &self.bind_group, &[]);
                 render_pass.draw_indexed(0..self.clipmap_interior_v.index_buffer_len, 0, start_instance..start_instance + 1);
             }
@@ -567,30 +594,30 @@ impl graphics::Renderable for Renderable {
             //v_right
             if snap_diff(self.uniforms.camera_position.x, level - 1, level) < std::f32::EPSILON {
                 let start_instance = end_interior_v_left + level * CM_INSTANCE_SIZE_ONE_INTERIOR;
-                render_pass.set_vertex_buffer(0, &self.clipmap_interior_v.vertex_buffer, 0, 0);
-                render_pass.set_index_buffer(&self.clipmap_interior_v.index_buffer, 0, 0);
+                render_pass.set_vertex_buffer(0, self.clipmap_interior_v.vertex_buffer.slice(..));
+                render_pass.set_index_buffer(self.clipmap_interior_v.index_buffer.slice(..));
                 render_pass.set_bind_group(0, &self.bind_group, &[]);
                 render_pass.draw_indexed(0..self.clipmap_interior_v.index_buffer_len, 0, start_instance..start_instance + 1);
             }
         }
 
-        render_pass.set_vertex_buffer(0, &self.clipmap_degenerates_h_top.vertex_buffer, 0, 0);
-        render_pass.set_index_buffer(&self.clipmap_degenerates_h_top.index_buffer, 0, 0);
+        render_pass.set_vertex_buffer(0, self.clipmap_degenerates_h_top.vertex_buffer.slice(..));
+        render_pass.set_index_buffer(self.clipmap_degenerates_h_top.index_buffer.slice(..));
         render_pass.set_bind_group(0, &self.bind_group, &[]);
         render_pass.draw_indexed(0..self.clipmap_degenerates_h_top.index_buffer_len, 0, end_interior_v_right + full_level * CM_INSTANCE_SIZE_ONE_DEGENERATE..end_degen_h_top);
 
-        render_pass.set_vertex_buffer(0, &self.clipmap_degenerates_h_bottom.vertex_buffer, 0, 0);
-        render_pass.set_index_buffer(&self.clipmap_degenerates_h_bottom.index_buffer, 0, 0);
+        render_pass.set_vertex_buffer(0, self.clipmap_degenerates_h_bottom.vertex_buffer.slice(..));
+        render_pass.set_index_buffer(self.clipmap_degenerates_h_bottom.index_buffer.slice(..));
         render_pass.set_bind_group(0, &self.bind_group, &[]);
         render_pass.draw_indexed(0..self.clipmap_degenerates_h_bottom.index_buffer_len, 0, end_degen_h_top + full_level * CM_INSTANCE_SIZE_ONE_DEGENERATE..end_degen_h_bottom);
 
-        render_pass.set_vertex_buffer(0, &self.clipmap_degenerates_v_left.vertex_buffer, 0, 0);
-        render_pass.set_index_buffer(&self.clipmap_degenerates_v_left.index_buffer, 0, 0);
+        render_pass.set_vertex_buffer(0, self.clipmap_degenerates_v_left.vertex_buffer.slice(..));
+        render_pass.set_index_buffer(self.clipmap_degenerates_v_left.index_buffer.slice(..));
         render_pass.set_bind_group(0, &self.bind_group, &[]);
         render_pass.draw_indexed(0..self.clipmap_degenerates_v_left.index_buffer_len, 0, end_degen_h_bottom + full_level * CM_INSTANCE_SIZE_ONE_DEGENERATE..end_degen_v_left);
 
-        render_pass.set_vertex_buffer(0, &self.clipmap_degenerates_v_right.vertex_buffer, 0, 0);
-        render_pass.set_index_buffer(&self.clipmap_degenerates_v_right.index_buffer, 0, 0);
+        render_pass.set_vertex_buffer(0, self.clipmap_degenerates_v_right.vertex_buffer.slice(..));
+        render_pass.set_index_buffer(self.clipmap_degenerates_v_right.index_buffer.slice(..));
         render_pass.set_bind_group(0, &self.bind_group, &[]);
         render_pass.draw_indexed(0..self.clipmap_degenerates_v_right.index_buffer_len, 0, end_degen_v_left + full_level * CM_INSTANCE_SIZE_ONE_DEGENERATE..end_degen_v_right);
     }

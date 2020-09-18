@@ -1,8 +1,9 @@
 use crate::graphics::{texture, Drawable, Mesh};
-use wgpu::*;
 use nalgebra_glm::{Mat4, identity};
 use crate::graphics::error::GraphicsError;
 use crate::graphics;
+use wgpu::util::{DeviceExt};
+use std::io::Read;
 
 type Result<T> = std::result::Result<T, GraphicsError>;
 
@@ -84,74 +85,88 @@ pub struct Renderable {
     instances: Vec<Instance>,
 }
 impl Renderable {
-    pub async fn new(device: &Device, sc_descriptor: &wgpu::SwapChainDescriptor, _queue: &wgpu::Queue) -> Result<Self> {
-        // from here 3D renderpipeline creation
-        let vs_spirv = glsl_to_spirv::compile(include_str!("../shader.vert"), glsl_to_spirv::ShaderType::Vertex)?;
-        let fs_spirv = glsl_to_spirv::compile(include_str!("../shader.frag"), glsl_to_spirv::ShaderType::Fragment)?;
-        let vs_data = wgpu::read_spirv(vs_spirv)?;
-        let fs_data = wgpu::read_spirv(fs_spirv)?;
-        let vs_module = device.create_shader_module(&vs_data);
-        let fs_module = device.create_shader_module(&fs_data);
+    pub async fn new(device: &wgpu::Device, sc_descriptor: &wgpu::SwapChainDescriptor, _queue: &wgpu::Queue) -> Result<Self> {
+        let (mut spirv_vs_bytes, mut spirv_fs_bytes) = (Vec::new(), Vec::new());
+        match glsl_to_spirv::compile(include_str!("../shader.vert"), glsl_to_spirv::ShaderType::Vertex) {
+            Ok(mut spirv_vs_output) => { spirv_vs_output.read_to_end(&mut spirv_vs_bytes).unwrap(); },
+            Err(ref e) => { return Err(GraphicsError::from(e.clone())); },
+        }
+        match glsl_to_spirv::compile(include_str!("../shader.frag"), glsl_to_spirv::ShaderType::Fragment) {
+            Ok(mut spirv_vs_output) => { spirv_vs_output.read_to_end(&mut spirv_fs_bytes).unwrap(); },
+            Err(ref e) => { return Err(GraphicsError::from(e.clone())); },
+        }
+        let vs_module_source = wgpu::util::make_spirv(spirv_vs_bytes.as_slice());
+        let fs_module_source = wgpu::util::make_spirv(spirv_fs_bytes.as_slice());
+        let vs_module = device.create_shader_module(vs_module_source);
+        let fs_module = device.create_shader_module(fs_module_source);
 
         let uniforms = Uniforms { projection: identity(), view: identity(), };
 
-        let uniform_buffer = device.create_buffer_with_data(bytemuck::cast_slice(&[uniforms]),
-                                                            wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST);
+        let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: None,
+            contents: bytemuck::cast_slice(&[uniforms]),
+            usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST
+        });
 
-        let mut instances = Vec::new();
+        let mut instances: Vec<Instance> = Vec::new();
         instances.push(Instance { model: identity(), });
-        let instance_buffer = device.create_buffer_with_data(bytemuck::cast_slice(instances.as_slice()),
-                                                             wgpu::BufferUsage::STORAGE | wgpu::BufferUsage::COPY_DST);
+        instances.push(Instance { model: identity(), });
+        let instance_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: None,
+            usage: wgpu::BufferUsage::STORAGE | wgpu::BufferUsage::COPY_DST,
+            size: std::mem::size_of_val(instances.as_slice()) as u64,
+            mapped_at_creation: false
+        });
 
         let uniform_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            bindings: &[
+            entries: &[
                 wgpu::BindGroupLayoutEntry {
                     binding: 0,
                     visibility: wgpu::ShaderStage::VERTEX | wgpu::ShaderStage::FRAGMENT,
                     ty: wgpu::BindingType::UniformBuffer {
                         dynamic: false,
+                        min_binding_size: None
                     },
+                    count: None
                 },
                 wgpu::BindGroupLayoutEntry {
                     binding: 1,
                     visibility: wgpu::ShaderStage::VERTEX,
                     ty: wgpu::BindingType::StorageBuffer {
                         dynamic: false,
+                        min_binding_size: None,
                         readonly: false,
                     },
+                    count: None
                 },
             ],
             label: None,
         });
 
         let uniform_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: None,
             layout: &uniform_bind_group_layout,
-            bindings: &[
-                wgpu::Binding {
+            entries: &[
+                wgpu::BindGroupEntry {
                     binding: 0,
-                    resource: wgpu::BindingResource::Buffer {
-                        buffer: &uniform_buffer,
-                        // FYI: you can share a single buffer between bindings.
-                        range: 0..std::mem::size_of_val(&uniforms) as wgpu::BufferAddress,
-                    }
+                    resource: wgpu::BindingResource::Buffer(uniform_buffer.slice(..)),
                 },
-                wgpu::Binding {
+                wgpu::BindGroupEntry {
                     binding: 1,
-                    resource: wgpu::BindingResource::Buffer {
-                        buffer: &instance_buffer,
-                        range: 0..std::mem::size_of_val(&instances) as wgpu::BufferAddress,
-                    }
+                    resource: wgpu::BindingResource::Buffer(instance_buffer.slice(..)),
                 },
             ],
-            label: None,
         });
 
         let render_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: None,
             bind_group_layouts: &[&uniform_bind_group_layout],
+            push_constant_ranges: &[]
         });
 
         let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            layout: &render_pipeline_layout,
+            label: None,
+            layout: Some(&render_pipeline_layout),
             vertex_stage: wgpu::ProgrammableStageDescriptor {
                 module: &vs_module,
                 entry_point: "main",
@@ -163,6 +178,7 @@ impl Renderable {
             rasterization_state: Some(wgpu::RasterizationStateDescriptor {
                 front_face: wgpu::FrontFace::Ccw,
                 cull_mode: wgpu::CullMode::Back,
+                clamp_depth: false,
                 depth_bias: 0,
                 depth_bias_slope_scale: 0.0,
                 depth_bias_clamp: 0.0,
@@ -180,10 +196,12 @@ impl Renderable {
                 format: texture::Texture::DEPTH_FORMAT,
                 depth_write_enabled: true,
                 depth_compare: wgpu::CompareFunction::Less,
-                stencil_front: wgpu::StencilStateFaceDescriptor::IGNORE,
-                stencil_back: wgpu::StencilStateFaceDescriptor::IGNORE,
-                stencil_read_mask: 0,
-                stencil_write_mask: 0,
+                stencil: wgpu::StencilStateDescriptor {
+                    front: wgpu::StencilStateFaceDescriptor::IGNORE,
+                    back: wgpu::StencilStateFaceDescriptor::IGNORE,
+                    read_mask: 0,
+                    write_mask: 0
+                }
             }),
             vertex_state: wgpu::VertexStateDescriptor {
                 index_format: wgpu::IndexFormat::Uint32,
@@ -206,36 +224,48 @@ impl Renderable {
     }
 
     pub fn create_drawable(&mut self, device: &wgpu::Device, mesh: &Mesh<Vertex>) -> usize {
-        let vertex_buffer = device.create_buffer_with_data(bytemuck::cast_slice(&mesh.vertices), wgpu::BufferUsage::VERTEX);
-        let index_buffer = device.create_buffer_with_data(bytemuck::cast_slice(&mesh.indices), wgpu::BufferUsage::INDEX);
+        let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: None,
+            contents: bytemuck::cast_slice(mesh.vertices.as_slice()),
+            usage: wgpu::BufferUsage::VERTEX
+        });
+        let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: None,
+            contents: bytemuck::cast_slice(mesh.indices.as_slice()),
+            usage: wgpu::BufferUsage::INDEX
+        });
         self.drawables.push(Drawable { vertex_buffer, index_buffer, index_buffer_len: mesh.indices.len() as u32, });
         self.drawables.len() - 1
     }
 
     pub fn update(&mut self, uniforms: Uniforms, instances: Vec<Instance>) {
+        assert!(self.instances.len() == instances.len());
         self.uniforms = uniforms;
         self.instances = instances;
     }
 }
 
 impl graphics::Renderable for Renderable {
-    fn render<'a, 'b>(&'a self, device: &Device, encoder: &mut CommandEncoder, render_pass: &'b mut RenderPass<'a>) where 'a: 'b {
-        let instance_buffer = device.create_buffer_with_data(bytemuck::cast_slice(self.instances.as_slice()), wgpu::BufferUsage::COPY_SRC);
-        encoder.copy_buffer_to_buffer(&instance_buffer, 0, &self.instance_buffer, 0,
-                                      std::mem::size_of_val(self.instances.as_slice()) as wgpu::BufferAddress);
+    fn render<'a, 'b>(&'a self, device: &wgpu::Device, queue: &wgpu::Queue, encoder: &mut wgpu::CommandEncoder, render_pass: &'b mut wgpu::RenderPass<'a>) where 'a: 'b {
+        queue.write_buffer(&self.instance_buffer, 0, bytemuck::cast_slice(self.instances.as_slice()));
 
-        let buffer = device.create_buffer_with_data(bytemuck::cast_slice(&[self.uniforms]), wgpu::BufferUsage::COPY_SRC);
-        encoder.copy_buffer_to_buffer(&buffer, 0, &self.uniform_buffer, 0, std::mem::size_of_val(&self.uniforms) as u64);
+        let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: None,
+            contents: bytemuck::cast_slice(&[self.uniforms]),
+            usage: wgpu::BufferUsage::COPY_SRC
+        });
+
+        encoder.copy_buffer_to_buffer(&uniform_buffer, 0, &self.uniform_buffer, 0, std::mem::size_of_val(&self.uniforms) as u64);
 
         render_pass.set_pipeline(&self.render_pipeline);
 
-        render_pass.set_vertex_buffer(0, &self.drawables[0].vertex_buffer, 0, 0);
-        render_pass.set_index_buffer(&self.drawables[0].index_buffer, 0, 0);
+        render_pass.set_vertex_buffer(0, self.drawables[0].vertex_buffer.slice(..));
+        render_pass.set_index_buffer(self.drawables[0].index_buffer.slice(..));
         render_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
         render_pass.draw_indexed(0..self.drawables[0].index_buffer_len, 0, 0..1);
 
-        render_pass.set_vertex_buffer(0, &self.drawables[1].vertex_buffer, 0, 0);
-        render_pass.set_index_buffer(&self.drawables[1].index_buffer, 0, 0);
+        render_pass.set_vertex_buffer(0, self.drawables[1].vertex_buffer.slice(..));
+        render_pass.set_index_buffer(self.drawables[1].index_buffer.slice(..));
         render_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
         render_pass.draw_indexed(0..self.drawables[1].index_buffer_len, 0, 1..2);
     }
