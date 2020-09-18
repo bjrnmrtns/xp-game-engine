@@ -251,12 +251,7 @@ impl Renderable {
 }
 impl graphics::Renderable for Renderable {
     fn render<'a, 'b>(&'a self, device: &Device, queue: &wgpu::Queue, encoder: &mut CommandEncoder, render_pass: &'b mut RenderPass<'a>) where 'a: 'b {
-        let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: None,
-            contents: bytemuck::cast_slice(&[self.uniforms]),
-            usage: wgpu::BufferUsage::COPY_SRC
-        });
-        encoder.copy_buffer_to_buffer(&uniform_buffer, 0, &self.uniform_buffer, 0, std::mem::size_of_val(&self.uniforms) as u64);
+        queue.write_buffer(&self.uniform_buffer, 0, bytemuck::cast_slice(&[self.uniforms]));
         if self.enabled {
             if let Some(drawable) = &self.drawable {
                 render_pass.set_pipeline(&self.render_pipeline);

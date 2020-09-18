@@ -485,11 +485,7 @@ pub fn create_grid(size_x: u32, size_z: u32) -> (Vec<Vertex>, Vec<u32>) {
 
 impl graphics::Renderable for Renderable {
     fn render<'a, 'b>(&'a self, device: &Device, queue: &wgpu::Queue, encoder: &mut CommandEncoder, render_pass: &'b mut RenderPass<'a>) where 'a: 'b {
-        let uniforms_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: None,
-            contents: bytemuck::cast_slice(&[self.uniforms]),
-            usage: wgpu::BufferUsage::COPY_SRC
-        });
+        queue.write_buffer(&self.uniforms_buffer, 0, bytemuck::cast_slice(&[self.uniforms]));
         let heightmap_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: None,
             contents: bytemuck::cast_slice(self.clipmap_data.data.as_slice()),
@@ -518,7 +514,6 @@ impl graphics::Renderable for Renderable {
                 depth: 1
             });
         }
-        encoder.copy_buffer_to_buffer(&uniforms_buffer, 0, &self.uniforms_buffer, 0, std::mem::size_of_val(&self.uniforms) as u64);
 
         render_pass.set_pipeline(&self.render_pipeline);
         let start_ring_level = 1;
