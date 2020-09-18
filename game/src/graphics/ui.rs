@@ -1,15 +1,14 @@
-use crate::graphics::{Mesh, texture, Drawable, Graphics};
-use wgpu::{*};
-use nalgebra_glm::{Mat4, identity};
-use crate::graphics::error::GraphicsError;
 use crate::graphics;
-use wgpu::util::DeviceExt;
+use crate::graphics::error::GraphicsError;
+use crate::graphics::{texture, Drawable, Graphics, Mesh};
+use nalgebra_glm::{identity, Mat4};
 use std::io::Read;
+use wgpu::util::DeviceExt;
+use wgpu::*;
 
 type Result<T> = std::result::Result<T, GraphicsError>;
 
-pub struct Text
-{
+pub struct Text {
     pub pos: (f32, f32),
     pub text: String,
     pub font_size: f32,
@@ -58,7 +57,7 @@ impl Vertex {
                     shader_location: 2,
                     format: wgpu::VertexFormat::Uint,
                 },
-            ]
+            ],
         }
     }
 }
@@ -75,22 +74,42 @@ pub struct Renderable {
 }
 
 impl Renderable {
-    pub async fn new(device: &Device, sc_descriptor: &wgpu::SwapChainDescriptor, queue: &wgpu::Queue) -> Result<Self> {
+    pub async fn new(
+        device: &Device,
+        sc_descriptor: &wgpu::SwapChainDescriptor,
+        queue: &wgpu::Queue,
+    ) -> Result<Self> {
         let (mut spirv_vs_bytes, mut spirv_fs_bytes) = (Vec::new(), Vec::new());
-        match glsl_to_spirv::compile(include_str!("../shader_ui.vert"), glsl_to_spirv::ShaderType::Vertex) {
-            Ok(mut spirv_vs_output) => { spirv_vs_output.read_to_end(&mut spirv_vs_bytes).unwrap(); },
-            Err(ref e) => { return Err(GraphicsError::from(e.clone())); },
+        match glsl_to_spirv::compile(
+            include_str!("../shader_ui.vert"),
+            glsl_to_spirv::ShaderType::Vertex,
+        ) {
+            Ok(mut spirv_vs_output) => {
+                spirv_vs_output.read_to_end(&mut spirv_vs_bytes).unwrap();
+            }
+            Err(ref e) => {
+                return Err(GraphicsError::from(e.clone()));
+            }
         }
-        match glsl_to_spirv::compile(include_str!("../shader_ui.frag"), glsl_to_spirv::ShaderType::Fragment) {
-            Ok(mut spirv_vs_output) => { spirv_vs_output.read_to_end(&mut spirv_fs_bytes).unwrap(); },
-            Err(ref e) => { return Err(GraphicsError::from(e.clone())); },
+        match glsl_to_spirv::compile(
+            include_str!("../shader_ui.frag"),
+            glsl_to_spirv::ShaderType::Fragment,
+        ) {
+            Ok(mut spirv_vs_output) => {
+                spirv_vs_output.read_to_end(&mut spirv_fs_bytes).unwrap();
+            }
+            Err(ref e) => {
+                return Err(GraphicsError::from(e.clone()));
+            }
         }
         let vs_module_source = wgpu::util::make_spirv(spirv_vs_bytes.as_slice());
         let fs_module_source = wgpu::util::make_spirv(spirv_fs_bytes.as_slice());
         let vs_module = device.create_shader_module(vs_module_source);
         let fs_module = device.create_shader_module(fs_module_source);
 
-        let uniforms = Uniforms { projection: identity(), };
+        let uniforms = Uniforms {
+            projection: identity(),
+        };
 
         let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: None,
@@ -98,26 +117,31 @@ impl Renderable {
             usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
         });
 
-        let ui_uniform_layout= device.create_bind_group_layout(&BindGroupLayoutDescriptor{
+        let ui_uniform_layout = device.create_bind_group_layout(&BindGroupLayoutDescriptor {
             label: None,
-            entries: &[BindGroupLayoutEntry{
+            entries: &[BindGroupLayoutEntry {
                 binding: 0,
                 visibility: ShaderStage::VERTEX,
-                ty: wgpu::BindingType::UniformBuffer { dynamic: false, min_binding_size: None },
-                count: None
+                ty: wgpu::BindingType::UniformBuffer {
+                    dynamic: false,
+                    min_binding_size: None,
+                },
+                count: None,
             }],
         });
 
-        let uniform_bind_group = device.create_bind_group(&BindGroupDescriptor{
+        let uniform_bind_group = device.create_bind_group(&BindGroupDescriptor {
             label: None,
             layout: &ui_uniform_layout,
             entries: &[wgpu::BindGroupEntry {
                 binding: 0,
-                resource: wgpu::BindingResource::Buffer(uniform_buffer.slice(0..std::mem::size_of_val(&uniforms) as u64)),
+                resource: wgpu::BindingResource::Buffer(
+                    uniform_buffer.slice(0..std::mem::size_of_val(&uniforms) as u64),
+                ),
             }],
         });
 
-        let ui_texture_layout = device.create_bind_group_layout(&BindGroupLayoutDescriptor{
+        let ui_texture_layout = device.create_bind_group_layout(&BindGroupLayoutDescriptor {
             label: None,
             entries: &[
                 BindGroupLayoutEntry {
@@ -128,29 +152,29 @@ impl Renderable {
                         component_type: wgpu::TextureComponentType::Float,
                         dimension: TextureViewDimension::D2,
                     },
-                    count: None
+                    count: None,
                 },
                 BindGroupLayoutEntry {
                     binding: 1,
                     visibility: wgpu::ShaderStage::FRAGMENT,
                     ty: wgpu::BindingType::Sampler { comparison: false },
-                    count: None
+                    count: None,
                 },
-            ]
+            ],
         });
 
         let ui_pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
             label: None,
             bind_group_layouts: &[&ui_uniform_layout, &ui_texture_layout],
-            push_constant_ranges: &[]
+            push_constant_ranges: &[],
         });
 
-        let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor{
+        let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: None,
             layout: Some(&ui_pipeline_layout),
             vertex_stage: wgpu::ProgrammableStageDescriptor {
                 module: &vs_module,
-                entry_point: "main"
+                entry_point: "main",
             },
             fragment_stage: Some(wgpu::ProgrammableStageDescriptor {
                 module: &fs_module,
@@ -220,24 +244,36 @@ impl Renderable {
         })
     }
 
-    pub fn create_drawable(&mut self, device: &wgpu::Device, ui_mesh: Option<(Mesh<Vertex>, Vec<Text>)>) {
+    pub fn create_drawable(
+        &mut self,
+        device: &wgpu::Device,
+        ui_mesh: Option<(Mesh<Vertex>, Vec<Text>)>,
+    ) {
         if let Some(ui_mesh) = ui_mesh {
-            self.drawable = Some(Drawable { vertex_buffer: device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: None,
-                contents: bytemuck::cast_slice(ui_mesh.0.vertices.as_slice()),
-                usage: wgpu::BufferUsage::VERTEX
+            self.drawable = Some(Drawable {
+                vertex_buffer: device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    label: None,
+                    contents: bytemuck::cast_slice(ui_mesh.0.vertices.as_slice()),
+                    usage: wgpu::BufferUsage::VERTEX,
                 }),
                 index_buffer: device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                     label: None,
                     contents: bytemuck::cast_slice(ui_mesh.0.indices.as_slice()),
-                    usage: wgpu::BufferUsage::INDEX
+                    usage: wgpu::BufferUsage::INDEX,
                 }),
-                index_buffer_len: ui_mesh.0.indices.len() as u32 });
+                index_buffer_len: ui_mesh.0.indices.len() as u32,
+            });
 
             for text in &ui_mesh.1 {
                 let section = wgpu_glyph::Section {
                     screen_position: text.pos,
-                    text: vec![wgpu_glyph::Text::new(&text.text.as_str()).with_color([1.0, 0.0, 0.0, 1.0]).with_scale(wgpu_glyph::ab_glyph::PxScale{ x: text.font_size, y: text.font_size })], ..wgpu_glyph::Section::default()
+                    text: vec![wgpu_glyph::Text::new(&text.text.as_str())
+                        .with_color([1.0, 0.0, 0.0, 1.0])
+                        .with_scale(wgpu_glyph::ab_glyph::PxScale {
+                            x: text.font_size,
+                            y: text.font_size,
+                        })],
+                    ..wgpu_glyph::Section::default()
                 };
                 self.glyph_brush.queue(section);
             }
@@ -250,8 +286,20 @@ impl Renderable {
     }
 }
 impl graphics::Renderable for Renderable {
-    fn render<'a, 'b>(&'a self, device: &Device, queue: &wgpu::Queue, encoder: &mut CommandEncoder, render_pass: &'b mut RenderPass<'a>) where 'a: 'b {
-        queue.write_buffer(&self.uniform_buffer, 0, bytemuck::cast_slice(&[self.uniforms]));
+    fn render<'a, 'b>(
+        &'a self,
+        device: &Device,
+        queue: &wgpu::Queue,
+        encoder: &mut CommandEncoder,
+        render_pass: &'b mut RenderPass<'a>,
+    ) where
+        'a: 'b,
+    {
+        queue.write_buffer(
+            &self.uniform_buffer,
+            0,
+            bytemuck::cast_slice(&[self.uniforms]),
+        );
         if self.enabled {
             if let Some(drawable) = &self.drawable {
                 render_pass.set_pipeline(&self.render_pipeline);

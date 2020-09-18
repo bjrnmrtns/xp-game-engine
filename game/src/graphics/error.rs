@@ -1,4 +1,3 @@
-
 #[derive(Debug)]
 pub enum GraphicsError {
     String(String),
@@ -17,4 +16,3 @@ impl From<std::io::Error> for GraphicsError {
         GraphicsError::IOError(e)
     }
 }
-

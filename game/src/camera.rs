@@ -1,5 +1,5 @@
-use nalgebra_glm::*;
 use crate::entity::Pose;
+use nalgebra_glm::*;
 
 pub enum CameraType {
     FreeLook,
@@ -18,7 +18,10 @@ impl FreeLook {
     }
 
     pub fn new(position: Vec3, direction: Vec3) -> FreeLook {
-        FreeLook { position, direction, }
+        FreeLook {
+            position,
+            direction,
+        }
     }
 
     pub fn move_(&mut self, forward: f32, right: f32) {
@@ -26,17 +29,22 @@ impl FreeLook {
     }
 
     pub fn camera_rotate(&mut self, updown: f32, around: f32) {
-        let temp_direction = &rotate_vec3(&self.direction, around, &vec3(0.0, 1.0, 0.0)).normalize();
+        let temp_direction =
+            &rotate_vec3(&self.direction, around, &vec3(0.0, 1.0, 0.0)).normalize();
         self.direction = rotate_vec3(&temp_direction, updown, &self.right_vector()).normalize()
     }
 
     pub fn view(&self) -> Mat4 {
-        look_at(&self.position, &(&self.position + &self.direction), &vec3(0.0, 1.0, 0.0))
+        look_at(
+            &self.position,
+            &(&self.position + &self.direction),
+            &vec3(0.0, 1.0, 0.0),
+        )
     }
 }
 
 pub fn view_on(pose: &Pose) -> Mat4 {
-    let direction =  vec4_to_vec3(&(quat_to_mat4(&pose.orientation) * vec4(0.0, -1.5, -4.0, 1.0)));
-    let eye =  &pose.position - &direction;
+    let direction = vec4_to_vec3(&(quat_to_mat4(&pose.orientation) * vec4(0.0, -1.5, -4.0, 1.0)));
+    let eye = &pose.position - &direction;
     look_at(&eye, &pose.position, &vec3(0.0, 1.0, 0.0))
 }

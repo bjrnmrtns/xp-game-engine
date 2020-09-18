@@ -39,14 +39,13 @@ impl std::fmt::Display for ObjError {
             ObjError::ParseFloat(ref e) => e.fmt(f),
             ObjError::ParseInt(ref e) => e.fmt(f),
             ObjError::WrongNumberOfArguments => write!(f, "wrong number of arguments"),
-
         }
     }
 }
 
 impl From<std::io::Error> for ObjError {
     fn from(e: std::io::Error) -> ObjError {
-            ObjError::Io(e)
+        ObjError::Io(e)
     }
 }
 
@@ -63,7 +62,10 @@ impl From<std::num::ParseIntError> for ObjError {
 }
 
 pub fn parse<R, C>(reader: R, mut converter: C) -> ObjResult<()>
-    where R: std::io::BufRead, C: FnMut(&str, &Vec<&str>) -> ObjResult<()> {
+where
+    R: std::io::BufRead,
+    C: FnMut(&str, &Vec<&str>) -> ObjResult<()>,
+{
     let mut line = String::new();
     for current_line in reader.lines() {
         let current_line = current_line?;
@@ -76,7 +78,7 @@ pub fn parse<R, C>(reader: R, mut converter: C) -> ObjResult<()>
         line.push_str(current_line);
         let mut splitted = line.split_whitespace();
         if let Some(obj_type) = splitted.next() {
-            let mut args : Vec<&str> = Vec::new();
+            let mut args: Vec<&str> = Vec::new();
             for arg in splitted {
                 args.push(&arg);
             }
@@ -94,11 +96,15 @@ struct Face {
 fn parse_face(face: &str) -> ObjResult<Face> {
     let mut indices = face.split("/");
     let first: u32 = indices.next().unwrap_or("").parse()?;
-    Ok(Face { v_index: (first - 1), })
+    Ok(Face {
+        v_index: (first - 1),
+    })
 }
 
 pub fn parse_obj<R>(reader: R) -> ObjResult<(Vec<[f32; 3]>, Vec<u32>)>
-    where R: std::io::BufRead {
+where
+    R: std::io::BufRead,
+{
     let mut positions = Vec::new();
     let mut indices = Vec::new();
     parse(reader, |obj_type, args| {
@@ -129,7 +135,7 @@ pub fn parse_obj<R>(reader: R) -> ObjResult<(Vec<[f32; 3]>, Vec<u32>)>
                     indices.push(parse_face(args[3])?.v_index);
                 }
             }
-            _ => ()
+            _ => (),
         }
         Ok(())
     })?;

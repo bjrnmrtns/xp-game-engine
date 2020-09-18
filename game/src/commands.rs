@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct CameraMove {
@@ -19,4 +19,3 @@ pub enum Command {
     CameraMove(CameraMove),
     CameraRotate(CameraRotation),
 }
-

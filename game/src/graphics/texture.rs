@@ -1,5 +1,5 @@
-use wgpu::*;
 use wgpu::util::DeviceExt;
+use wgpu::*;
 
 pub struct Texture {
     pub texture: wgpu::Texture,
@@ -9,8 +9,12 @@ pub struct Texture {
 
 impl Texture {
     pub const DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float; // 1.
-    pub fn create_depth_texture(device: &wgpu::Device, sc_desc: &wgpu::SwapChainDescriptor) -> Self {
-        let size = wgpu::Extent3d { // 2.
+    pub fn create_depth_texture(
+        device: &wgpu::Device,
+        sc_desc: &wgpu::SwapChainDescriptor,
+    ) -> Self {
+        let size = wgpu::Extent3d {
+            // 2.
             width: sc_desc.width,
             height: sc_desc.height,
             depth: 1,
@@ -29,7 +33,8 @@ impl Texture {
         let texture = device.create_texture(&desc);
 
         let view = texture.create_view(&Default::default());
-        let sampler = device.create_sampler(&wgpu::SamplerDescriptor { // 4.
+        let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+            // 4.
             label: None,
             address_mode_u: wgpu::AddressMode::ClampToEdge,
             address_mode_v: wgpu::AddressMode::ClampToEdge,
@@ -40,10 +45,14 @@ impl Texture {
             lod_min_clamp: -100.0,
             lod_max_clamp: 100.0,
             compare: Some(wgpu::CompareFunction::LessEqual), // 5.
-            anisotropy_clamp: None
+            anisotropy_clamp: None,
         });
 
-        Self { texture, view, sampler, }
+        Self {
+            texture,
+            view,
+            sampler,
+        }
     }
 
     pub fn create_ui_texture(device: &wgpu::Device) -> (Self, wgpu::CommandEncoder) {
@@ -61,13 +70,13 @@ impl Texture {
             usage: TextureUsage::SAMPLED | TextureUsage::COPY_DST,
         });
         //TODO: copy data into texture from argument
-        let data: Vec<u8> = vec![255;256 * 256 * 4]; // should be all white
+        let data: Vec<u8> = vec![255; 256 * 256 * 4]; // should be all white
         let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: None,
             contents: bytemuck::cast_slice(data.as_slice()),
-            usage: wgpu::BufferUsage::COPY_SRC
+            usage: wgpu::BufferUsage::COPY_SRC,
         });
-        let mut encoder = device.create_command_encoder(&CommandEncoderDescriptor {label: None});
+        let mut encoder = device.create_command_encoder(&CommandEncoderDescriptor { label: None });
         encoder.copy_buffer_to_texture(
             BufferCopyView {
                 buffer: &buffer,
@@ -75,7 +84,7 @@ impl Texture {
                     offset: 0,
                     bytes_per_row: 256 * 4,
                     rows_per_image: 256,
-                }
+                },
             },
             TextureCopyView {
                 texture: &texture,
@@ -86,7 +95,7 @@ impl Texture {
                 width: 256,
                 height: 256,
                 depth: 1,
-            }
+            },
         );
         let view = texture.create_view(&Default::default());
 
@@ -101,13 +110,15 @@ impl Texture {
             lod_min_clamp: -100.0,
             lod_max_clamp: 100.0,
             compare: None,
-            anisotropy_clamp: None
+            anisotropy_clamp: None,
         });
-        (Self {
-            texture,
-            view,
-            sampler,
-        }, encoder)
+        (
+            Self {
+                texture,
+                view,
+                sampler,
+            },
+            encoder,
+        )
     }
 }
-

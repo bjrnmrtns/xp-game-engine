@@ -1,6 +1,6 @@
-pub use serde::{Serialize, Deserialize};
-use crate::commands::{Command, CameraMove, CameraRotation};
+use crate::commands::{CameraMove, CameraRotation, Command};
 use crate::input::{Event, InputQueue};
+pub use serde::{Deserialize, Serialize};
 use winit::event::VirtualKeyCode;
 
 pub struct CommandQueue {
@@ -16,16 +16,22 @@ impl CommandQueue {
         }
     }
 
-    pub fn handle_input(&mut self, inputs: &mut InputQueue, current_frame_nr: u64) -> Vec<(u64, Vec<Command>)> {
+    pub fn handle_input(
+        &mut self,
+        inputs: &mut InputQueue,
+        current_frame_nr: u64,
+    ) -> Vec<(u64, Vec<Command>)> {
         // store always with frame number, and return frames of previous frames when available,
         // so we are sure that it is the complete set
         while let Some(event) = inputs.event() {
             match event {
-                Event::MouseMotion { x_rel, y_rel } => {
-                    self.commands.push((current_frame_nr, Command::CameraRotate(
-                        CameraRotation { around_local_x: -y_rel, around_global_y: -x_rel, }
-                    )))
-                },
+                Event::MouseMotion { x_rel, y_rel } => self.commands.push((
+                    current_frame_nr,
+                    Command::CameraRotate(CameraRotation {
+                        around_local_x: -y_rel,
+                        around_global_y: -x_rel,
+                    }),
+                )),
                 _ => (),
             }
         }
@@ -38,7 +44,12 @@ impl CommandQueue {
                 left: inputs.is_key_down(VirtualKeyCode::A),
                 right: inputs.is_key_down(VirtualKeyCode::D),
             }));
-            frame.extend(self.commands.iter().filter(|c| c.0 == frame_nr).map(|c| c.1.clone()));
+            frame.extend(
+                self.commands
+                    .iter()
+                    .filter(|c| c.0 == frame_nr)
+                    .map(|c| c.1.clone()),
+            );
             frames.push((frame_nr, frame));
         }
         self.last_frame_nr = current_frame_nr;

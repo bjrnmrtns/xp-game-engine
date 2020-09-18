@@ -1,4 +1,4 @@
-use byteorder::{ByteOrder};
+use byteorder::ByteOrder;
 
 // packet -> ( size: u32, payload: [u8; size] )
 
@@ -17,8 +17,8 @@ pub fn write(writer: &mut dyn std::io::Write, packet_data: &[u8]) -> std::io::Re
 pub fn read(reader: &mut dyn std::io::Read) -> std::io::Result<Option<Vec<u8>>> {
     let mut len: [u8; 4] = [0; 4];
     reader.read_exact(&mut len)?;
-    let len= byteorder::NetworkEndian::read_u32(&mut len) as usize;
-    let mut packet_data: Vec<u8> = vec!(0; len);
+    let len = byteorder::NetworkEndian::read_u32(&mut len) as usize;
+    let mut packet_data: Vec<u8> = vec![0; len];
     reader.read_exact(packet_data.as_mut_slice())?;
     Ok(Some(packet_data))
 }

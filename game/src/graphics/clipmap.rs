@@ -1,10 +1,10 @@
-use crate::graphics::{Drawable, texture, create_drawable_from};
-use nalgebra_glm::{Mat4, identity, Vec3, vec3};
-use wgpu::{Device, BindingResource, TextureViewDimension, RenderPass, CommandEncoder };
-use crate::graphics::error::GraphicsError;
 use crate::graphics;
-use wgpu::util::DeviceExt;
+use crate::graphics::error::GraphicsError;
+use crate::graphics::{create_drawable_from, texture, Drawable};
+use nalgebra_glm::{identity, vec3, Mat4, Vec3};
 use std::io::Read;
+use wgpu::util::DeviceExt;
+use wgpu::{BindingResource, CommandEncoder, Device, RenderPass, TextureViewDimension};
 
 type Result<T> = std::result::Result<T, GraphicsError>;
 
@@ -27,13 +27,23 @@ const CM_2M1P: u32 = CM_M_SIZE + CM_M_SIZE + CM_P_SIZE;
 const CM_3M1P: u32 = CM_M_SIZE + CM_M_SIZE + CM_M_SIZE + CM_P_SIZE;
 const CM_4M1P: u32 = CM_M_SIZE + CM_M_SIZE + CM_M_SIZE + CM_M_SIZE + CM_P_SIZE;
 
-const CM_OFFSETS_MXM: [[u32; 2]; 12] = [[0, 0], [CM_1M, 0], [CM_2M1P, 0], [CM_3M1P, 0], // instances [0..12) -> mxm
-                                         [0, CM_1M], [CM_3M1P, CM_1M],
-                                         [0, CM_2M1P], [CM_3M1P, CM_2M1P],
-                                         [0, CM_3M1P], [CM_1M, CM_3M1P], [CM_2M1P, CM_3M1P], [CM_3M1P, CM_3M1P],];
+const CM_OFFSETS_MXM: [[u32; 2]; 12] = [
+    [0, 0],
+    [CM_1M, 0],
+    [CM_2M1P, 0],
+    [CM_3M1P, 0], // instances [0..12) -> mxm
+    [0, CM_1M],
+    [CM_3M1P, CM_1M],
+    [0, CM_2M1P],
+    [CM_3M1P, CM_2M1P],
+    [0, CM_3M1P],
+    [CM_1M, CM_3M1P],
+    [CM_2M1P, CM_3M1P],
+    [CM_3M1P, CM_3M1P],
+];
 
-const CM_OFFSETS_MXP: [[u32; 2]; 2] = [[0, CM_2M], [CM_3M1P, CM_2M],]; // instances [14..16) -> mxp
-const CM_OFFSETS_PXM: [[u32; 2]; 2] = [[CM_2M, 0], [CM_2M, CM_3M1P],]; // instances [12..14) -> pxm
+const CM_OFFSETS_MXP: [[u32; 2]; 2] = [[0, CM_2M], [CM_3M1P, CM_2M]]; // instances [14..16) -> mxp
+const CM_OFFSETS_PXM: [[u32; 2]; 2] = [[CM_2M, 0], [CM_2M, CM_3M1P]]; // instances [12..14) -> pxm
 const CM_OFFSETS_INTERIOR_H_BOTTOM: [u32; 2] = [CM_1M, CM_3M1P - 1];
 const CM_OFFSETS_INTERIOR_H_TOP: [u32; 2] = [CM_1M, CM_1M];
 const CM_OFFSETS_INTERIOR_V_LEFT: [u32; 2] = [CM_1M, CM_1M];
@@ -65,7 +75,7 @@ pub fn create_clipmap_storage_texture(device: &wgpu::Device, N: u32) -> wgpu::Te
         size: wgpu::Extent3d {
             width: N,
             height: N,
-            depth: CM_MAX_LEVELS
+            depth: CM_MAX_LEVELS,
         },
         mip_level_count: 1,
         sample_count: 1,
@@ -90,13 +100,11 @@ impl Vertex {
         wgpu::VertexBufferDescriptor {
             stride: mem::size_of::<Self>() as wgpu::BufferAddress,
             step_mode: wgpu::InputStepMode::Vertex,
-            attributes: &[
-                wgpu::VertexAttributeDescriptor {
-                    offset: 0,
-                    shader_location: 0,
-                    format: wgpu::VertexFormat::Int2,
-                },
-            ]
+            attributes: &[wgpu::VertexAttributeDescriptor {
+                offset: 0,
+                shader_location: 0,
+                format: wgpu::VertexFormat::Int2,
+            }],
         }
     }
 }
@@ -104,7 +112,7 @@ impl Vertex {
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct Instance {
-    pub offset: [u32;2],
+    pub offset: [u32; 2],
     pub level: u32,
     pub padding: u32,
 }
@@ -145,22 +153,44 @@ pub struct Renderable {
 }
 
 impl Renderable {
-    pub async fn new(device: &Device, sc_descriptor: &wgpu::SwapChainDescriptor, _queue: &wgpu::Queue) -> Result<Self> {
+    pub async fn new(
+        device: &Device,
+        sc_descriptor: &wgpu::SwapChainDescriptor,
+        _queue: &wgpu::Queue,
+    ) -> Result<Self> {
         let (mut spirv_vs_bytes, mut spirv_fs_bytes) = (Vec::new(), Vec::new());
-        match glsl_to_spirv::compile(include_str!("../shader_clipmap.vert"), glsl_to_spirv::ShaderType::Vertex) {
-            Ok(mut spirv_vs_output) => { spirv_vs_output.read_to_end(&mut spirv_vs_bytes).unwrap(); },
-            Err(ref e) => { return Err(GraphicsError::from(e.clone())); },
+        match glsl_to_spirv::compile(
+            include_str!("../shader_clipmap.vert"),
+            glsl_to_spirv::ShaderType::Vertex,
+        ) {
+            Ok(mut spirv_vs_output) => {
+                spirv_vs_output.read_to_end(&mut spirv_vs_bytes).unwrap();
+            }
+            Err(ref e) => {
+                return Err(GraphicsError::from(e.clone()));
+            }
         }
-        match glsl_to_spirv::compile(include_str!("../shader_clipmap.frag"), glsl_to_spirv::ShaderType::Fragment) {
-            Ok(mut spirv_vs_output) => { spirv_vs_output.read_to_end(&mut spirv_fs_bytes).unwrap(); },
-            Err(ref e) => { return Err(GraphicsError::from(e.clone())); },
+        match glsl_to_spirv::compile(
+            include_str!("../shader_clipmap.frag"),
+            glsl_to_spirv::ShaderType::Fragment,
+        ) {
+            Ok(mut spirv_vs_output) => {
+                spirv_vs_output.read_to_end(&mut spirv_fs_bytes).unwrap();
+            }
+            Err(ref e) => {
+                return Err(GraphicsError::from(e.clone()));
+            }
         }
         let vs_module_source = wgpu::util::make_spirv(spirv_vs_bytes.as_slice());
         let fs_module_source = wgpu::util::make_spirv(spirv_fs_bytes.as_slice());
         let vs_module = device.create_shader_module(vs_module_source);
         let fs_module = device.create_shader_module(fs_module_source);
 
-        let uniforms = Uniforms { projection: identity(), view: identity(), camera_position: vec3(0.0, 0.0, 0.0) };
+        let uniforms = Uniforms {
+            projection: identity(),
+            view: identity(),
+            camera_position: vec3(0.0, 0.0, 0.0),
+        };
 
         let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: None,
@@ -170,42 +200,90 @@ impl Renderable {
 
         let mut instances: Vec<Instance> = Vec::new();
         for level in 0..CM_MAX_LEVELS {
-            instances.extend(CM_OFFSETS_MXM.iter().map(|offset| Instance { offset: offset.clone(), level, padding: 0 } ));
+            instances.extend(CM_OFFSETS_MXM.iter().map(|offset| Instance {
+                offset: offset.clone(),
+                level,
+                padding: 0,
+            }));
         }
         for level in 0..CM_MAX_LEVELS {
-            instances.extend(CM_OFFSETS_MXP.iter().map(|offset| Instance { offset: offset.clone(), level, padding: 1 } ));
+            instances.extend(CM_OFFSETS_MXP.iter().map(|offset| Instance {
+                offset: offset.clone(),
+                level,
+                padding: 1,
+            }));
         }
         for level in 0..CM_MAX_LEVELS {
-            instances.extend(CM_OFFSETS_PXM.iter().map(|offset| Instance { offset: offset.clone(), level, padding: 2 } ));
+            instances.extend(CM_OFFSETS_PXM.iter().map(|offset| Instance {
+                offset: offset.clone(),
+                level,
+                padding: 2,
+            }));
         }
         for level in 0..CM_MAX_LEVELS {
-            instances.push(Instance { offset: CM_OFFSET_NXN, level, padding: 3 } );
+            instances.push(Instance {
+                offset: CM_OFFSET_NXN,
+                level,
+                padding: 3,
+            });
         }
 
         for level in 0..CM_MAX_LEVELS {
-            instances.push(Instance { offset: CM_OFFSETS_INTERIOR_H_BOTTOM, level, padding: 4 } );
+            instances.push(Instance {
+                offset: CM_OFFSETS_INTERIOR_H_BOTTOM,
+                level,
+                padding: 4,
+            });
         }
         for level in 0..CM_MAX_LEVELS {
-            instances.push(Instance { offset: CM_OFFSETS_INTERIOR_H_TOP, level, padding: 4 } );
+            instances.push(Instance {
+                offset: CM_OFFSETS_INTERIOR_H_TOP,
+                level,
+                padding: 4,
+            });
         }
         for level in 0..CM_MAX_LEVELS {
-            instances.push(Instance { offset: CM_OFFSETS_INTERIOR_V_LEFT, level, padding: 4 } );
+            instances.push(Instance {
+                offset: CM_OFFSETS_INTERIOR_V_LEFT,
+                level,
+                padding: 4,
+            });
         }
         for level in 0..CM_MAX_LEVELS {
-            instances.push(Instance { offset: CM_OFFSETS_INTERIOR_V_RIGHT, level, padding: 4 } );
+            instances.push(Instance {
+                offset: CM_OFFSETS_INTERIOR_V_RIGHT,
+                level,
+                padding: 4,
+            });
         }
 
         for level in 0..CM_MAX_LEVELS {
-            instances.push(Instance { offset: CM_OFFSETS_DEGENERATES_H_TOP, level, padding: 5 } );
+            instances.push(Instance {
+                offset: CM_OFFSETS_DEGENERATES_H_TOP,
+                level,
+                padding: 5,
+            });
         }
         for level in 0..CM_MAX_LEVELS {
-            instances.push(Instance { offset: CM_OFFSETS_DEGENERATES_H_BOTTOM, level, padding: 5 } );
+            instances.push(Instance {
+                offset: CM_OFFSETS_DEGENERATES_H_BOTTOM,
+                level,
+                padding: 5,
+            });
         }
         for level in 0..CM_MAX_LEVELS {
-            instances.push(Instance { offset: CM_OFFSETS_DEGENERATES_V_LEFT, level, padding: 5 } );
+            instances.push(Instance {
+                offset: CM_OFFSETS_DEGENERATES_V_LEFT,
+                level,
+                padding: 5,
+            });
         }
         for level in 0..CM_MAX_LEVELS {
-            instances.push(Instance { offset: CM_OFFSETS_DEGENERATES_V_RIGHT, level, padding: 5 } );
+            instances.push(Instance {
+                offset: CM_OFFSETS_DEGENERATES_V_RIGHT,
+                level,
+                padding: 5,
+            });
         }
         let instance_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: None,
@@ -220,9 +298,9 @@ impl Renderable {
                     visibility: wgpu::ShaderStage::VERTEX | wgpu::ShaderStage::FRAGMENT,
                     ty: wgpu::BindingType::UniformBuffer {
                         dynamic: false,
-                        min_binding_size: None
+                        min_binding_size: None,
                     },
-                    count: None
+                    count: None,
                 },
                 wgpu::BindGroupLayoutEntry {
                     binding: 1,
@@ -232,7 +310,7 @@ impl Renderable {
                         min_binding_size: None,
                         readonly: false,
                     },
-                    count: None
+                    count: None,
                 },
                 wgpu::BindGroupLayoutEntry {
                     binding: 2,
@@ -240,9 +318,9 @@ impl Renderable {
                     ty: wgpu::BindingType::StorageTexture {
                         format: wgpu::TextureFormat::Rgba32Float,
                         dimension: TextureViewDimension::D3,
-                        readonly: true
+                        readonly: true,
                     },
-                    count: None
+                    count: None,
                 },
             ],
             label: None,
@@ -265,37 +343,51 @@ impl Renderable {
         let (v, i) = create_degenerates_top(CM_N);
         let clipmap_degenerates_h_top = create_drawable_from(&device, (v.as_slice(), i.as_slice()));
         let (v, i) = create_degenerates_bottom(CM_N);
-        let clipmap_degenerates_h_bottom = create_drawable_from(&device, (v.as_slice(), i.as_slice()));
+        let clipmap_degenerates_h_bottom =
+            create_drawable_from(&device, (v.as_slice(), i.as_slice()));
         let (v, i) = create_degenerates_left(CM_N);
-        let clipmap_degenerates_v_left = create_drawable_from(&device, (v.as_slice(), i.as_slice()));
+        let clipmap_degenerates_v_left =
+            create_drawable_from(&device, (v.as_slice(), i.as_slice()));
         let (v, i) = create_degenerates_right(CM_N);
-        let clipmap_degenerates_v_right = create_drawable_from(&device, (v.as_slice(), i.as_slice()));
+        let clipmap_degenerates_v_right =
+            create_drawable_from(&device, (v.as_slice(), i.as_slice()));
 
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &bind_group_layout,
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
-                    resource: wgpu::BindingResource::Buffer(uniform_buffer.slice(0..std::mem::size_of_val(&uniforms) as u64))
+                    resource: wgpu::BindingResource::Buffer(
+                        uniform_buffer.slice(0..std::mem::size_of_val(&uniforms) as u64),
+                    ),
                 },
                 wgpu::BindGroupEntry {
                     binding: 1,
-                    resource: wgpu::BindingResource::Buffer(instance_buffer.slice(0..std::mem::size_of_val(&instances) as u64))
+                    resource: wgpu::BindingResource::Buffer(
+                        instance_buffer.slice(0..std::mem::size_of_val(&instances) as u64),
+                    ),
                 },
                 wgpu::BindGroupEntry {
                     binding: 2,
-                    resource: BindingResource::TextureView(&texture.create_view(&Default::default())),
+                    resource: BindingResource::TextureView(
+                        &texture.create_view(&Default::default()),
+                    ),
                 },
             ],
             label: None,
         });
-        let render_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: None,
-            bind_group_layouts: &[&bind_group_layout],
-            push_constant_ranges: &[]
-        });
+        let render_pipeline_layout =
+            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: None,
+                bind_group_layouts: &[&bind_group_layout],
+                push_constant_ranges: &[],
+            });
 
-        let primitive_topology = if  WIRE_FRAME {  wgpu::PrimitiveTopology::LineList } else { wgpu::PrimitiveTopology::TriangleList };
+        let primitive_topology = if WIRE_FRAME {
+            wgpu::PrimitiveTopology::LineList
+        } else {
+            wgpu::PrimitiveTopology::TriangleList
+        };
 
         let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: None,
@@ -306,7 +398,7 @@ impl Renderable {
             },
             fragment_stage: Some(wgpu::ProgrammableStageDescriptor {
                 module: &fs_module,
-                entry_point: "main"
+                entry_point: "main",
             }),
             rasterization_state: Some(wgpu::RasterizationStateDescriptor {
                 front_face: wgpu::FrontFace::Ccw,
@@ -316,14 +408,12 @@ impl Renderable {
                 depth_bias_slope_scale: 0.0,
                 depth_bias_clamp: 0.0,
             }),
-            color_states: &[
-                wgpu::ColorStateDescriptor {
-                    format: sc_descriptor.format,
-                    color_blend: wgpu::BlendDescriptor::REPLACE,
-                    alpha_blend: wgpu::BlendDescriptor::REPLACE,
-                    write_mask: wgpu::ColorWrite::ALL,
-                }
-            ],
+            color_states: &[wgpu::ColorStateDescriptor {
+                format: sc_descriptor.format,
+                color_blend: wgpu::BlendDescriptor::REPLACE,
+                alpha_blend: wgpu::BlendDescriptor::REPLACE,
+                write_mask: wgpu::ColorWrite::ALL,
+            }],
             primitive_topology,
             depth_stencil_state: Some(wgpu::DepthStencilStateDescriptor {
                 format: texture::Texture::DEPTH_FORMAT,
@@ -333,7 +423,7 @@ impl Renderable {
                     front: wgpu::StencilStateFaceDescriptor::IGNORE,
                     back: wgpu::StencilStateFaceDescriptor::IGNORE,
                     read_mask: 0,
-                    write_mask: 0
+                    write_mask: 0,
                 },
             }),
             vertex_state: wgpu::VertexStateDescriptor {
@@ -371,7 +461,15 @@ impl Renderable {
         self.uniforms = uniforms;
         self.clipmap_data.copy_regions.clear();
         for level in 0..CM_MAX_LEVELS {
-            update_heightmap(&mut self.clipmap_data, [self.uniforms.camera_position.x, self.uniforms.camera_position.z], level, &sine);
+            update_heightmap(
+                &mut self.clipmap_data,
+                [
+                    self.uniforms.camera_position.x,
+                    self.uniforms.camera_position.z,
+                ],
+                level,
+                &sine,
+            );
         }
     }
 }
@@ -381,7 +479,7 @@ pub fn create_degenerates_top(size: u32) -> (Vec<Vertex>, Vec<u32>) {
     let mut vertices = Vec::new();
     let mut indices = Vec::new();
     for x in 0..size {
-        vertices.push(Vertex { p: [x as i32, 0], });
+        vertices.push(Vertex { p: [x as i32, 0] });
     }
     for x in (0..size - 1).step_by(2) {
         let i0 = x;
@@ -392,7 +490,6 @@ pub fn create_degenerates_top(size: u32) -> (Vec<Vertex>, Vec<u32>) {
         } else {
             indices.extend_from_slice(&[i0, i1, i2]);
         }
-
     }
     (vertices, indices)
 }
@@ -402,7 +499,7 @@ pub fn create_degenerates_bottom(size: u32) -> (Vec<Vertex>, Vec<u32>) {
     let mut vertices = Vec::new();
     let mut indices = Vec::new();
     for x in 0..size {
-        vertices.push(Vertex { p: [x as i32, 0], });
+        vertices.push(Vertex { p: [x as i32, 0] });
     }
     for x in (0..size - 1).step_by(2) {
         let i0 = x;
@@ -422,7 +519,7 @@ pub fn create_degenerates_left(size: u32) -> (Vec<Vertex>, Vec<u32>) {
     let mut vertices = Vec::new();
     let mut indices = Vec::new();
     for z in 0..size {
-        vertices.push(Vertex { p: [0, z as i32], });
+        vertices.push(Vertex { p: [0, z as i32] });
     }
     for z in (0..size - 1).step_by(2) {
         let i0 = z;
@@ -442,7 +539,7 @@ pub fn create_degenerates_right(size: u32) -> (Vec<Vertex>, Vec<u32>) {
     let mut vertices = Vec::new();
     let mut indices = Vec::new();
     for z in 0..size {
-        vertices.push(Vertex { p: [0, z as i32], });
+        vertices.push(Vertex { p: [0, z as i32] });
     }
     for z in (0..size - 1).step_by(2) {
         let i0 = z;
@@ -467,8 +564,8 @@ pub fn create_grid(size_x: u32, size_z: u32) -> (Vec<Vertex>, Vec<u32>) {
         }
     }
     let mut indices = Vec::new();
-    for z in 0..size_z-1 {
-        for x in 0..size_x-1 {
+    for z in 0..size_z - 1 {
+        for x in 0..size_x - 1 {
             let i0 = x + z * size_x;
             let i1 = i0 + 1;
             let i2 = x + (z + 1) * size_x;
@@ -484,35 +581,54 @@ pub fn create_grid(size_x: u32, size_z: u32) -> (Vec<Vertex>, Vec<u32>) {
 }
 
 impl graphics::Renderable for Renderable {
-    fn render<'a, 'b>(&'a self, device: &Device, queue: &wgpu::Queue, encoder: &mut CommandEncoder, render_pass: &'b mut RenderPass<'a>) where 'a: 'b {
-        queue.write_buffer(&self.uniforms_buffer, 0, bytemuck::cast_slice(&[self.uniforms]));
+    fn render<'a, 'b>(
+        &'a self,
+        device: &Device,
+        queue: &wgpu::Queue,
+        encoder: &mut CommandEncoder,
+        render_pass: &'b mut RenderPass<'a>,
+    ) where
+        'a: 'b,
+    {
+        queue.write_buffer(
+            &self.uniforms_buffer,
+            0,
+            bytemuck::cast_slice(&[self.uniforms]),
+        );
         let heightmap_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: None,
             contents: bytemuck::cast_slice(self.clipmap_data.data.as_slice()),
-            usage: wgpu::BufferUsage::COPY_SRC
+            usage: wgpu::BufferUsage::COPY_SRC,
         });
         for copy_region in &self.clipmap_data.copy_regions {
             let offset_in_level = copy_region.x + (copy_region.y * CM_TEXTURE_SIZE);
-            encoder.copy_buffer_to_texture(wgpu::BufferCopyView {
-                buffer: &heightmap_buffer,
-                layout: wgpu::TextureDataLayout {
-                    offset: ((CM_TEXTURE_SIZE * CM_TEXTURE_SIZE * copy_region.level + offset_in_level) * CM_ELEMENT_SIZE) as wgpu::BufferAddress,
-                    bytes_per_row: CM_TEXTURE_SIZE  * CM_ELEMENT_SIZE,
-                    rows_per_image: CM_TEXTURE_SIZE,
-                }
-            }, wgpu::TextureCopyView {
-                texture: &self.texture,
-                mip_level: 0,
-                origin: wgpu::Origin3d {
-                    x: copy_region.x,
-                    y: copy_region.y,
-                    z: copy_region.level
-                }
-            }, wgpu::Extent3d {
-                width: copy_region.xlen as u32,
-                height: copy_region.ylen as u32,
-                depth: 1
-            });
+            encoder.copy_buffer_to_texture(
+                wgpu::BufferCopyView {
+                    buffer: &heightmap_buffer,
+                    layout: wgpu::TextureDataLayout {
+                        offset: ((CM_TEXTURE_SIZE * CM_TEXTURE_SIZE * copy_region.level
+                            + offset_in_level)
+                            * CM_ELEMENT_SIZE)
+                            as wgpu::BufferAddress,
+                        bytes_per_row: CM_TEXTURE_SIZE * CM_ELEMENT_SIZE,
+                        rows_per_image: CM_TEXTURE_SIZE,
+                    },
+                },
+                wgpu::TextureCopyView {
+                    texture: &self.texture,
+                    mip_level: 0,
+                    origin: wgpu::Origin3d {
+                        x: copy_region.x,
+                        y: copy_region.y,
+                        z: copy_region.level,
+                    },
+                },
+                wgpu::Extent3d {
+                    width: copy_region.xlen as u32,
+                    height: copy_region.ylen as u32,
+                    depth: 1,
+                },
+            );
         }
 
         render_pass.set_pipeline(&self.render_pipeline);
@@ -535,22 +651,39 @@ impl graphics::Renderable for Renderable {
         render_pass.set_vertex_buffer(0, self.clipmap_ring_mxm.vertex_buffer.slice(..));
         render_pass.set_index_buffer(self.clipmap_ring_mxm.index_buffer.slice(..));
         render_pass.set_bind_group(0, &self.bind_group, &[]);
-        render_pass.draw_indexed(0..self.clipmap_ring_mxm.index_buffer_len, 0, start_ring_level * CM_INSTANCE_SIZE_ONE_MXM..end_mxm);
+        render_pass.draw_indexed(
+            0..self.clipmap_ring_mxm.index_buffer_len,
+            0,
+            start_ring_level * CM_INSTANCE_SIZE_ONE_MXM..end_mxm,
+        );
 
         render_pass.set_vertex_buffer(0, self.clipmap_ring_mxp.vertex_buffer.slice(..));
         render_pass.set_index_buffer(self.clipmap_ring_mxp.index_buffer.slice(..));
         render_pass.set_bind_group(0, &self.bind_group, &[]);
-        render_pass.draw_indexed(0..self.clipmap_ring_mxp.index_buffer_len, 0, end_mxm + start_ring_level * CM_INSTANCE_SIZE_ONE_MXP..end_mxp);
+        render_pass.draw_indexed(
+            0..self.clipmap_ring_mxp.index_buffer_len,
+            0,
+            end_mxm + start_ring_level * CM_INSTANCE_SIZE_ONE_MXP..end_mxp,
+        );
 
         render_pass.set_vertex_buffer(0, self.clipmap_ring_pxm.vertex_buffer.slice(..));
         render_pass.set_index_buffer(self.clipmap_ring_pxm.index_buffer.slice(..));
         render_pass.set_bind_group(0, &self.bind_group, &[]);
-        render_pass.draw_indexed(0..self.clipmap_ring_pxm.index_buffer_len, 0, end_mxp + start_ring_level * CM_INSTANCE_SIZE_ONE_PXM..end_pxm);
+        render_pass.draw_indexed(
+            0..self.clipmap_ring_pxm.index_buffer_len,
+            0,
+            end_mxp + start_ring_level * CM_INSTANCE_SIZE_ONE_PXM..end_pxm,
+        );
 
         render_pass.set_vertex_buffer(0, self.clipmap_full.vertex_buffer.slice(..));
         render_pass.set_index_buffer(self.clipmap_full.index_buffer.slice(..));
         render_pass.set_bind_group(0, &self.bind_group, &[]);
-        render_pass.draw_indexed(0..self.clipmap_full.index_buffer_len, 0, end_pxm + full_level * CM_INSTANCE_SIZE_ONE_NXN..(end_pxm + full_level * CM_INSTANCE_SIZE_ONE_NXN) + CM_INSTANCE_SIZE_ONE_NXN);
+        render_pass.draw_indexed(
+            0..self.clipmap_full.index_buffer_len,
+            0,
+            end_pxm + full_level * CM_INSTANCE_SIZE_ONE_NXN
+                ..(end_pxm + full_level * CM_INSTANCE_SIZE_ONE_NXN) + CM_INSTANCE_SIZE_ONE_NXN,
+        );
 
         for level in start_ring_level..CM_MAX_LEVELS {
             //h_bottom
@@ -559,7 +692,11 @@ impl graphics::Renderable for Renderable {
                 render_pass.set_vertex_buffer(0, self.clipmap_interior_h.vertex_buffer.slice(..));
                 render_pass.set_index_buffer(self.clipmap_interior_h.index_buffer.slice(..));
                 render_pass.set_bind_group(0, &self.bind_group, &[]);
-                render_pass.draw_indexed(0..self.clipmap_interior_h.index_buffer_len, 0, start_instance..start_instance + 1);
+                render_pass.draw_indexed(
+                    0..self.clipmap_interior_h.index_buffer_len,
+                    0,
+                    start_instance..start_instance + 1,
+                );
             }
         }
 
@@ -570,7 +707,11 @@ impl graphics::Renderable for Renderable {
                 render_pass.set_vertex_buffer(0, self.clipmap_interior_h.vertex_buffer.slice(..));
                 render_pass.set_index_buffer(self.clipmap_interior_h.index_buffer.slice(..));
                 render_pass.set_bind_group(0, &self.bind_group, &[]);
-                render_pass.draw_indexed(0..self.clipmap_interior_h.index_buffer_len, 0, start_instance..start_instance + 1);
+                render_pass.draw_indexed(
+                    0..self.clipmap_interior_h.index_buffer_len,
+                    0,
+                    start_instance..start_instance + 1,
+                );
             }
         }
 
@@ -581,7 +722,11 @@ impl graphics::Renderable for Renderable {
                 render_pass.set_vertex_buffer(0, self.clipmap_interior_v.vertex_buffer.slice(..));
                 render_pass.set_index_buffer(self.clipmap_interior_v.index_buffer.slice(..));
                 render_pass.set_bind_group(0, &self.bind_group, &[]);
-                render_pass.draw_indexed(0..self.clipmap_interior_v.index_buffer_len, 0, start_instance..start_instance + 1);
+                render_pass.draw_indexed(
+                    0..self.clipmap_interior_v.index_buffer_len,
+                    0,
+                    start_instance..start_instance + 1,
+                );
             }
         }
 
@@ -592,29 +737,49 @@ impl graphics::Renderable for Renderable {
                 render_pass.set_vertex_buffer(0, self.clipmap_interior_v.vertex_buffer.slice(..));
                 render_pass.set_index_buffer(self.clipmap_interior_v.index_buffer.slice(..));
                 render_pass.set_bind_group(0, &self.bind_group, &[]);
-                render_pass.draw_indexed(0..self.clipmap_interior_v.index_buffer_len, 0, start_instance..start_instance + 1);
+                render_pass.draw_indexed(
+                    0..self.clipmap_interior_v.index_buffer_len,
+                    0,
+                    start_instance..start_instance + 1,
+                );
             }
         }
 
         render_pass.set_vertex_buffer(0, self.clipmap_degenerates_h_top.vertex_buffer.slice(..));
         render_pass.set_index_buffer(self.clipmap_degenerates_h_top.index_buffer.slice(..));
         render_pass.set_bind_group(0, &self.bind_group, &[]);
-        render_pass.draw_indexed(0..self.clipmap_degenerates_h_top.index_buffer_len, 0, end_interior_v_right + full_level * CM_INSTANCE_SIZE_ONE_DEGENERATE..end_degen_h_top);
+        render_pass.draw_indexed(
+            0..self.clipmap_degenerates_h_top.index_buffer_len,
+            0,
+            end_interior_v_right + full_level * CM_INSTANCE_SIZE_ONE_DEGENERATE..end_degen_h_top,
+        );
 
         render_pass.set_vertex_buffer(0, self.clipmap_degenerates_h_bottom.vertex_buffer.slice(..));
         render_pass.set_index_buffer(self.clipmap_degenerates_h_bottom.index_buffer.slice(..));
         render_pass.set_bind_group(0, &self.bind_group, &[]);
-        render_pass.draw_indexed(0..self.clipmap_degenerates_h_bottom.index_buffer_len, 0, end_degen_h_top + full_level * CM_INSTANCE_SIZE_ONE_DEGENERATE..end_degen_h_bottom);
+        render_pass.draw_indexed(
+            0..self.clipmap_degenerates_h_bottom.index_buffer_len,
+            0,
+            end_degen_h_top + full_level * CM_INSTANCE_SIZE_ONE_DEGENERATE..end_degen_h_bottom,
+        );
 
         render_pass.set_vertex_buffer(0, self.clipmap_degenerates_v_left.vertex_buffer.slice(..));
         render_pass.set_index_buffer(self.clipmap_degenerates_v_left.index_buffer.slice(..));
         render_pass.set_bind_group(0, &self.bind_group, &[]);
-        render_pass.draw_indexed(0..self.clipmap_degenerates_v_left.index_buffer_len, 0, end_degen_h_bottom + full_level * CM_INSTANCE_SIZE_ONE_DEGENERATE..end_degen_v_left);
+        render_pass.draw_indexed(
+            0..self.clipmap_degenerates_v_left.index_buffer_len,
+            0,
+            end_degen_h_bottom + full_level * CM_INSTANCE_SIZE_ONE_DEGENERATE..end_degen_v_left,
+        );
 
         render_pass.set_vertex_buffer(0, self.clipmap_degenerates_v_right.vertex_buffer.slice(..));
         render_pass.set_index_buffer(self.clipmap_degenerates_v_right.index_buffer.slice(..));
         render_pass.set_bind_group(0, &self.bind_group, &[]);
-        render_pass.draw_indexed(0..self.clipmap_degenerates_v_right.index_buffer_len, 0, end_degen_v_left + full_level * CM_INSTANCE_SIZE_ONE_DEGENERATE..end_degen_v_right);
+        render_pass.draw_indexed(
+            0..self.clipmap_degenerates_v_right.index_buffer_len,
+            0,
+            end_degen_v_left + full_level * CM_INSTANCE_SIZE_ONE_DEGENERATE..end_degen_v_right,
+        );
     }
 }
 
@@ -634,8 +799,7 @@ fn level_factor(level: u32) -> u32 {
     2u32.pow(level)
 }
 
-fn unit_size_for_level(level: u32) -> f32
-{
+fn unit_size_for_level(level: u32) -> f32 {
     level_factor(level) as f32 * CM_UNIT_SIZE_SMALLEST
 }
 
@@ -653,13 +817,19 @@ fn snap_to_index_for_level(val: f32, level: u32) -> i32 {
     ((val / snap_size).floor() * 2.0) as i32
 }
 
-fn equal_coords(first: &[i32;2], second: &[i32;2]) -> bool {
+fn equal_coords(first: &[i32; 2], second: &[i32; 2]) -> bool {
     first[0] == second[0] && first[1] == second[1]
 }
 
-fn update_xrows<T: Generator>(clipmap: &mut Clipmap, xrange: &std::ops::Range<i32>, zstart: i32, level: u32, generator: &T) {
+fn update_xrows<T: Generator>(
+    clipmap: &mut Clipmap,
+    xrange: &std::ops::Range<i32>,
+    zstart: i32,
+    level: u32,
+    generator: &T,
+) {
     let unit_size = unit_size_for_level(level);
-    for z in  zstart..zstart+CM_TEXTURE_SIZE as i32{
+    for z in zstart..zstart + CM_TEXTURE_SIZE as i32 {
         for x in xrange.clone() {
             let x_pos = x as f32 * unit_size;
             let z_pos = z as f32 * unit_size;
@@ -671,15 +841,26 @@ fn update_xrows<T: Generator>(clipmap: &mut Clipmap, xrange: &std::ops::Range<i3
             let bottom = generator.generate([x_pos, z_pos - unit_size]);
             let top = generator.generate([x_pos, z_pos + unit_size]);
             let normal: Vec3 = vec3(2.0 * (right - left), 2.0 * (bottom - top), -4.0).normalize();
-            clipmap.set(x_mod, z_mod, level, Element::new(generator.generate([x_pos, z_pos]), normal));
+            clipmap.set(
+                x_mod,
+                z_mod,
+                level,
+                Element::new(generator.generate([x_pos, z_pos]), normal),
+            );
         }
     }
 }
 
-fn update_zrows<T: Generator>(clipmap: &mut Clipmap, zrange: &std::ops::Range<i32>, xstart: i32, level: u32, generator: &T) {
+fn update_zrows<T: Generator>(
+    clipmap: &mut Clipmap,
+    zrange: &std::ops::Range<i32>,
+    xstart: i32,
+    level: u32,
+    generator: &T,
+) {
     let unit_size = unit_size_for_level(level);
     for z in zrange.clone() {
-        for x in xstart..xstart+CM_TEXTURE_SIZE as i32 {
+        for x in xstart..xstart + CM_TEXTURE_SIZE as i32 {
             let x_pos = x as f32 * unit_size;
             let z_pos = z as f32 * unit_size;
             let x_mod = x as u32 % CM_TEXTURE_SIZE;
@@ -690,12 +871,22 @@ fn update_zrows<T: Generator>(clipmap: &mut Clipmap, zrange: &std::ops::Range<i3
             let bottom = generator.generate([x_pos, z_pos - unit_size]);
             let top = generator.generate([x_pos, z_pos + unit_size]);
             let normal: Vec3 = vec3(2.0 * (right - left), 2.0 * (bottom - top), -4.0).normalize();
-            clipmap.set(x_mod, z_mod, level, Element::new(generator.generate([x_pos, z_pos]), normal));
+            clipmap.set(
+                x_mod,
+                z_mod,
+                level,
+                Element::new(generator.generate([x_pos, z_pos]), normal),
+            );
         }
     }
 }
 
-fn update_heightmap<T: Generator>(mut clipmap: &mut Clipmap, center: [f32; 2], level: u32, generator: &T) {
+fn update_heightmap<T: Generator>(
+    mut clipmap: &mut Clipmap,
+    center: [f32; 2],
+    level: u32,
+    generator: &T,
+) {
     let base_x = snap_to_index_for_level(center[0], level) - BASE_OFFSET as i32;
     let base_z = snap_to_index_for_level(center[1], level) - BASE_OFFSET as i32;
     if let Some(previous) = clipmap.base[level as usize] {
@@ -729,7 +920,13 @@ fn update_heightmap<T: Generator>(mut clipmap: &mut Clipmap, center: [f32; 2], l
             }
         }
     } else {
-        update_xrows(&mut clipmap, &(base_x..base_x + CM_TEXTURE_SIZE as i32), base_z, level, generator);
+        update_xrows(
+            &mut clipmap,
+            &(base_x..base_x + CM_TEXTURE_SIZE as i32),
+            base_z,
+            level,
+            generator,
+        );
         clipmap.copy_regions.push(CopyDescription {
             offset: 0,
             x: 0,
@@ -764,10 +961,7 @@ unsafe impl bytemuck::Zeroable for Element {}
 
 impl Element {
     pub fn new(height: f32, normal: Vec3) -> Self {
-        Self {
-            height,
-            normal,
-        }
+        Self { height, normal }
     }
 }
 
@@ -780,13 +974,18 @@ pub struct Clipmap {
 impl Clipmap {
     pub fn new(levels: u32) -> Self {
         Self {
-            data: vec!(Element::new(0.0, vec3(0.0, 1.0, 0.0)); (levels * CM_TEXTURE_SIZE * CM_TEXTURE_SIZE) as usize),
-            base: vec!(None; levels as usize),
+            data: vec![
+                Element::new(0.0, vec3(0.0, 1.0, 0.0));
+                (levels * CM_TEXTURE_SIZE * CM_TEXTURE_SIZE) as usize
+            ],
+            base: vec![None; levels as usize],
             copy_regions: Vec::new(),
         }
     }
     pub fn set(&mut self, x: u32, z: u32, level: u32, val: Element) {
-        self.data[((CM_TEXTURE_SIZE * CM_TEXTURE_SIZE * level) + x + z * CM_TEXTURE_SIZE) as usize] = val;
+        self.data
+            [((CM_TEXTURE_SIZE * CM_TEXTURE_SIZE * level) + x + z * CM_TEXTURE_SIZE) as usize] =
+            val;
     }
 }
 
@@ -811,7 +1010,8 @@ fn calculate_copy_ranges_1d(range: &std::ops::Range<i32>, size: u32) -> Vec<std:
         } else if start < end {
             ranges.push(start..end);
         } else {
-            ranges.push(0..end); ranges.push(start..size);
+            ranges.push(0..end);
+            ranges.push(start..size);
         }
     }
     ranges
@@ -838,4 +1038,3 @@ fn calculate_copy_range_1d_test() {
     assert_eq!(calculate_copy_ranges_1d(&(-2..1), 4), [0..1, 2..4]);
     assert_eq!(calculate_copy_ranges_1d(&(-2..2), 4), [0..4]);
 }
-

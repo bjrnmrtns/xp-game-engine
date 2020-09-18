@@ -1,9 +1,9 @@
-use std::hash::Hash;
-use std::fmt::Display;
-use std::ops::Index;
-use std::collections::HashMap;
+use crate::{Label, Layout};
 use std::collections::hash_map::{Keys, ValuesMut};
-use crate::{Layout, Label};
+use std::collections::HashMap;
+use std::fmt::Display;
+use std::hash::Hash;
+use std::ops::Index;
 
 pub trait WidgetId: Clone + PartialEq + Eq + Hash + Send + Sync + Display + 'static {
     fn generate(last: &Option<Self>) -> Self;
@@ -14,7 +14,9 @@ pub enum Widget {
 }
 
 impl WidgetId for u32 {
-    fn generate(last: &Option<Self>) -> Self { last.map(|last| last + 1).unwrap_or(0) }
+    fn generate(last: &Option<Self>) -> Self {
+        last.map(|last| last + 1).unwrap_or(0)
+    }
 }
 
 pub struct Widgets<I: WidgetId = u32> {
@@ -22,7 +24,10 @@ pub struct Widgets<I: WidgetId = u32> {
     last_key: Option<I>,
 }
 
-impl<I> Widgets<I> where I: WidgetId, {
+impl<I> Widgets<I>
+where
+    I: WidgetId,
+{
     pub fn new() -> Self {
         Self {
             items: HashMap::new(),
@@ -57,8 +62,12 @@ impl<I> Widgets<I> where I: WidgetId, {
     }
 }
 
-impl<I> Index<I> for Widgets<I> where I: WidgetId,
+impl<I> Index<I> for Widgets<I>
+where
+    I: WidgetId,
 {
     type Output = Widget;
-    fn index(&self, id: I) -> &Self::Output { &self.items[&id] }
+    fn index(&self, id: I) -> &Self::Output {
+        &self.items[&id]
+    }
 }

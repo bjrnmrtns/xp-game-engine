@@ -1,5 +1,5 @@
+use crate::client::{Receiver, Sender};
 use crate::commands::Command;
-use crate::client::{Sender, Receiver};
 
 // Local client is server and client in one (loopback mode for local "networking")
 pub struct LocalClient {
@@ -16,7 +16,12 @@ impl LocalClient {
 
 impl Receiver for LocalClient {
     fn receive(&mut self, to_frame_nr: u64) -> Vec<(u64, Vec<Command>)> {
-        let ret = self.server_queue.iter().filter(|c| c.0 < to_frame_nr).map(|c| c.clone()).collect();
+        let ret = self
+            .server_queue
+            .iter()
+            .filter(|c| c.0 < to_frame_nr)
+            .map(|c| c.clone())
+            .collect();
         self.server_queue.retain(|c| c.0 >= to_frame_nr);
         ret
     }

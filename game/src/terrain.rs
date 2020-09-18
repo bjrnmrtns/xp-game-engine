@@ -21,7 +21,11 @@ impl<T> TileCache<T> {
         let mut current = TileHeader::new(pos.to_tile_index(), 0).around(1);
         current.extend(TileHeader::new(pos.to_tile_index(), 1).around(1));
         current.extend(TileHeader::new(pos.to_tile_index(), 2).around(1));
-        let to_replace: Vec<TileHeader> = self.generated.difference(&current).map(|v| v.clone()).collect();
+        let to_replace: Vec<TileHeader> = self
+            .generated
+            .difference(&current)
+            .map(|v| v.clone())
+            .collect();
         for r in to_replace {
             self.tiles.remove(&r);
             self.generated.remove(&r);
@@ -36,13 +40,20 @@ impl<T> TileCache<T> {
         let mut current = TileHeader::new(pos.to_tile_index(), 0).around(1);
         current.extend(TileHeader::new(pos.to_tile_index(), 1).around(1));
         current.extend(TileHeader::new(pos.to_tile_index(), 2).around(1));
-        current.difference(&self.generated).map(|v| v.clone()).collect()
+        current
+            .difference(&self.generated)
+            .map(|v| v.clone())
+            .collect()
     }
     pub fn view(&self, pos: [f32; 3]) -> Vec<&T> {
         let mut current = TileHeader::new(pos.to_tile_index(), 0).around(1);
         current.extend(TileHeader::new(pos.to_tile_index(), 1).around(1));
         current.extend(TileHeader::new(pos.to_tile_index(), 2).around(1));
-        self.tiles.iter().filter(|v| current.contains(v.0)).map(|v| v.1).collect()
+        self.tiles
+            .iter()
+            .filter(|v| current.contains(v.0))
+            .map(|v| v.1)
+            .collect()
     }
 }
 
@@ -53,9 +64,7 @@ pub struct Element {
 
 impl Element {
     pub fn new(x: f32, y: f32, z: f32) -> Self {
-        Self {
-            p: [x, y, z],
-        }
+        Self { p: [x, y, z] }
     }
 }
 
@@ -67,17 +76,18 @@ pub struct TileHeader {
 
 impl TileHeader {
     pub fn new(tile_nr: (i32, i32), lod: usize) -> Self {
-        Self {
-            tile_nr,
-            lod
-        }
+        Self { tile_nr, lod }
     }
 
     pub fn around(&self, offset: usize) -> HashSet<TileHeader> {
-        (self.tile_nr).to_tile_indices(offset, self.lod).iter().map(|v| TileHeader {
-            tile_nr: v.clone(),
-            lod: self.lod
-        }).collect::<HashSet<_>>()
+        (self.tile_nr)
+            .to_tile_indices(offset, self.lod)
+            .iter()
+            .map(|v| TileHeader {
+                tile_nr: v.clone(),
+                lod: self.lod,
+            })
+            .collect::<HashSet<_>>()
     }
 }
 
@@ -85,7 +95,12 @@ fn noise(x: f64, z: f64, fbm: &noise::Fbm) -> f64 {
     fbm.get([x / 10.0, z / 10.0])
 }
 
-pub fn tile_and_index_to_coord(tile_nr: (i32, i32), x_index: usize, z_index: usize, lod: usize) -> (f64, f64) {
+pub fn tile_and_index_to_coord(
+    tile_nr: (i32, i32),
+    x_index: usize,
+    z_index: usize,
+    lod: usize,
+) -> (f64, f64) {
     let x = tile_nr.0 as f64 * TILE_SIZE_PER_LOD[0] + x_index as f64 * TILE_PITCH_PER_LOD[lod];
     let z = tile_nr.1 as f64 * TILE_SIZE_PER_LOD[0] + z_index as f64 * TILE_PITCH_PER_LOD[lod];
     (x, z)
@@ -111,7 +126,9 @@ impl ToTileIndex for [f32; 3] {
 }
 
 trait ToTileIndices {
-    fn to_tile_indices(self, offset: usize, lod: usize) -> Vec<Self> where Self: Sized;
+    fn to_tile_indices(self, offset: usize, lod: usize) -> Vec<Self>
+    where
+        Self: Sized;
 }
 
 impl ToTileIndices for i32 {
@@ -122,7 +139,10 @@ impl ToTileIndices for i32 {
     }
 }
 impl ToTileIndices for (i32, i32) {
-    fn to_tile_indices(self, offset: usize, lod: usize) -> Vec<Self> where Self: Sized {
+    fn to_tile_indices(self, offset: usize, lod: usize) -> Vec<Self>
+    where
+        Self: Sized,
+    {
         let mut output = Vec::new();
         for z in self.1.to_tile_indices(offset, lod) {
             for x in self.0.to_tile_indices(offset, lod) {
@@ -144,18 +164,16 @@ impl Tile {
     }
     pub fn new(tile_nr: (i32, i32), lod: usize) -> Self {
         let fbm = noise::Fbm::new();
-        let mut elements = vec!(Element::new(0.0, 0.0, 0.0); TILE_SIZE * TILE_SIZE);
+        let mut elements = vec![Element::new(0.0, 0.0, 0.0); TILE_SIZE * TILE_SIZE];
         for z_index in 0..TILE_SIZE {
             for x_index in 0..TILE_SIZE {
                 let (x, z) = tile_and_index_to_coord(tile_nr, x_index, z_index, lod);
-                elements[z_index * TILE_SIZE + x_index] = Element::new(x as f32,noise(x, z, &fbm) as f32, z as f32);
+                elements[z_index * TILE_SIZE + x_index] =
+                    Element::new(x as f32, noise(x, z, &fbm) as f32, z as f32);
             }
         }
         Self {
-            header: TileHeader {
-                tile_nr,
-                lod,
-            },
+            header: TileHeader { tile_nr, lod },
             elements,
         }
     }
@@ -170,4 +188,3 @@ impl Tile {
         self.elements[z_index * TILE_SIZE + x_index].p[1] = height;
     }
 }
-

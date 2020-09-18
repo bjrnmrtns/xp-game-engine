@@ -11,13 +11,12 @@ pub trait Receiver {
 pub struct NullSender;
 
 impl Sender for NullSender {
-    fn send(&mut self, _: &[(u64, Vec<Command>)]) {
-    }
+    fn send(&mut self, _: &[(u64, Vec<Command>)]) {}
 }
 
 impl NullSender {
     pub fn new() -> NullSender {
-        NullSender { }
+        NullSender {}
     }
 }
 
@@ -31,7 +30,7 @@ impl Receiver for NullReceiver {
 
 impl NullReceiver {
     pub fn new() -> NullReceiver {
-        NullReceiver { }
+        NullReceiver {}
     }
 }
 
