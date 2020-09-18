@@ -122,7 +122,7 @@ fn game(options: Options) {
                 let view = match game_state.camera {
                     camera::CameraType::FreeLook => simulation.freelook_camera.view(),
                     camera::CameraType::FreeLook2 => simulation.freelook_camera2.view(),
-                    camera::CameraType::Follow => camera::view_on(&player.pose),
+                    camera::CameraType::Follow => camera::view_on(&player.pose).0,
                 };
                 let current_time = Instant::now();
                 let fps = (1000.0 / (current_time - previous_time).as_millis() as f32) as u32;
@@ -162,7 +162,7 @@ fn game(options: Options) {
                 renderables.clipmap.update(clipmap::Uniforms {
                     projection: projection_3d.clone() as Mat4,
                     view: view.clone() as Mat4,
-                    camera_position: simulation.freelook_camera.position,
+                    camera_position: camera::view_on(&player.pose).1, //simulation.freelook_camera.position,
                 });
                 let time_after_clipmap_update = std::time::Instant::now();
                 renderables

@@ -224,7 +224,7 @@ impl Renderable {
             instances.push(Instance {
                 offset: CM_OFFSET_NXN,
                 level,
-                padding: 3,
+                padding: 0,
             });
         }
 
