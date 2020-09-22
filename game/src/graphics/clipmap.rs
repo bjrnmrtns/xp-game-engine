@@ -4,7 +4,7 @@ use crate::graphics::{create_drawable_from, texture, Drawable};
 use nalgebra_glm::{identity, vec3, Mat4, Vec3};
 use std::io::Read;
 use wgpu::util::DeviceExt;
-use wgpu::{BindingResource, CommandEncoder, Device, RenderPass, TextureViewDimension};
+use wgpu::{BindingResource, Device, RenderPass, TextureViewDimension};
 
 type Result<T> = std::result::Result<T, GraphicsError>;
 
@@ -473,13 +473,8 @@ impl Renderable {
         }
     }
 
-    pub fn render<'a, 'b>(
-        &'a self,
-        device: &Device,
-        queue: &wgpu::Queue,
-        encoder: &mut CommandEncoder,
-        render_pass: &'b mut RenderPass<'a>,
-    ) where
+    pub fn render<'a, 'b>(&'a self, queue: &wgpu::Queue, render_pass: &'b mut RenderPass<'a>)
+    where
         'a: 'b,
     {
         queue.write_buffer(
@@ -487,25 +482,13 @@ impl Renderable {
             0,
             bytemuck::cast_slice(&[self.uniforms]),
         );
-        let heightmap_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: None,
-            contents: bytemuck::cast_slice(self.clipmap_data.data.as_slice()),
-            usage: wgpu::BufferUsage::COPY_SRC,
-        });
         for copy_region in &self.clipmap_data.copy_regions {
             let offset_in_level = copy_region.x + (copy_region.y * CM_TEXTURE_SIZE);
-            encoder.copy_buffer_to_texture(
-                wgpu::BufferCopyView {
-                    buffer: &heightmap_buffer,
-                    layout: wgpu::TextureDataLayout {
-                        offset: ((CM_TEXTURE_SIZE * CM_TEXTURE_SIZE * copy_region.level
-                            + offset_in_level)
-                            * CM_ELEMENT_SIZE)
-                            as wgpu::BufferAddress,
-                        bytes_per_row: CM_TEXTURE_SIZE * CM_ELEMENT_SIZE,
-                        rows_per_image: CM_TEXTURE_SIZE,
-                    },
-                },
+            let begin_slice =
+                (copy_region.level * CM_TEXTURE_SIZE * CM_TEXTURE_SIZE) + offset_in_level;
+            let end_slice =
+                begin_slice + copy_region.xlen + CM_TEXTURE_SIZE * (copy_region.ylen - 1);
+            queue.write_texture(
                 wgpu::TextureCopyView {
                     texture: &self.texture,
                     mip_level: 0,
@@ -514,6 +497,14 @@ impl Renderable {
                         y: copy_region.y,
                         z: copy_region.level,
                     },
+                },
+                bytemuck::cast_slice(
+                    &self.clipmap_data.data.as_slice()[begin_slice as usize..end_slice as usize],
+                ),
+                wgpu::TextureDataLayout {
+                    offset: 0,
+                    bytes_per_row: CM_TEXTURE_SIZE * CM_ELEMENT_SIZE,
+                    rows_per_image: copy_region.ylen,
                 },
                 wgpu::Extent3d {
                     width: copy_region.xlen as u32,
@@ -1008,8 +999,13 @@ fn calculate_copy_ranges_1d(range: &std::ops::Range<i32>, size: u32) -> Vec<std:
         } else if start < end {
             ranges.push(start..end);
         } else {
-            ranges.push(0..end);
-            ranges.push(start..size);
+            // check for empty ranges
+            if 0 != end {
+                ranges.push(0..end);
+            }
+            if start != size {
+                ranges.push(start..size);
+            }
         }
     }
     ranges
