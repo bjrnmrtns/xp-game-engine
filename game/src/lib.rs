@@ -13,5 +13,4 @@ pub mod obj;
 mod packet;
 pub mod recording;
 pub mod simulation;
-pub mod terrain;
 mod transformation;
