@@ -2,6 +2,7 @@ use crate::graphics;
 use crate::graphics::error::GraphicsError;
 use crate::graphics::{create_drawable_from, texture, Drawable};
 use nalgebra_glm::{identity, vec3, Mat4, Vec3};
+use noise::NoiseFn;
 use std::io::Read;
 use wgpu::util::DeviceExt;
 use wgpu::{BindingResource, Device, RenderPass, TextureViewDimension};
@@ -14,7 +15,7 @@ const CM_K: u32 = 8;
 const CM_N: u32 = 255;
 const CM_ELEMENT_SIZE: u32 = 16; // number of bytes of an element (now height(f32) normal(f32;3) -> total: 16
 
-const CM_UNIT_SIZE_SMALLEST: f32 = 0.1;
+const CM_UNIT_SIZE_SMALLEST: f32 = 1.0;
 const CM_M: u32 = (CM_N + 1) / 4;
 const CM_P: u32 = 3; // (CLIPMAP_N - 1) - ((CLIPMAP_M - 1) * 4) + 1 -> always 3
 const CM_M_SIZE: u32 = CM_M - 1;
@@ -53,7 +54,7 @@ const CM_OFFSETS_DEGENERATES_H_BOTTOM: [u32; 2] = [0, CM_4M1P];
 const CM_OFFSETS_DEGENERATES_V_LEFT: [u32; 2] = [0, 0];
 const CM_OFFSETS_DEGENERATES_V_RIGHT: [u32; 2] = [CM_4M1P, 0];
 const CM_OFFSET_NXN: [u32; 2] = [0, 0];
-const CM_MAX_LEVELS: u32 = 7;
+const CM_MAX_LEVELS: u32 = 3;
 const CM_INSTANCE_SIZE_ONE_MXM: u32 = 12;
 const CM_INSTANCE_SIZE_ONE_MXP: u32 = 2;
 const CM_INSTANCE_SIZE_ONE_PXM: u32 = 2;
@@ -457,7 +458,7 @@ impl Renderable {
     }
 
     pub fn update(&mut self, uniforms: Uniforms) {
-        let sine = Sine {};
+        let perlin = Fbm::new();
         self.uniforms = uniforms;
         self.clipmap_data.copy_regions.clear();
         for level in 0..CM_MAX_LEVELS {
@@ -468,7 +469,7 @@ impl Renderable {
                     self.uniforms.camera_position.z,
                 ],
                 level,
-                &sine,
+                &perlin,
             );
         }
     }
@@ -772,6 +773,10 @@ pub fn create_grid(size_x: u32, size_z: u32) -> (Vec<Vertex>, Vec<u32>) {
     (vertices, indices)
 }
 
+pub trait Generator {
+    fn generate(&self, pos: [f32; 2]) -> f32;
+}
+
 struct Sine;
 
 impl graphics::clipmap::Generator for Sine {
@@ -780,8 +785,25 @@ impl graphics::clipmap::Generator for Sine {
     }
 }
 
-pub trait Generator {
-    fn generate(&self, pos: [f32; 2]) -> f32;
+struct Fbm {
+    noise: noise::Fbm,
+}
+
+impl Fbm {
+    pub fn new() -> Self {
+        Self {
+            noise: noise::Fbm::new(),
+        }
+    }
+}
+
+impl graphics::clipmap::Generator for Fbm {
+    fn generate(&self, pos: [f32; 2]) -> f32 {
+        (self
+            .noise
+            .get([(pos[0] / 100.0) as f64, (pos[1] / 100.0) as f64])
+            * 10.0) as f32
+    }
 }
 
 fn level_factor(level: u32) -> u32 {
