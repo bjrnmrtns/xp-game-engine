@@ -1,5 +1,5 @@
 [package]
-name = "xp-ui"
+name = "xp_ui"
 version = "0.1.0"
 authors = ["Bjorn Martens <bjorn@expeditious.nl>"]
 edition = "2018"
