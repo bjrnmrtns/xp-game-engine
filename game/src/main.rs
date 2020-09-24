@@ -5,7 +5,7 @@ use structopt::StructOpt;
 use game::command_queue::CommandQueue;
 use game::graphics::clipmap;
 use game::*;
-use nalgebra_glm::{identity, ortho, perspective, Mat4};
+use nalgebra_glm::{identity, ortho, perspective, vec3, Mat4};
 use winit::event::DeviceEvent::MouseMotion;
 use winit::event::{ElementState, Event, KeyboardInput, MouseButton, VirtualKeyCode, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
@@ -28,10 +28,15 @@ pub struct UIContext {
     pub camera: camera::CameraType,
 }
 
+/*
+
+
+*/
+
 fn game(options: Options) {
     let mut game_state = UIContext {
         ui_enabled: false,
-        camera: camera::CameraType::FreeLook,
+        camera: camera::CameraType::Follow,
     };
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()
@@ -41,7 +46,7 @@ fn game(options: Options) {
     let mut player = entity::Entity::new();
 
     //    let player_mesh = mesh::create_mesh_from("obj/arrow.obj");
-    let player_mesh = mesh::create_player_sphere();
+    let player_lifter_sphere_mesh = mesh::create_player_sphere();
     let axis_mesh = mesh::create_mesh_from("obj/axis.obj");
 
     let mut ui = UI::<UIContext, u32>::new(
@@ -61,10 +66,10 @@ fn game(options: Options) {
         ActionType::OnClick,
         |context| match context.camera {
             camera::CameraType::Follow => context.camera = camera::CameraType::FreeLook,
-            camera::CameraType::FreeLook => context.camera = camera::CameraType::FreeLook2,
-            camera::CameraType::FreeLook2 => context.camera = camera::CameraType::Follow,
+            camera::CameraType::FreeLook => context.camera = camera::CameraType::Follow,
         },
     );
+    let mut freelook = camera::FreeLook::new(vec3(0.0, 3.0, 3.0), vec3(0.0, -1.0, -1.0));
     ui.layout();
     let mut graphics = futures::executor::block_on(graphics::Graphics::new(&window))
         .expect("Could not create graphics renderer");
@@ -76,7 +81,7 @@ fn game(options: Options) {
     .expect("Could not create graphics renderer");
     renderables
         .default
-        .create_drawable(&graphics.device, &player_mesh);
+        .create_drawable(&graphics.device, &player_lifter_sphere_mesh);
     renderables
         .default
         .create_drawable(&graphics.device, &axis_mesh);
@@ -113,7 +118,7 @@ fn game(options: Options) {
         let commands_received = client::receive(&mut client, frame_counter.count());
         client::send(&mut *record, commands_received.as_slice());
         for frame in &commands_received {
-            let _ = simulation.handle_frame(frame, &game_state.camera, &mut player);
+            let _ = simulation.handle_frame(frame, &mut player);
         }
 
         match event {
@@ -121,8 +126,7 @@ fn game(options: Options) {
                 // first rotate all vertices on 0,0,0 (rotate around origin), then translate all points towards location.
                 // for the view matrix we can also use player_move and player_rotate, and use the inverse of the resulting matrix
                 let view = match game_state.camera {
-                    camera::CameraType::FreeLook => simulation.freelook_camera.view(),
-                    camera::CameraType::FreeLook2 => simulation.freelook_camera2.view(),
+                    camera::CameraType::FreeLook => freelook.view(),
                     camera::CameraType::Follow => camera::view_on(&player.pose).0,
                 };
                 let current_time = Instant::now();
@@ -203,7 +207,11 @@ fn game(options: Options) {
             Event::DeviceEvent { ref event, .. } => match event {
                 MouseMotion { delta } => {
                     if !game_state.ui_enabled {
-                        inputs.push_mouse_movement(delta);
+                        match game_state.camera {
+                            camera::CameraType::Follow => inputs.push_mouse_movement(delta),
+                            _ => freelook
+                                .camera_rotate(-delta.1 as f32 / 100.0, -delta.0 as f32 / 100.0),
+                        }
                     }
                 }
                 _ => (),
@@ -275,13 +283,27 @@ fn game(options: Options) {
                             game_state.camera = camera::CameraType::FreeLook
                         }
                         camera::CameraType::FreeLook => {
-                            game_state.camera = camera::CameraType::FreeLook2
-                        }
-                        camera::CameraType::FreeLook2 => {
                             game_state.camera = camera::CameraType::Follow
                         }
                     },
-                    _ => inputs.push_keyboard_input(input),
+                    _ => match game_state.camera {
+                        camera::CameraType::Follow => inputs.push_keyboard_input(input),
+                        _ => match input {
+                            KeyboardInput {
+                                scancode: _,
+                                state: _,
+                                virtual_keycode: Some(key_code),
+                                modifiers: _,
+                            } => {
+                                let forward = (key_code == &VirtualKeyCode::W) as i32
+                                    - (key_code == &VirtualKeyCode::S) as i32;
+                                let right = (key_code == &VirtualKeyCode::A) as i32
+                                    - (key_code == &VirtualKeyCode::D) as i32;
+                                freelook.move_(forward as f32, right as f32);
+                            }
+                            _ => (),
+                        },
+                    },
                 },
                 _ => {}
             },

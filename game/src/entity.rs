@@ -1,6 +1,10 @@
 use crate::transformation;
 use nalgebra_glm::{identity, quat_identity, quat_to_mat4, translate, vec3, Mat4, Quat, Vec3};
 
+pub enum Collider {
+    Sphere { radius: f32 },
+}
+
 pub struct Pose {
     pub position: Vec3,
     pub orientation: Quat,
@@ -16,15 +20,27 @@ impl Pose {
 
 pub struct Entity {
     pub pose: Pose,
+    pub collider: Collider,
+    pub max_acceleration: f32,
+    pub velocity: f32,
+    pub target_velocity: f32,
+    pub max_direction_acceleration: f32,
+    pub target_direction: Option<Vec3>,
 }
 
 impl Entity {
     pub fn new() -> Self {
         Self {
             pose: Pose {
-                position: vec3(0.0, 0.0, 0.0),
+                position: vec3(0.0, 1.0, 0.0),
                 orientation: quat_identity(),
             },
+            collider: Collider::Sphere { radius: 1.0 },
+            max_acceleration: 3.0,
+            velocity: 0.0,
+            target_velocity: 0.0,
+            max_direction_acceleration: 0.5 * std::f32::consts::PI,
+            target_direction: None,
         }
     }
     pub fn move_(&mut self, forward: f32, right: f32) {

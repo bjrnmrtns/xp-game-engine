@@ -1,6 +1,5 @@
 use crate::graphics;
 use genmesh::{MapToVertices, Triangulate, Vertices};
-use std::convert::TryInto;
 use xp_ui::{Widget, UI};
 
 pub fn create_player_sphere() -> graphics::Mesh<graphics::default::Vertex> {
@@ -14,7 +13,6 @@ pub fn create_player_sphere() -> graphics::Mesh<graphics::default::Vertex> {
             normal: v.normal.into(),
             color: [0.0, 1.0, 0.0],
         })
-        .map(|q| q)
         .triangulate()
         .vertices()
         .collect();

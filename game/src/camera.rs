@@ -3,7 +3,6 @@ use nalgebra_glm::*;
 
 pub enum CameraType {
     FreeLook,
-    FreeLook2,
     Follow,
 }
 
