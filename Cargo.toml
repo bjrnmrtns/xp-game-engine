@@ -3,4 +3,5 @@ members = [
     "game",
     "xp_ui",
     "xp_meshgen",
+    "xp_math"
 ]
