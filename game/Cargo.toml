@@ -21,7 +21,7 @@ futures = "0.3.4"
 glsl-to-spirv = "0.1.7"
 bytemuck = "1.4.1"
 noise = "0.6.0"
+genmesh = "0.6.2"
 
 xp_ui = { path = "../xp_ui" }
-xp_meshgen = { path = "../xp_meshgen" }
 xp_math = { path = "../xp_math" }

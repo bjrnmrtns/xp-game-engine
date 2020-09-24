@@ -1,5 +1,31 @@
 use crate::graphics;
+use genmesh::{MapToVertices, Triangulate, Vertices};
+use std::convert::TryInto;
 use xp_ui::{Widget, UI};
+
+pub fn create_player_sphere() -> graphics::Mesh<graphics::default::Vertex> {
+    let mut mesh = graphics::Mesh {
+        vertices: Vec::new(),
+        indices: Vec::new(),
+    };
+    mesh.vertices = genmesh::generators::SphereUv::new(10, 10)
+        .vertex(|v| graphics::default::Vertex {
+            position: v.pos.into(),
+            normal: v.normal.into(),
+            color: [0.0, 1.0, 0.0],
+        })
+        .map(|q| q)
+        .triangulate()
+        .vertices()
+        .collect();
+    mesh.indices = vec![0; mesh.vertices.len()];
+    for index in (0..mesh.indices.len()).step_by(3) {
+        mesh.indices[index] = index as u32;
+        mesh.indices[index + 1] = index as u32 + 1;
+        mesh.indices[index + 2] = index as u32 + 2;
+    }
+    mesh
+}
 
 pub fn create_mesh_from(obj_file_name: &str) -> graphics::Mesh<graphics::default::Vertex> {
     let (models, materials) = tobj::load_obj(obj_file_name, true)

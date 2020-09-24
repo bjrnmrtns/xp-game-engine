@@ -40,7 +40,8 @@ fn game(options: Options) {
 
     let mut player = entity::Entity::new();
 
-    let player_mesh = mesh::create_mesh_from("obj/arrow.obj");
+    //    let player_mesh = mesh::create_mesh_from("obj/arrow.obj");
+    let player_mesh = mesh::create_player_sphere();
     let axis_mesh = mesh::create_mesh_from("obj/axis.obj");
 
     let mut ui = UI::<UIContext, u32>::new(
