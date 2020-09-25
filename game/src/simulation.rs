@@ -1,29 +1,20 @@
 use crate::commands::Command;
 use crate::entity;
 
-pub struct Simulation {
-    last_hash: u32,
-}
+pub struct Simulation;
 
 impl Simulation {
-    pub fn new() -> Simulation {
-        Simulation { last_hash: 0 }
-    }
-
-    fn hash_state_now(&mut self) -> u32 {
-        /*        let mut hasher = crc32fast::Hasher::new_with_initial(self.last_hash);
-        unsafe {
-            hasher.update(std::slice::from_raw_parts(self.player_position.as_ptr() as *const u8, self.player_position.len() * 4));
-        };
-        self.last_hash = hasher.finalize();*/
-        self.last_hash
-    }
-
     pub fn handle_frame(
         &mut self,
         commands: &(u64, Vec<Command>),
         player: &mut entity::Entity,
-    ) -> u32 {
+        frame_time: f32,
+    ) {
+        player.fall_velocity -= 9.81 * frame_time;
+        player.pose.position.y += player.fall_velocity * frame_time;
+        if player.pose.position.y < 0.0 {
+            player.pose.position.y = 0.0
+        };
         let _ = commands
             .1
             .iter()
@@ -38,6 +29,5 @@ impl Simulation {
                 }
             })
             .collect::<Vec<_>>();
-        self.hash_state_now()
     }
 }

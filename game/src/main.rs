@@ -28,10 +28,7 @@ pub struct UIContext {
     pub camera: camera::CameraType,
 }
 
-/*
-
-
-*/
+const FPS: u64 = 60;
 
 fn game(options: Options) {
     let mut game_state = UIContext {
@@ -90,7 +87,7 @@ fn game(options: Options) {
 
     let mut inputs = input::InputQueue::new();
     let mut commands_queue = CommandQueue::new();
-    let mut simulation = simulation::Simulation::new();
+    let mut simulation = simulation::Simulation {};
     let mut client = local_client::LocalClient::new();
     let mut record = recording::try_create_recorder(options.record_path);
     let replaying = options.replay_path != None;
@@ -104,7 +101,7 @@ fn game(options: Options) {
     state is equal on all clients at the cost rebasing the simulation every time the server
     sends an update.
     */
-    let mut frame_counter = counter::FrameCounter::new(60);
+    let mut frame_counter = counter::FrameCounter::new(FPS);
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Poll;
         frame_counter.run();
@@ -118,7 +115,7 @@ fn game(options: Options) {
         let commands_received = client::receive(&mut client, frame_counter.count());
         client::send(&mut *record, commands_received.as_slice());
         for frame in &commands_received {
-            let _ = simulation.handle_frame(frame, &mut player);
+            let _ = simulation.handle_frame(frame, &mut player, 1.0 / FPS as f32);
         }
 
         match event {

@@ -23,6 +23,7 @@ pub struct Entity {
     pub collider: Collider,
     pub max_acceleration: f32,
     pub velocity: f32,
+    pub fall_velocity: f32,
     pub target_velocity: f32,
     pub max_direction_acceleration: f32,
     pub target_direction: Option<Vec3>,
@@ -32,12 +33,13 @@ impl Entity {
     pub fn new() -> Self {
         Self {
             pose: Pose {
-                position: vec3(0.0, 1.0, 0.0),
+                position: vec3(0.0, 20.0, 0.0),
                 orientation: quat_identity(),
             },
             collider: Collider::Sphere { radius: 1.0 },
             max_acceleration: 3.0,
             velocity: 0.0,
+            fall_velocity: 0.0,
             target_velocity: 0.0,
             max_direction_acceleration: 0.5 * std::f32::consts::PI,
             target_direction: None,

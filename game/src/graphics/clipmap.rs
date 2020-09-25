@@ -11,11 +11,11 @@ type Result<T> = std::result::Result<T, GraphicsError>;
 
 const WIRE_FRAME: bool = false;
 
-const CM_K: u32 = 8;
-const CM_N: u32 = 255;
+const CM_K: u32 = 7;
+const CM_N: u32 = 127;
 const CM_ELEMENT_SIZE: u32 = 16; // number of bytes of an element (now height(f32) normal(f32;3) -> total: 16
 
-const CM_UNIT_SIZE_SMALLEST: f32 = 1.0;
+const CM_UNIT_SIZE_SMALLEST: f32 = 2.0;
 const CM_M: u32 = (CM_N + 1) / 4;
 const CM_P: u32 = 3; // (CLIPMAP_N - 1) - ((CLIPMAP_M - 1) * 4) + 1 -> always 3
 const CM_M_SIZE: u32 = CM_M - 1;
