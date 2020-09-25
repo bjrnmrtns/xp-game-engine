@@ -22,7 +22,7 @@ buffer Instances {
     Instance part[];
 };
 
-layout(binding = 2, rgba32f) coherent uniform image3D heightmap;
+layout(binding = 2, r32f) coherent uniform image3D heightmap;
 
 const vec3 COLOR_TABLE[8] = vec3[8](vec3(1.0, 1.0, 1.0f), vec3(1.0, 1.0, 0.0f), vec3(1.0, 0.0, 1.0), vec3(1.0, 0.0, 0.0), vec3(0.0, 1.0, 1.0), vec3(0.0, 1.0, 0.0), vec3(0.0, 0.0, 1.0), vec3(0.0, 0.0, 0.0));
 
@@ -48,9 +48,18 @@ void main() {
     ivec2 center_index = ivec2(snap_to_index_for_level(camera_position.x, level), snap_to_index_for_level(camera_position.z, level));
     ivec2 pos_index = center_index - ivec2(BASE_OFFSET, BASE_OFFSET) + part_offset + offset.xy;
 
+    offset.z;
     ivec2 uv = ivec2(uint(pos_index.x) % (CM_N + 1), uint(pos_index.y) % (CM_N + 1));
+    ivec2 uv1 = ivec2(uint(pos_index.x) % (CM_N + 1), uint(pos_index.y + offset.z) % (CM_N + 1));
+    ivec2 uv2 = ivec2(uint(pos_index.x + offset.z) % (CM_N + 1), uint(pos_index.y) % (CM_N + 1));
+
+    // normal calculation
     float height = imageLoad(heightmap, ivec3(uv, level)).r;
-    vec3 in_normal = imageLoad(heightmap, ivec3(uv, level)).gba;
+    float height1 = imageLoad(heightmap, ivec3(uv1, level)).r;
+    float height2 = imageLoad(heightmap, ivec3(uv2, level)).r;
+    vec3 in_normal = cross(vec3(0.0, height1 - height, unit_size), vec3(unit_size, height2 - height, 0.0));
+    in_normal.x *= offset.z;
+    in_normal.z *= offset.z;
 
     gl_Position = projection * view * vec4(vec2(pos_index) * unit_size, height, 1.0).xzyw;
     out_color = COLOR_TABLE[part[gl_InstanceIndex].padding];

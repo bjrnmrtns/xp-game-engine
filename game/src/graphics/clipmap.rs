@@ -13,7 +13,7 @@ const WIRE_FRAME: bool = false;
 
 const CM_K: u32 = 7;
 const CM_N: u32 = 127;
-const CM_ELEMENT_SIZE: u32 = 16; // number of bytes of an element (now height(f32) normal(f32;3) -> total: 16
+const CM_ELEMENT_SIZE: u32 = 4; // number of bytes of an element (now height(f32) -> total: 4
 
 const CM_UNIT_SIZE_SMALLEST: f32 = 2.0;
 const CM_M: u32 = (CM_N + 1) / 4;
@@ -81,7 +81,7 @@ pub fn create_clipmap_storage_texture(device: &wgpu::Device, N: u32) -> wgpu::Te
         mip_level_count: 1,
         sample_count: 1,
         dimension: wgpu::TextureDimension::D3,
-        format: wgpu::TextureFormat::Rgba32Float,
+        format: wgpu::TextureFormat::R32Float,
         usage: wgpu::TextureUsage::STORAGE | wgpu::TextureUsage::COPY_DST,
     })
 }
@@ -104,7 +104,7 @@ impl Vertex {
             attributes: &[wgpu::VertexAttributeDescriptor {
                 offset: 0,
                 shader_location: 0,
-                format: wgpu::VertexFormat::Int2,
+                format: wgpu::VertexFormat::Int3,
             }],
         }
     }
@@ -763,17 +763,17 @@ pub fn create_grid(size_x: u32, size_z: u32) -> (Vec<Vertex>, Vec<u32>) {
         for x in 0..size_x - 1 {
             // first triangle, provoking vertex:
             vertices.push(Vertex {
-                p: [x as i32, z as i32, 0],
+                p: [x as i32, z as i32, 1],
             });
             vertices.push(Vertex {
-                p: [(x + 1) as i32, z as i32, 0],
+                p: [(x + 1) as i32, z as i32, 1],
             });
             vertices.push(Vertex {
-                p: [x as i32, (z + 1) as i32, 0],
+                p: [x as i32, (z + 1) as i32, 1],
             });
             // second triangle, provoking vertex:
             vertices.push(Vertex {
-                p: [(x + 1) as i32, (z + 1) as i32, 1],
+                p: [(x + 1) as i32, (z + 1) as i32, -1],
             });
             let i0 = index;
             let i1 = i0 + 1;
@@ -819,7 +819,7 @@ impl graphics::clipmap::Generator for Fbm {
     fn generate(&self, pos: [f32; 2]) -> f32 {
         (self
             .noise
-            .get([(pos[0] / 100.0) as f64, (pos[1] / 100.0) as f64])
+            .get([(pos[0] / 10.0) as f64, (pos[1] / 10.0) as f64])
             * 10.0) as f32
     }
 }
@@ -865,17 +865,7 @@ fn update_xrows<T: Generator>(
             let x_mod = x as u32 % CM_TEXTURE_SIZE;
             let z_mod = z as u32 % CM_TEXTURE_SIZE;
             //TODO: calculate normal of point, but expensive to call 4 times noise? -> first create heights, then derive rest
-            let right = generator.generate([x_pos + unit_size, z_pos]);
-            let left = generator.generate([x_pos - unit_size, z_pos]);
-            let bottom = generator.generate([x_pos, z_pos - unit_size]);
-            let top = generator.generate([x_pos, z_pos + unit_size]);
-            let normal: Vec3 = vec3(2.0 * (right - left), 2.0 * (bottom - top), -4.0).normalize();
-            clipmap.set(
-                x_mod,
-                z_mod,
-                level,
-                Element::new(generator.generate([x_pos, z_pos]), normal),
-            );
+            clipmap.set_height(x_mod, z_mod, level, generator.generate([x_pos, z_pos]));
         }
     }
 }
@@ -895,17 +885,7 @@ fn update_zrows<T: Generator>(
             let x_mod = x as u32 % CM_TEXTURE_SIZE;
             let z_mod = z as u32 % CM_TEXTURE_SIZE;
             //TODO: calculate normal of point, but expensive to call 4 times noise? -> first create heights, then derive rest
-            let right = generator.generate([x_pos + unit_size, z_pos]);
-            let left = generator.generate([x_pos - unit_size, z_pos]);
-            let bottom = generator.generate([x_pos, z_pos - unit_size]);
-            let top = generator.generate([x_pos, z_pos + unit_size]);
-            let normal: Vec3 = vec3(2.0 * (right - left), 2.0 * (bottom - top), -4.0).normalize();
-            clipmap.set(
-                x_mod,
-                z_mod,
-                level,
-                Element::new(generator.generate([x_pos, z_pos]), normal),
-            );
+            clipmap.set_height(x_mod, z_mod, level, generator.generate([x_pos, z_pos]));
         }
     }
 }
@@ -982,15 +962,14 @@ struct CopyDescription {
 #[derive(Copy, Clone, Debug)]
 pub struct Element {
     height: f32,
-    normal: Vec3,
 }
 
 unsafe impl bytemuck::Pod for Element {}
 unsafe impl bytemuck::Zeroable for Element {}
 
 impl Element {
-    pub fn new(height: f32, normal: Vec3) -> Self {
-        Self { height, normal }
+    pub fn new(height: f32) -> Self {
+        Self { height }
     }
 }
 
@@ -1003,18 +982,15 @@ pub struct Clipmap {
 impl Clipmap {
     pub fn new(levels: u32) -> Self {
         Self {
-            data: vec![
-                Element::new(0.0, vec3(0.0, 1.0, 0.0));
-                (levels * CM_TEXTURE_SIZE * CM_TEXTURE_SIZE) as usize
-            ],
+            data: vec![Element::new(0.0); (levels * CM_TEXTURE_SIZE * CM_TEXTURE_SIZE) as usize],
             base: vec![None; levels as usize],
             copy_regions: Vec::new(),
         }
     }
-    pub fn set(&mut self, x: u32, z: u32, level: u32, val: Element) {
+    pub fn set_height(&mut self, x: u32, z: u32, level: u32, height: f32) {
         self.data
-            [((CM_TEXTURE_SIZE * CM_TEXTURE_SIZE * level) + x + z * CM_TEXTURE_SIZE) as usize] =
-            val;
+            [((CM_TEXTURE_SIZE * CM_TEXTURE_SIZE * level) + x + z * CM_TEXTURE_SIZE) as usize]
+            .height = height;
     }
 }
 

@@ -294,8 +294,8 @@ fn game(options: Options) {
                             } => {
                                 let forward = (key_code == &VirtualKeyCode::W) as i32
                                     - (key_code == &VirtualKeyCode::S) as i32;
-                                let right = (key_code == &VirtualKeyCode::A) as i32
-                                    - (key_code == &VirtualKeyCode::D) as i32;
+                                let right = (key_code == &VirtualKeyCode::D) as i32
+                                    - (key_code == &VirtualKeyCode::A) as i32;
                                 freelook.move_(forward as f32, right as f32);
                             }
                             _ => (),
