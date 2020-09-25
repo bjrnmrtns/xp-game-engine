@@ -63,6 +63,8 @@ void main() {
     in_normal.z *= which_provoking;
 
     gl_Position = projection * view * vec4(vec2(pos_index) * unit_size, height, 1.0).xzyw;
-    out_color = COLOR_TABLE[part[gl_InstanceIndex].padding];
+//    out_color = COLOR_TABLE[part[gl_InstanceIndex].padding];
+    // average of heights is not height of middle triangle, but good enough for now, just to test different colors in heigtmap
+    out_color = COLOR_TABLE[uint((height + height1 + height2 / 3.0) < 0.0)];
     out_normal = mat3(transpose(inverse(view))) * in_normal;
 }
