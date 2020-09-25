@@ -1,6 +1,6 @@
 #version 450
 
-layout(location=0) in ivec3 offset;
+layout(location=0) in ivec3 in_vertex;
 layout(location=0) out vec3 out_color;
 layout(location=1) out vec3 out_normal;
 
@@ -41,25 +41,26 @@ int snap_to_index_for_level(float val, uint level) {
 }
 
 void main() {
+    ivec2 offset = in_vertex.xy;
+    int which_provoking = in_vertex.z;
     uint level = part[gl_InstanceIndex].level;
     float unit_size = unit_size_for_level(level);
     ivec2 part_offset = ivec2(part[gl_InstanceIndex].offset);
 
     ivec2 center_index = ivec2(snap_to_index_for_level(camera_position.x, level), snap_to_index_for_level(camera_position.z, level));
-    ivec2 pos_index = center_index - ivec2(BASE_OFFSET, BASE_OFFSET) + part_offset + offset.xy;
+    ivec2 pos_index = center_index - ivec2(BASE_OFFSET, BASE_OFFSET) + part_offset + offset;
 
-    offset.z;
     ivec2 uv = ivec2(uint(pos_index.x) % (CM_N + 1), uint(pos_index.y) % (CM_N + 1));
-    ivec2 uv1 = ivec2(uint(pos_index.x) % (CM_N + 1), uint(pos_index.y + offset.z) % (CM_N + 1));
-    ivec2 uv2 = ivec2(uint(pos_index.x + offset.z) % (CM_N + 1), uint(pos_index.y) % (CM_N + 1));
+    ivec2 uv1 = ivec2(uint(pos_index.x) % (CM_N + 1), uint(pos_index.y + which_provoking) % (CM_N + 1));
+    ivec2 uv2 = ivec2(uint(pos_index.x + which_provoking) % (CM_N + 1), uint(pos_index.y) % (CM_N + 1));
 
     // normal calculation
     float height = imageLoad(heightmap, ivec3(uv, level)).r;
     float height1 = imageLoad(heightmap, ivec3(uv1, level)).r;
     float height2 = imageLoad(heightmap, ivec3(uv2, level)).r;
     vec3 in_normal = cross(vec3(0.0, height1 - height, unit_size), vec3(unit_size, height2 - height, 0.0));
-    in_normal.x *= offset.z;
-    in_normal.z *= offset.z;
+    in_normal.x *= which_provoking;
+    in_normal.z *= which_provoking;
 
     gl_Position = projection * view * vec4(vec2(pos_index) * unit_size, height, 1.0).xzyw;
     out_color = COLOR_TABLE[part[gl_InstanceIndex].padding];
