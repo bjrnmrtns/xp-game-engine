@@ -749,24 +749,34 @@ pub fn create_degenerates_right(size: u32) -> (Vec<Vertex>, Vec<u32>) {
 
 pub fn create_grid(size_x: u32, size_z: u32) -> (Vec<Vertex>, Vec<u32>) {
     let mut vertices = Vec::new();
-    for z in 0..size_z {
-        for x in 0..size_x {
-            vertices.push(Vertex {
-                p: [x as i32, z as i32],
-            })
-        }
-    }
     let mut indices = Vec::new();
+    let mut index = 0;
     for z in 0..size_z - 1 {
         for x in 0..size_x - 1 {
-            let i0 = x + z * size_x;
+            // first triangle, provoking vertex:
+            vertices.push(Vertex {
+                p: [x as i32, z as i32],
+            });
+            vertices.push(Vertex {
+                p: [(x + 1) as i32, z as i32],
+            });
+            vertices.push(Vertex {
+                p: [x as i32, (z + 1) as i32],
+            });
+            // second triangle, provoking vertex:
+            vertices.push(Vertex {
+                p: [(x + 1) as i32, (z + 1) as i32],
+            });
+            let i0 = index;
             let i1 = i0 + 1;
-            let i2 = x + (z + 1) * size_x;
+            let i2 = i1 + 1;
             let i3 = i2 + 1;
+            index += 4;
+
             if WIRE_FRAME {
-                indices.extend_from_slice(&[i0, i2, i2, i1, i1, i0, i1, i2, i2, i3, i3, i1]);
+                indices.extend_from_slice(&[i0, i2, i2, i1, i1, i0, i3, i1, i1, i2, i2, i3]);
             } else {
-                indices.extend_from_slice(&[i0, i2, i1, i1, i2, i3]);
+                indices.extend_from_slice(&[i0, i2, i1, i3, i1, i2]);
             }
         }
     }
