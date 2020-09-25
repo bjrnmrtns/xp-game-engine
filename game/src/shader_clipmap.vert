@@ -1,6 +1,6 @@
 #version 450
 
-layout(location=0) in ivec2 offset;
+layout(location=0) in ivec3 offset;
 layout(location=0) out vec3 out_color;
 layout(location=1) out vec3 out_normal;
 
@@ -46,7 +46,7 @@ void main() {
     ivec2 part_offset = ivec2(part[gl_InstanceIndex].offset);
 
     ivec2 center_index = ivec2(snap_to_index_for_level(camera_position.x, level), snap_to_index_for_level(camera_position.z, level));
-    ivec2 pos_index = center_index - ivec2(BASE_OFFSET, BASE_OFFSET) + part_offset + offset;
+    ivec2 pos_index = center_index - ivec2(BASE_OFFSET, BASE_OFFSET) + part_offset + offset.xy;
 
     ivec2 uv = ivec2(uint(pos_index.x) % (CM_N + 1), uint(pos_index.y) % (CM_N + 1));
     float height = imageLoad(heightmap, ivec3(uv, level)).r;

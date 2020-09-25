@@ -89,7 +89,7 @@ pub fn create_clipmap_storage_texture(device: &wgpu::Device, N: u32) -> wgpu::Te
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub struct Vertex {
-    pub p: [i32; 2],
+    pub p: [i32; 3],
 }
 
 unsafe impl bytemuck::Pod for Vertex {}
@@ -672,7 +672,9 @@ pub fn create_degenerates_top(size: u32) -> (Vec<Vertex>, Vec<u32>) {
     let mut vertices = Vec::new();
     let mut indices = Vec::new();
     for x in 0..size {
-        vertices.push(Vertex { p: [x as i32, 0] });
+        vertices.push(Vertex {
+            p: [x as i32, 0, 0],
+        });
     }
     for x in (0..size - 1).step_by(2) {
         let i0 = x;
@@ -692,7 +694,9 @@ pub fn create_degenerates_bottom(size: u32) -> (Vec<Vertex>, Vec<u32>) {
     let mut vertices = Vec::new();
     let mut indices = Vec::new();
     for x in 0..size {
-        vertices.push(Vertex { p: [x as i32, 0] });
+        vertices.push(Vertex {
+            p: [x as i32, 0, 0],
+        });
     }
     for x in (0..size - 1).step_by(2) {
         let i0 = x;
@@ -712,7 +716,9 @@ pub fn create_degenerates_left(size: u32) -> (Vec<Vertex>, Vec<u32>) {
     let mut vertices = Vec::new();
     let mut indices = Vec::new();
     for z in 0..size {
-        vertices.push(Vertex { p: [0, z as i32] });
+        vertices.push(Vertex {
+            p: [0, z as i32, 0],
+        });
     }
     for z in (0..size - 1).step_by(2) {
         let i0 = z;
@@ -732,7 +738,9 @@ pub fn create_degenerates_right(size: u32) -> (Vec<Vertex>, Vec<u32>) {
     let mut vertices = Vec::new();
     let mut indices = Vec::new();
     for z in 0..size {
-        vertices.push(Vertex { p: [0, z as i32] });
+        vertices.push(Vertex {
+            p: [0, z as i32, 0],
+        });
     }
     for z in (0..size - 1).step_by(2) {
         let i0 = z;
@@ -755,17 +763,17 @@ pub fn create_grid(size_x: u32, size_z: u32) -> (Vec<Vertex>, Vec<u32>) {
         for x in 0..size_x - 1 {
             // first triangle, provoking vertex:
             vertices.push(Vertex {
-                p: [x as i32, z as i32],
+                p: [x as i32, z as i32, 0],
             });
             vertices.push(Vertex {
-                p: [(x + 1) as i32, z as i32],
+                p: [(x + 1) as i32, z as i32, 0],
             });
             vertices.push(Vertex {
-                p: [x as i32, (z + 1) as i32],
+                p: [x as i32, (z + 1) as i32, 0],
             });
             // second triangle, provoking vertex:
             vertices.push(Vertex {
-                p: [(x + 1) as i32, (z + 1) as i32],
+                p: [(x + 1) as i32, (z + 1) as i32, 1],
             });
             let i0 = index;
             let i1 = i0 + 1;
