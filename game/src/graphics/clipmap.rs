@@ -54,7 +54,7 @@ const CM_OFFSETS_DEGENERATES_H_BOTTOM: [u32; 2] = [0, CM_4M1P];
 const CM_OFFSETS_DEGENERATES_V_LEFT: [u32; 2] = [0, 0];
 const CM_OFFSETS_DEGENERATES_V_RIGHT: [u32; 2] = [CM_4M1P, 0];
 const CM_OFFSET_NXN: [u32; 2] = [0, 0];
-const CM_MAX_LEVELS: u32 = 3;
+const CM_MAX_LEVELS: u32 = 5;
 const CM_INSTANCE_SIZE_ONE_MXM: u32 = 12;
 const CM_INSTANCE_SIZE_ONE_MXP: u32 = 2;
 const CM_INSTANCE_SIZE_ONE_PXM: u32 = 2;
@@ -457,7 +457,7 @@ impl Renderable {
         })
     }
 
-    pub fn update(&mut self, uniforms: Uniforms) {
+    pub fn pre_render(&mut self, queue: &wgpu::Queue, uniforms: Uniforms) {
         let perlin = Fbm::new();
         self.uniforms = uniforms;
         self.clipmap_data.copy_regions.clear();
@@ -472,12 +472,6 @@ impl Renderable {
                 &perlin,
             );
         }
-    }
-
-    pub fn render<'a, 'b>(&'a self, queue: &wgpu::Queue, render_pass: &'b mut RenderPass<'a>)
-    where
-        'a: 'b,
-    {
         queue.write_buffer(
             &self.uniforms_buffer,
             0,
@@ -514,7 +508,12 @@ impl Renderable {
                 },
             );
         }
+    }
 
+    pub fn render<'a, 'b>(&'a self, render_pass: &'b mut RenderPass<'a>)
+    where
+        'a: 'b,
+    {
         render_pass.set_pipeline(&self.render_pipeline);
         let start_ring_level = 1;
         let full_level = start_ring_level - 1;
@@ -991,6 +990,10 @@ impl Clipmap {
         self.data
             [((CM_TEXTURE_SIZE * CM_TEXTURE_SIZE * level) + x + z * CM_TEXTURE_SIZE) as usize]
             .height = height;
+    }
+    pub fn get_height(&self, x: u32, z: u32, level: u32) -> f32 {
+        self.data[((CM_TEXTURE_SIZE * CM_TEXTURE_SIZE * level) + x + z * CM_TEXTURE_SIZE) as usize]
+            .height
     }
 }
 

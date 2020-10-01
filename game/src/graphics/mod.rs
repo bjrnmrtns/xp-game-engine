@@ -3,6 +3,7 @@ use wgpu::util::DeviceExt;
 use winit::window::Window;
 
 pub mod clipmap;
+pub mod debug;
 pub mod default;
 pub mod error;
 pub mod helpers;
@@ -57,10 +58,11 @@ pub struct Renderables {
     pub ui: ui::Renderable,
     pub default: default::Renderable,
     pub clipmap: clipmap::Renderable,
+    pub debug: debug::Renderable,
 }
 
 pub trait Renderable {
-    fn render<'a, 'b>(&'a self, queue: &wgpu::Queue, render_pass: &'b mut wgpu::RenderPass<'a>)
+    fn render<'a, 'b>(&'a self, render_pass: &'b mut wgpu::RenderPass<'a>)
     where
         'a: 'b;
 }
@@ -75,6 +77,7 @@ impl Renderables {
             ui: ui::Renderable::new(&device, &swapchain_descriptor, &queue).await?,
             default: default::Renderable::new(&device, &swapchain_descriptor, &queue).await?,
             clipmap: clipmap::Renderable::new(&device, &swapchain_descriptor, &queue).await?,
+            debug: debug::Renderable::new(&device, &swapchain_descriptor, &queue).await?,
         })
     }
 }
@@ -200,8 +203,9 @@ pub fn render_loop(
                 }),
             }),
         });
-        renderables.default.render(queue, &mut game_render_pass);
-        renderables.clipmap.render(queue, &mut game_render_pass);
+        renderables.default.render(&mut game_render_pass);
+        renderables.clipmap.render(&mut game_render_pass);
+        renderables.debug.render(&mut game_render_pass);
     }
     {
         let mut ui_render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -215,7 +219,7 @@ pub fn render_loop(
             }],
             depth_stencil_attachment: None,
         });
-        renderables.ui.render(queue, &mut ui_render_pass);
+        renderables.ui.render(&mut ui_render_pass);
     }
     queue.submit(std::iter::once(encoder.finish()));
 }

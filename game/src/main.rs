@@ -4,6 +4,7 @@ use structopt::StructOpt;
 
 use game::command_queue::CommandQueue;
 use game::graphics::clipmap;
+use game::graphics::debug::Vertex;
 use game::*;
 use nalgebra_glm::{identity, ortho, perspective, vec3, Mat4};
 use winit::event::DeviceEvent::MouseMotion;
@@ -153,7 +154,8 @@ fn game(options: Options) {
                     model: player.pose.to_mat4(),
                 });
                 instances.push(graphics::default::Instance { model: identity() });
-                renderables.default.update(
+                renderables.default.pre_render(
+                    &graphics.queue,
                     graphics::default::Uniforms {
                         projection: projection_3d.clone() as Mat4,
                         view: view.clone() as Mat4,
@@ -161,16 +163,39 @@ fn game(options: Options) {
                     instances,
                 );
                 let time_before_clipmap_update = std::time::Instant::now();
-                renderables.clipmap.update(clipmap::Uniforms {
-                    projection: projection_3d.clone() as Mat4,
-                    view: view.clone() as Mat4,
-                    camera_position: camera::view_on(&player.pose).1, //simulation.freelook_camera.position,
-                });
+                renderables.clipmap.pre_render(
+                    &graphics.queue,
+                    clipmap::Uniforms {
+                        projection: projection_3d.clone() as Mat4,
+                        view: view.clone() as Mat4,
+                        camera_position: camera::view_on(&player.pose).1, //simulation.freelook_camera.position,
+                    },
+                );
+                renderables.debug.pre_render(
+                    &graphics.device,
+                    &[
+                        Vertex {
+                            position: [0.0, 0.0, 0.0],
+                        },
+                        Vertex {
+                            position: [0.0, 100.0, 0.0],
+                        },
+                        Vertex {
+                            position: [-100.0, 0.0, 0.0],
+                        },
+                    ],
+                    &[0, 1, 1, 2, 2, 0],
+                    projection_3d.clone() as Mat4,
+                    view.clone() as Mat4,
+                    identity() as Mat4,
+                    &graphics.queue,
+                );
                 let time_after_clipmap_update = std::time::Instant::now();
                 renderables
                     .ui
                     .create_drawable(&graphics.device, Some(mesh::create_mesh(&ui)));
-                renderables.ui.update(
+                renderables.ui.pre_render(
+                    &graphics.queue,
                     graphics::ui::Uniforms {
                         projection: projection_2d,
                     },

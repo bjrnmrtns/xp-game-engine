@@ -280,21 +280,21 @@ impl Renderable {
         }
     }
 
-    pub fn update(&mut self, uniforms: Uniforms, enabled: bool) {
+    pub fn pre_render(&mut self, queue: &wgpu::Queue, uniforms: Uniforms, enabled: bool) {
         self.enabled = enabled;
         self.uniforms = uniforms;
-    }
-}
-impl graphics::Renderable for Renderable {
-    fn render<'a, 'b>(&'a self, queue: &wgpu::Queue, render_pass: &'b mut RenderPass<'a>)
-    where
-        'a: 'b,
-    {
         queue.write_buffer(
             &self.uniform_buffer,
             0,
             bytemuck::cast_slice(&[self.uniforms]),
         );
+    }
+}
+impl graphics::Renderable for Renderable {
+    fn render<'a, 'b>(&'a self, render_pass: &'b mut RenderPass<'a>)
+    where
+        'a: 'b,
+    {
         if self.enabled {
             if let Some(drawable) = &self.drawable {
                 render_pass.set_pipeline(&self.render_pipeline);
