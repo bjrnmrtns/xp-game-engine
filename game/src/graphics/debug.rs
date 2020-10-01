@@ -191,8 +191,7 @@ impl Renderable {
     pub fn pre_render(
         &mut self,
         device: &wgpu::Device,
-        vertices: &[Vertex],
-        indices: &[u32],
+        raw_mesh: &(Vec<Vertex>, Vec<u32>),
         projection: Mat4,
         view: Mat4,
         queue: &wgpu::Queue,
@@ -207,15 +206,15 @@ impl Renderable {
         );
         self.vb = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: None,
-            contents: bytemuck::cast_slice(vertices),
+            contents: bytemuck::cast_slice(raw_mesh.0.as_slice()),
             usage: wgpu::BufferUsage::VERTEX,
         });
         self.ib = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: None,
-            contents: bytemuck::cast_slice(indices),
+            contents: bytemuck::cast_slice(raw_mesh.1.as_slice()),
             usage: wgpu::BufferUsage::INDEX,
         });
-        self.indices_len = indices.len() as u32;
+        self.indices_len = raw_mesh.1.len() as u32;
     }
 }
 

@@ -3,6 +3,5 @@ members = [
     "game",
     "xp_ui",
     "xp_math",
-    "xp_mesh",
     "xp_physics",
 ]

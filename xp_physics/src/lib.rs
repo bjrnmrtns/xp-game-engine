@@ -1,7 +1,6 @@
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
-}
+mod collision;
+mod sphere;
+mod triangle;
+
+pub use sphere::Sphere;
+pub use triangle::Triangle;

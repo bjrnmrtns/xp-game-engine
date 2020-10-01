@@ -6,9 +6,8 @@ layout(set=0, binding=0)
 uniform Uniforms {
     mat4 projection;
     mat4 view;
-    mat4 model;
 };
 
 void main() {
-    gl_Position = projection * view * model * vec4(in_position, 1.0);
+    gl_Position = projection * view * vec4(in_position, 1.0);
 }

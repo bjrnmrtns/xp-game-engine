@@ -11,6 +11,7 @@ use winit::event::DeviceEvent::MouseMotion;
 use winit::event::{ElementState, Event, KeyboardInput, MouseButton, VirtualKeyCode, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::WindowBuilder;
+use xp_physics::{Sphere, Triangle};
 use xp_ui::Widget::LabelW;
 use xp_ui::{ActionType, Label, DEFAULT_LAYOUT, UI};
 
@@ -47,6 +48,12 @@ fn game(options: Options) {
     let player_lifter_sphere_mesh = mesh::create_player_sphere();
     let axis_mesh = mesh::create_mesh_from("obj/axis.obj");
 
+    let collision_triangle = Triangle::new(
+        vec3(-2.0, 2.0, -2.0),
+        vec3(-2.0, 2.0, 2.0),
+        vec3(2.0, 2.0, 0.0),
+    );
+    let collision_sphere = Sphere::new(vec3(0.0, 4.0, 0.0), 1.0);
     let mut ui = UI::<UIContext, u32>::new(
         window.inner_size().width as f32,
         window.inner_size().height as f32,
@@ -173,18 +180,12 @@ fn game(options: Options) {
                 );
                 renderables.debug.pre_render(
                     &graphics.device,
-                    &[
-                        Vertex {
-                            position: [0.0, 0.0, 0.0],
-                        },
-                        Vertex {
-                            position: [0.0, 100.0, 0.0],
-                        },
-                        Vertex {
-                            position: [-100.0, 0.0, 0.0],
-                        },
-                    ],
-                    &[0, 1, 1, 2, 2, 0],
+                    &mesh::create_collision_triangle_and_sphere(
+                        collision_triangle,
+                        collision_sphere,
+                        vec3(0.0, -3.0, 0.0),
+                        &[0.0, 0.5, 1.0],
+                    ),
                     projection_3d.clone() as Mat4,
                     view.clone() as Mat4,
                     &graphics.queue,

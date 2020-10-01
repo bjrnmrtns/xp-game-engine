@@ -25,5 +25,4 @@ genmesh = "0.6.2"
 
 xp_ui = { path = "../xp_ui" }
 xp_math = { path = "../xp_math" }
-xp_mesh = { path = "../xp_mesh" }
 xp_physics = { path = "../xp_physics" }

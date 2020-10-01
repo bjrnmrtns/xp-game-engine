@@ -1,6 +1,54 @@
 use crate::graphics;
 use genmesh::{MapToVertices, Triangulate, Vertices};
+use nalgebra_glm::Vec3;
+use xp_physics::{Sphere, Triangle};
 use xp_ui::{Widget, UI};
+
+pub fn create_collision_triangle_and_sphere(
+    triangle: Triangle,
+    sphere: Sphere,
+    sphere_movement: Vec3,
+    render_sphere_at_t: &[f32],
+) -> (Vec<graphics::debug::Vertex>, Vec<u32>) {
+    let mut vertices = Vec::new();
+    vertices.push(graphics::debug::Vertex {
+        position: triangle.v0.into(),
+    });
+    vertices.push(graphics::debug::Vertex {
+        position: triangle.v1.into(),
+    });
+    vertices.push(graphics::debug::Vertex {
+        position: triangle.v2.into(),
+    });
+    assert_eq!(sphere.r, 1.0);
+    for t in render_sphere_at_t {
+        vertices.extend(
+            genmesh::generators::SphereUv::new(10, 10)
+                .vertex(|v| {
+                    let pos = [
+                        sphere.c[0] + v.pos.x + sphere_movement[0] * t,
+                        sphere.c[1] + v.pos.y + sphere_movement[1] * t,
+                        sphere.c[2] + v.pos.z + sphere_movement[2] * t,
+                    ];
+                    graphics::debug::Vertex { position: pos }
+                })
+                .triangulate()
+                .vertices(),
+        );
+    }
+    let mut indices = vec![0; vertices.len() * 2];
+    let mut iindex = 0;
+    for vindex in (0..vertices.len()).step_by(3) {
+        indices[iindex] = vindex as u32;
+        indices[iindex + 1] = vindex as u32 + 1;
+        indices[iindex + 2] = vindex as u32 + 1;
+        indices[iindex + 3] = vindex as u32 + 2;
+        indices[iindex + 4] = vindex as u32 + 2;
+        indices[iindex + 5] = vindex as u32;
+        iindex += 6;
+    }
+    (vertices, indices)
+}
 
 pub fn create_player_sphere() -> graphics::Mesh<graphics::default::Vertex> {
     let mut mesh = graphics::Mesh {
