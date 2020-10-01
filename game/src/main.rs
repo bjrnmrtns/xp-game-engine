@@ -187,7 +187,6 @@ fn game(options: Options) {
                     &[0, 1, 1, 2, 2, 0],
                     projection_3d.clone() as Mat4,
                     view.clone() as Mat4,
-                    identity() as Mat4,
                     &graphics.queue,
                 );
                 let time_after_clipmap_update = std::time::Instant::now();

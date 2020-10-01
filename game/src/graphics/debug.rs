@@ -36,7 +36,6 @@ impl Vertex {
 pub struct Uniforms {
     pub projection: Mat4,
     pub view: Mat4,
-    pub model: Mat4,
 }
 
 unsafe impl bytemuck::Pod for Uniforms {}
@@ -88,7 +87,6 @@ impl Renderable {
         let uniforms = Uniforms {
             projection: identity(),
             view: identity(),
-            model: identity(),
         };
 
         let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -197,7 +195,6 @@ impl Renderable {
         indices: &[u32],
         projection: Mat4,
         view: Mat4,
-        model: Mat4,
         queue: &wgpu::Queue,
     ) {
         queue.write_buffer(
@@ -206,7 +203,6 @@ impl Renderable {
             bytemuck::cast_slice(&[Uniforms {
                 projection: projection,
                 view: view,
-                model: model,
             }]),
         );
         self.vb = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
