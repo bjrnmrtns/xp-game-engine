@@ -45,7 +45,7 @@ pub fn create_collision_triangle_and_sphere(
         indices[iindex + 3] = vindex as u32 + 2;
         indices[iindex + 4] = vindex as u32 + 2;
         indices[iindex + 5] = vindex as u32;
-        iindex += 6;
+        iindex += 3;
     }
     (vertices, indices)
 }

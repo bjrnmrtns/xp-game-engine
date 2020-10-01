@@ -1,18 +1,22 @@
 use crate::{Sphere, Triangle};
-use nalgebra_glm::{cross, vec3, Vec3};
+use nalgebra_glm::{cross, dot, normalize, vec3, Vec3};
 
-fn triangle_normal(t: Triangle) -> Vec3 {
-    let edge_0: Vec3 = t.v1.clone() - t.v0;
-    let edge_1: Vec3 = t.v2 - t.v1;
-    cross(&edge_0, &edge_1)
+pub struct Collision {
+    pub t0: f32,
+    pub t1: f32,
 }
 
-fn signed_distance(p: [f32; 3]) -> f32 {
-    3.0 //    N * p + Cp;
+// plane constant is a point on the plane
+fn signed_distance(p: &Vec3, plane_constant: f32, n: &Vec3) -> f32 {
+    dot(&n, &p) + plane_constant
 }
 
-pub fn detect(sphere: Sphere, triangle: Triangle, movement: Vec3) -> f32 {
-    3.0
+pub fn detect(sphere: &Sphere, triangle: &Triangle, movement: &Vec3) -> Collision {
+    let t_normal_normalized = triangle.normal().normalize();
+    let sd = signed_distance(&sphere.c, triangle.plane_constant(), &t_normal_normalized);
+    let t0 = (1.0 - sd) / dot(&t_normal_normalized, &movement);
+    let t1 = (-1.0 - sd) / dot(&t_normal_normalized, &movement);
+    Collision { t0, t1 }
 }
 
 #[cfg(test)]
@@ -29,7 +33,7 @@ mod tests {
             vec3(2.0, 2.0, 0.0),
         );
         let sphere = Sphere::new(vec3(0.0, 4.0, 0.0), 1.0);
-        let movement = vec3(0.0, -3.0, 0.0);
-        let t = detect(sphere, triangle, movement);
+        let movement = vec3(0.0, -2.0, 0.0);
+        let c = detect(&sphere, &triangle, &movement);
     }
 }
