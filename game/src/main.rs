@@ -4,7 +4,6 @@ use structopt::StructOpt;
 
 use game::command_queue::CommandQueue;
 use game::graphics::clipmap;
-use game::graphics::debug::Vertex;
 use game::*;
 use nalgebra_glm::{identity, ortho, perspective, vec3, Mat4};
 use winit::event::DeviceEvent::MouseMotion;
@@ -311,6 +310,7 @@ fn game(options: Options) {
                     _ => match game_state.camera {
                         camera::CameraType::Follow => inputs.push_keyboard_input(input),
                         _ => match input {
+                            #[allow(deprecated)]
                             KeyboardInput {
                                 scancode: _,
                                 state: _,

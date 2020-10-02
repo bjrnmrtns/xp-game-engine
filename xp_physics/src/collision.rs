@@ -1,5 +1,5 @@
 use crate::{Sphere, Triangle};
-use nalgebra_glm::{cross, dot, normalize, vec3, Vec3};
+use nalgebra_glm::{dot, Vec3};
 
 pub struct Collision {
     pub t0: f32,
@@ -28,14 +28,18 @@ pub fn detect(sphere: &Sphere, triangle: &Triangle, movement: &Vec3) -> Option<C
         }
         let t0 = if t0 > 0.0 { t0 } else { 0.0 };
         let t1 = if t1 < 1.0 { t1 } else { 1.0 };
-        // check for contact point inside triangle, use t0 to calculate point and check if it is inside the triangle
-        return Some(Collision { t0, t1 });
+
+        let p = sphere.c + movement * t0;
+        if triangle.point_in_triangle(&p) {
+            return Some(Collision { t0, t1 });
+        }
     } else if plane_normal_dot_movement == 0.0 && sd.abs() < 1.0 {
         // sphere embedded in plane
-        None
+        return None;
     } else {
-        None
+        return None;
     }
+    None
 }
 
 #[cfg(test)]
@@ -45,14 +49,29 @@ mod tests {
     use nalgebra_glm::vec3;
 
     #[test]
-    fn test_detect() {
+    fn test_detect_where_collision_inside_triangle() {
         let triangle = Triangle::new(
             vec3(-2.0, 2.0, -2.0),
             vec3(-2.0, 2.0, 2.0),
             vec3(2.0, 2.0, 0.0),
         );
-        let sphere = Sphere::new(vec3(0.0, 2.0, 0.0), 1.0);
+        let sphere = Sphere::new(vec3(0.0, 4.0, 0.0), 1.0);
         let movement = vec3(0.0, -2.0, 0.0);
         let c = detect(&sphere, &triangle, &movement);
+        assert_eq!(c.unwrap().t0, 0.5);
+    }
+
+    #[test]
+    fn test_detect_where_collision_against_triangle_vertex() {
+        let triangle = Triangle::new(
+            vec3(0.0, 0.0, 0.0),
+            vec3(-2.0, -1.0, 0.0),
+            vec3(2.0, -1.0, 0.0),
+        );
+        // vertex will be hit at 0.0, 0.0, 0.0
+        let sphere = Sphere::new(vec3(0.0, 4.0, 0.0), 1.0);
+        let movement = vec3(0.0, -8.0, 0.0);
+        let c = detect(&sphere, &triangle, &movement);
+        assert_eq!(c.unwrap().t0, 0.5);
     }
 }
