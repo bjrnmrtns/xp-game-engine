@@ -14,6 +14,13 @@ fn signed_distance(p: &Vec3, plane_constant: f32, n: &Vec3) -> f32 {
 pub fn detect(sphere: &Sphere, triangle: &Triangle, movement: &Vec3) -> Option<Collision> {
     assert_eq!(sphere.r, 1.0);
     let normal = triangle.normal().normalize();
+    let normalized_movement = movement.normalize();
+
+    //check if triangle is facing towards movement
+    if dot(&normal, &normalized_movement) <= 0.0 {
+        return None;
+    }
+
     let sd = signed_distance(&sphere.c, triangle.plane_constant(), &normal);
     let plane_normal_dot_movement = dot(&normal, &movement);
     if plane_normal_dot_movement == 0.0 && sd.abs() >= 1.0 {
