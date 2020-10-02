@@ -4,7 +4,6 @@ use xp_math::get_roots;
 
 pub struct Collision {
     pub t0: f32,
-    pub t1: f32,
 }
 
 // plane constant is a point on the plane
@@ -12,16 +11,17 @@ fn signed_distance(p: &Vec3, plane_constant: f32, n: &Vec3) -> f32 {
     dot(&n, &p) + plane_constant
 }
 
-fn min2(val0: f32, val1: f32) -> f32 {
-    if val0 < val1 {
-        val0
-    } else {
-        val1
+fn min(vals: &[f32]) -> Option<f32> {
+    if vals.is_empty() {
+        return None;
     }
-}
-fn min3(val0: f32, val1: f32, val2: f32) -> f32 {
-    let min = min2(val0, val1);
-    min2(min, val2)
+    let mut min = vals[0];
+    for val in vals {
+        if *val < min {
+            min = *val;
+        }
+    }
+    Some(min)
 }
 
 fn detect_triangle_collision(
@@ -38,29 +38,48 @@ fn detect_triangle_collision(
         return None;
     }
     let t0 = if t0 > 0.0 { t0 } else { 0.0 };
-    let t1 = if t1 < 1.0 { t1 } else { 1.0 };
     let p = sphere.c + movement * t0;
     if triangle.point_in_triangle(&p) {
-        return Some(Collision { t0, t1 });
+        return Some(Collision { t0 });
     }
     None
 }
 
-fn detect_vertex_collision(
-    sphere: &Sphere,
-    triangle: &Triangle,
-    movement: &Vec3,
-) -> Option<Collision> {
-    None
+fn detect_vertex_collision(sphere: &Sphere, triangle: &Triangle, movement: &Vec3) -> Vec<f32> {
+    let movement_length = nalgebra_glm::length(&movement);
+    let a = movement_length * movement_length;
+    let b = 2.0 * dot(&movement, &(sphere.c - triangle.v0));
+    let c = nalgebra_glm::length(&(triangle.v0 - sphere.c));
+    let c = c * c - 1.0;
+    let b1 = 2.0 * dot(&movement, &(sphere.c - triangle.v1));
+    let c1 = nalgebra_glm::length(&(triangle.v1 - sphere.c));
+    let c1 = c1 * c1 - 1.0;
+    let b2 = 2.0 * dot(&movement, &(sphere.c - triangle.v2));
+    let c2 = nalgebra_glm::length(&(triangle.v2 - sphere.c));
+    let c2 = c2 * c2 - 1.0;
+    let ts_v0 = get_roots(a, b, c);
+    let ts_v1 = get_roots(a, b1, c1);
+    let ts_v2 = get_roots(a, b2, c2);
+    let mut ts = Vec::new();
+    if let Some(ts_v0) = ts_v0 {
+        ts.extend_from_slice(&[ts_v0.0, ts_v0.1])
+    }
+    if let Some(ts_v1) = ts_v1 {
+        ts.extend_from_slice(&[ts_v1.0, ts_v1.1])
+    }
+    if let Some(ts_v2) = ts_v2 {
+        ts.extend_from_slice(&[ts_v2.0, ts_v2.1])
+    }
+    ts
 }
 
-fn detect_edge_collision(
+/*fn detect_edge_collision(
     sphere: &Sphere,
     triangle: &Triangle,
     movement: &Vec3,
 ) -> Option<Collision> {
     None
-}
+}*/
 
 pub fn detect(sphere: &Sphere, triangle: &Triangle, movement: &Vec3) -> Option<Collision> {
     assert_eq!(sphere.r, 1.0);
@@ -90,24 +109,12 @@ pub fn detect(sphere: &Sphere, triangle: &Triangle, movement: &Vec3) -> Option<C
             return Some(collision);
         }
     }
-
-    let t0 = 0.0;
-    let t1 = 1.0;
-    // sphere embedded in plane
-    let movement_length = nalgebra_glm::length(&movement);
-    let a = movement_length * movement_length;
-    let b = 2.0 * dot(&movement, &(sphere.c - triangle.v0));
-    let c = nalgebra_glm::length(&(triangle.v0 - sphere.c));
-    let c = c * c - 1.0;
-    let b1 = 2.0 * dot(&movement, &(sphere.c - triangle.v1));
-    let c1 = nalgebra_glm::length(&(triangle.v1 - sphere.c));
-    let c1 = c1 * c1 - 1.0;
-    let b2 = 2.0 * dot(&movement, &(sphere.c - triangle.v2));
-    let c2 = nalgebra_glm::length(&(triangle.v2 - sphere.c));
-    let c2 = c2 * c2 - 1.0;
-    let ts_v0 = get_roots(a, b, c);
-    let ts_v1 = get_roots(a, b1, c1);
-    let ts_v2 = get_roots(a, b2, c2);
+    let ts = detect_vertex_collision(&sphere, &triangle, &movement);
+    if let Some(val) = min(ts.as_slice()) {
+        if val >= 0.0 {
+            return Some(Collision { t0: val });
+        }
+    }
     None
 }
 
@@ -141,6 +148,6 @@ mod tests {
         let sphere = Sphere::new(vec3(0.0, 4.0, 0.0), 1.0);
         let movement = vec3(0.0, -8.0, 0.0);
         let c = detect(&sphere, &triangle, &movement);
-        assert_eq!(c.unwrap().t0, 0.5);
+        assert_eq!(c.unwrap().t0, 0.375);
     }
 }
