@@ -1,12 +1,6 @@
-use crate::{Sphere, Triangle};
+use crate::{Collision, Sphere, Triangle};
 use nalgebra_glm::{dot, Vec3};
 use xp_math::get_roots;
-
-pub struct Collision {
-    pub time_to_collision: f32,
-    pub distance_to_collision: f32,
-    pub position_of_collision: Vec3,
-}
 
 // plane constant is a point on the plane
 fn signed_distance(p: &Vec3, plane_constant: f32, n: &Vec3) -> f32 {
