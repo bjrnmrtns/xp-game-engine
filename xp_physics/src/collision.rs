@@ -45,9 +45,13 @@ fn detect_triangle_collision(
     None
 }
 
-fn detect_vertex_collision(sphere: &Sphere, triangle: &Triangle, movement: &Vec3) -> Vec<f32> {
-    let movement_length = nalgebra_glm::length(&movement);
-    let a = movement_length * movement_length;
+fn detect_vertices_collision(
+    sphere: &Sphere,
+    triangle: &Triangle,
+    movement: &Vec3,
+    movement_squared_length: f32,
+) -> Vec<f32> {
+    let a = movement_squared_length;
     let b = 2.0 * dot(&movement, &(sphere.c - triangle.v0));
     let c = nalgebra_glm::length(&(triangle.v0 - sphere.c));
     let c = c * c - 1.0;
@@ -73,13 +77,76 @@ fn detect_vertex_collision(sphere: &Sphere, triangle: &Triangle, movement: &Vec3
     ts
 }
 
-/*fn detect_edge_collision(
+fn detect_edge_collision(
+    sphere: &Sphere,
+    v0: &Vec3,
+    v1: &Vec3,
+    movement: &Vec3,
+    movement_squared_length: f32,
+) -> Vec<f32> {
+    let edge = v1 - v0;
+    let base_to_vertex = v0 - sphere.c;
+    let base_to_vertex_length = nalgebra_glm::length(&base_to_vertex);
+    let edge_length = nalgebra_glm::length(&edge);
+    let edge_length_squared = edge_length * edge_length;
+    let edge_dot_movement = dot(&edge, &movement);
+    let edge_dot_base_to_vertex = dot(&edge, &base_to_vertex);
+
+    let a = edge_length_squared * -movement_squared_length + edge_dot_movement * edge_dot_movement;
+    let b = edge_length_squared * (2.0 * dot(&movement, &base_to_vertex))
+        - 2.0 * edge_dot_movement * edge_dot_base_to_vertex;
+    let c = edge_length_squared * (1.0 - base_to_vertex_length * base_to_vertex_length)
+        + edge_dot_base_to_vertex * edge_dot_base_to_vertex;
+    let mut ts = Vec::new();
+    if let Some((r0, r1)) = get_roots(a, b, c) {
+        let t = min(&[r0, r1]).unwrap();
+        let f = (edge_dot_movement * t - edge_dot_base_to_vertex) / edge_length_squared;
+        if f >= 0.0 && f <= 1.0 {
+            ts.push(t);
+        }
+    }
+    ts
+}
+
+fn detect_edges_collision(
     sphere: &Sphere,
     triangle: &Triangle,
     movement: &Vec3,
-) -> Option<Collision> {
-    None
-}*/
+    movement_squared_length: f32,
+) -> Vec<f32> {
+    let mut ts = Vec::new();
+    ts.extend_from_slice(
+        detect_edge_collision(
+            &sphere,
+            &triangle.v0,
+            &triangle.v1,
+            &movement,
+            movement_squared_length,
+        )
+        .as_slice(),
+    );
+    ts.extend_from_slice(
+        detect_edge_collision(
+            &sphere,
+            &triangle.v1,
+            &triangle.v2,
+            &movement,
+            movement_squared_length,
+        )
+        .as_slice(),
+    );
+    ts.extend_from_slice(
+        detect_edge_collision(
+            &sphere,
+            &triangle.v2,
+            &triangle.v0,
+            &movement,
+            movement_squared_length,
+        )
+        .as_slice(),
+    );
+    ts
+}
 
 pub fn detect(sphere: &Sphere, triangle: &Triangle, movement: &Vec3) -> Option<Collision> {
     assert_eq!(sphere.r, 1.0);
@@ -109,7 +176,12 @@ pub fn detect(sphere: &Sphere, triangle: &Triangle, movement: &Vec3) -> Option<C
             return Some(collision);
         }
     }
-    let ts = detect_vertex_collision(&sphere, &triangle, &movement);
+    let movement_length = nalgebra_glm::length(&movement);
+    let movement_squared_length = movement_length * movement_length;
+    let mut ts = detect_vertices_collision(&sphere, &triangle, &movement, movement_squared_length);
+    ts.extend_from_slice(
+        detect_edges_collision(&sphere, &triangle, &movement, movement_squared_length).as_slice(),
+    );
     if let Some(val) = min(ts.as_slice()) {
         if val >= 0.0 {
             return Some(Collision { t0: val });
@@ -138,7 +210,7 @@ mod tests {
     }
 
     #[test]
-    fn test_detect_where_collision_against_triangle_vertex() {
+    fn test_detect_where_collision_against_vertex() {
         let triangle = Triangle::new(
             vec3(0.0, 0.0, 0.0),
             vec3(-2.0, -1.0, 0.0),
@@ -149,5 +221,19 @@ mod tests {
         let movement = vec3(0.0, -8.0, 0.0);
         let c = detect(&sphere, &triangle, &movement);
         assert_eq!(c.unwrap().t0, 0.375);
+    }
+
+    #[test]
+    fn test_detect_where_collision_against_edge() {
+        let triangle = Triangle::new(
+            vec3(0.0, -2.0, 0.0),
+            vec3(-2.0, -1.0, 0.0),
+            vec3(2.0, -1.0, 0.0),
+        );
+        // vertex will be hit at 0.0, 0.0, 0.0
+        let sphere = Sphere::new(vec3(0.0, 4.0, 0.0), 1.0);
+        let movement = vec3(0.0, -8.0, 0.0);
+        let c = detect(&sphere, &triangle, &movement);
+        assert_eq!(c.unwrap().t0, 0.5);
     }
 }
