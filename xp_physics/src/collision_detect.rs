@@ -3,7 +3,9 @@ use nalgebra_glm::{dot, Vec3};
 use xp_math::get_roots;
 
 pub struct Collision {
-    pub t0: f32,
+    pub time_to_collision: f32,
+    pub distance_to_collision: f32,
+    pub position_of_collision: Vec3,
 }
 
 // plane constant is a point on the plane
@@ -30,7 +32,7 @@ fn detect_triangle_collision(
     movement: &Vec3,
     signed_distance: f32,
     plane_normal_dot_movement: f32,
-) -> Option<Collision> {
+) -> Option<f32> {
     let t0 = (1.0 - signed_distance) / plane_normal_dot_movement;
     let t1 = (-1.0 - signed_distance) / plane_normal_dot_movement;
     let (t0, t1) = if t0 < t1 { (t0, t1) } else { (t1, t0) };
@@ -40,7 +42,7 @@ fn detect_triangle_collision(
     let t0 = if t0 > 0.0 { t0 } else { 0.0 };
     let p = sphere.c + movement * t0;
     if triangle.point_in_triangle(&p) {
-        return Some(Collision { t0 });
+        return Some(t0);
     }
     None
 }
@@ -155,6 +157,7 @@ fn detect_edges_collision(
     ts
 }
 
+// Sphere/Triangle collision detection Kasper Fauerby (2003) (Swept Sphere Volume Continuous Collision Detection)
 pub fn detect_sphere_triangle(
     sphere: &Sphere,
     triangle: &Triangle,
@@ -178,24 +181,33 @@ pub fn detect_sphere_triangle(
         return None;
     }
 
+    let movement_length = nalgebra_glm::length(&movement);
+    let movement_squared_length = movement_length * movement_length;
+
     // if the movment is not parallel to the plane and is more that sphere radius away, we check
     // if we get a plane collision and later a inside triangle collision
     if plane_normal_dot_movement != 0.0 && sd.abs() >= 1.0 {
-        if let Some(collision) =
+        if let Some(t) =
             detect_triangle_collision(&sphere, &triangle, &movement, sd, plane_normal_dot_movement)
         {
-            return Some(collision);
+            return Some(Collision {
+                time_to_collision: t,
+                distance_to_collision: movement_length * t,
+                position_of_collision: sphere.c + movement * t,
+            });
         }
     }
-    let movement_length = nalgebra_glm::length(&movement);
-    let movement_squared_length = movement_length * movement_length;
     let mut ts = detect_vertices_collision(&sphere, &triangle, &movement, movement_squared_length);
     ts.extend_from_slice(
         detect_edges_collision(&sphere, &triangle, &movement, movement_squared_length).as_slice(),
     );
-    if let Some(val) = min(ts.as_slice()) {
-        if val >= 0.0 {
-            return Some(Collision { t0: val });
+    if let Some(t) = min(ts.as_slice()) {
+        if t > 0.0 {
+            return Some(Collision {
+                time_to_collision: t,
+                distance_to_collision: movement_length * t,
+                position_of_collision: sphere.c + movement * t,
+            });
         }
     }
     None
@@ -203,7 +215,7 @@ pub fn detect_sphere_triangle(
 
 #[cfg(test)]
 mod tests {
-    use crate::collision::detect_sphere_triangle;
+    use crate::collision_detect::detect_sphere_triangle;
     use crate::{Sphere, Triangle};
     use nalgebra_glm::vec3;
 
@@ -217,7 +229,7 @@ mod tests {
         let sphere = Sphere::new(vec3(0.0, 4.0, 0.0), 1.0);
         let movement = vec3(0.0, -2.0, 0.0);
         let c = detect_sphere_triangle(&sphere, &triangle, &movement);
-        assert_eq!(c.unwrap().t0, 0.5);
+        assert_eq!(c.unwrap().time_to_collision, 0.5);
     }
 
     #[test]
@@ -231,7 +243,7 @@ mod tests {
         let sphere = Sphere::new(vec3(0.0, 4.0, 0.0), 1.0);
         let movement = vec3(0.0, -8.0, 0.0);
         let c = detect_sphere_triangle(&sphere, &triangle, &movement);
-        assert_eq!(c.unwrap().t0, 0.375);
+        assert_eq!(c.unwrap().time_to_collision, 0.375);
     }
 
     #[test]
@@ -245,6 +257,6 @@ mod tests {
         let sphere = Sphere::new(vec3(0.0, 4.0, 0.0), 1.0);
         let movement = vec3(0.0, -8.0, 0.0);
         let c = detect_sphere_triangle(&sphere, &triangle, &movement);
-        assert_eq!(c.unwrap().t0, 0.5);
+        assert_eq!(c.unwrap().time_to_collision, 0.5);
     }
 }
