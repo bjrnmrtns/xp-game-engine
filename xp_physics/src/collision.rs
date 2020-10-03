@@ -45,35 +45,42 @@ fn detect_triangle_collision(
     None
 }
 
+fn detect_vertex_collision(
+    sphere: &Sphere,
+    v0: &Vec3,
+    movement: &Vec3,
+    movement_squared_length: f32,
+) -> Vec<f32> {
+    let a = movement_squared_length;
+    let b = 2.0 * dot(&movement, &(sphere.c - v0));
+    let c = nalgebra_glm::length(&(v0 - sphere.c));
+    let c = c * c - 1.0;
+    let mut ts = Vec::new();
+    if let Some(ts_v) = get_roots(a, b, c) {
+        ts.extend_from_slice(&[ts_v.0, ts_v.1])
+    }
+    ts
+}
+
 fn detect_vertices_collision(
     sphere: &Sphere,
     triangle: &Triangle,
     movement: &Vec3,
     movement_squared_length: f32,
 ) -> Vec<f32> {
-    let a = movement_squared_length;
-    let b = 2.0 * dot(&movement, &(sphere.c - triangle.v0));
-    let c = nalgebra_glm::length(&(triangle.v0 - sphere.c));
-    let c = c * c - 1.0;
-    let b1 = 2.0 * dot(&movement, &(sphere.c - triangle.v1));
-    let c1 = nalgebra_glm::length(&(triangle.v1 - sphere.c));
-    let c1 = c1 * c1 - 1.0;
-    let b2 = 2.0 * dot(&movement, &(sphere.c - triangle.v2));
-    let c2 = nalgebra_glm::length(&(triangle.v2 - sphere.c));
-    let c2 = c2 * c2 - 1.0;
-    let ts_v0 = get_roots(a, b, c);
-    let ts_v1 = get_roots(a, b1, c1);
-    let ts_v2 = get_roots(a, b2, c2);
     let mut ts = Vec::new();
-    if let Some(ts_v0) = ts_v0 {
-        ts.extend_from_slice(&[ts_v0.0, ts_v0.1])
-    }
-    if let Some(ts_v1) = ts_v1 {
-        ts.extend_from_slice(&[ts_v1.0, ts_v1.1])
-    }
-    if let Some(ts_v2) = ts_v2 {
-        ts.extend_from_slice(&[ts_v2.0, ts_v2.1])
-    }
+    ts.extend_from_slice(
+        detect_vertex_collision(&sphere, &triangle.v0, &movement, movement_squared_length)
+            .as_slice(),
+    );
+    ts.extend_from_slice(
+        detect_vertex_collision(&sphere, &triangle.v1, &movement, movement_squared_length)
+            .as_slice(),
+    );
+    ts.extend_from_slice(
+        detect_vertex_collision(&sphere, &triangle.v2, &movement, movement_squared_length)
+            .as_slice(),
+    );
     ts
 }
 
@@ -148,7 +155,11 @@ fn detect_edges_collision(
     ts
 }
 
-pub fn detect(sphere: &Sphere, triangle: &Triangle, movement: &Vec3) -> Option<Collision> {
+pub fn detect_sphere_triangle(
+    sphere: &Sphere,
+    triangle: &Triangle,
+    movement: &Vec3,
+) -> Option<Collision> {
     assert_eq!(sphere.r, 1.0);
     let normal = triangle.normal().normalize();
     let normalized_movement = movement.normalize();
@@ -192,7 +203,7 @@ pub fn detect(sphere: &Sphere, triangle: &Triangle, movement: &Vec3) -> Option<C
 
 #[cfg(test)]
 mod tests {
-    use crate::collision::detect;
+    use crate::collision::detect_sphere_triangle;
     use crate::{Sphere, Triangle};
     use nalgebra_glm::vec3;
 
@@ -205,7 +216,7 @@ mod tests {
         );
         let sphere = Sphere::new(vec3(0.0, 4.0, 0.0), 1.0);
         let movement = vec3(0.0, -2.0, 0.0);
-        let c = detect(&sphere, &triangle, &movement);
+        let c = detect_sphere_triangle(&sphere, &triangle, &movement);
         assert_eq!(c.unwrap().t0, 0.5);
     }
 
@@ -219,7 +230,7 @@ mod tests {
         // vertex will be hit at 0.0, 0.0, 0.0
         let sphere = Sphere::new(vec3(0.0, 4.0, 0.0), 1.0);
         let movement = vec3(0.0, -8.0, 0.0);
-        let c = detect(&sphere, &triangle, &movement);
+        let c = detect_sphere_triangle(&sphere, &triangle, &movement);
         assert_eq!(c.unwrap().t0, 0.375);
     }
 
@@ -233,7 +244,7 @@ mod tests {
         // vertex will be hit at 0.0, 0.0, 0.0
         let sphere = Sphere::new(vec3(0.0, 4.0, 0.0), 1.0);
         let movement = vec3(0.0, -8.0, 0.0);
-        let c = detect(&sphere, &triangle, &movement);
+        let c = detect_sphere_triangle(&sphere, &triangle, &movement);
         assert_eq!(c.unwrap().t0, 0.5);
     }
 }
