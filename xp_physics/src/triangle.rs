@@ -31,6 +31,12 @@ pub fn point_in_triangle(p0: &Vec3, p1: &Vec3, p2: &Vec3, p: &Vec3) -> bool {
     return u >= 0.0 && v >= 0.0 && u + v <= 1.0;
 }
 
+pub fn plane_constant(point_on_plane: &Vec3, plane_normal_normalized: &Vec3) -> f32 {
+    -(plane_normal_normalized.x * point_on_plane.x
+        + plane_normal_normalized.y * point_on_plane.y
+        + plane_normal_normalized.z * point_on_plane.z)
+}
+
 impl Triangle {
     pub fn new(v0: Vec3, v1: Vec3, v2: Vec3) -> Self {
         Self { v0, v1, v2 }
@@ -40,7 +46,7 @@ impl Triangle {
     }
     pub fn plane_constant(&self) -> f32 {
         let normal = self.normal().normalize();
-        -(normal.x * self.v0.x + normal.y * self.v0.y + normal.z * self.v0.z)
+        plane_constant(&self.v0, &normal)
     }
     pub fn point_in_triangle(&self, p: &Vec3) -> bool {
         point_in_triangle(&self.v0, &self.v1, &self.v2, &p)

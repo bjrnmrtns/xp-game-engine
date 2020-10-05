@@ -185,9 +185,9 @@ pub fn detect_sphere_triangle(
             detect_triangle_collision(&sphere, &triangle, &movement, sd, plane_normal_dot_movement)
         {
             return Some(Collision {
-                time_to_collision: t,
-                distance_to_collision: movement_length * t,
-                position_of_collision: sphere.c + movement * t,
+                time_to: t,
+                distance_to: movement_length * t,
+                position: sphere.c + movement * t,
             });
         }
     }
@@ -198,9 +198,9 @@ pub fn detect_sphere_triangle(
     if let Some(t) = min(ts.as_slice()) {
         if t > 0.0 {
             return Some(Collision {
-                time_to_collision: t,
-                distance_to_collision: movement_length * t,
-                position_of_collision: sphere.c + movement * t,
+                time_to: t,
+                distance_to: movement_length * t,
+                position: sphere.c + movement * t,
             });
         }
     }
@@ -223,7 +223,7 @@ mod tests {
         let sphere = Sphere::new(vec3(0.0, 4.0, 0.0), 1.0);
         let movement = vec3(0.0, -2.0, 0.0);
         let c = detect_sphere_triangle(&sphere, &triangle, &movement);
-        assert_eq!(c.unwrap().time_to_collision, 0.5);
+        assert_eq!(c.unwrap().time_to, 0.5);
     }
 
     #[test]
@@ -237,7 +237,7 @@ mod tests {
         let sphere = Sphere::new(vec3(0.0, 4.0, 0.0), 1.0);
         let movement = vec3(0.0, -8.0, 0.0);
         let c = detect_sphere_triangle(&sphere, &triangle, &movement);
-        assert_eq!(c.unwrap().time_to_collision, 0.375);
+        assert_eq!(c.unwrap().time_to, 0.375);
     }
 
     #[test]
@@ -251,6 +251,6 @@ mod tests {
         let sphere = Sphere::new(vec3(0.0, 4.0, 0.0), 1.0);
         let movement = vec3(0.0, -8.0, 0.0);
         let c = detect_sphere_triangle(&sphere, &triangle, &movement);
-        assert_eq!(c.unwrap().time_to_collision, 0.5);
+        assert_eq!(c.unwrap().time_to, 0.5);
     }
 }
