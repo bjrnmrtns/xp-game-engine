@@ -1,9 +1,11 @@
 use crate::response::Response;
 use crate::triangle::plane_constant;
 use crate::{Collision, Sphere};
-use nalgebra_glm::{dot, Vec3};
+use nalgebra_glm::dot;
 
-pub fn collision_response(sphere: &Sphere, movement: &Vec3, collision: &Collision) -> Response {
+pub fn sphere_triangle_calculate_response(response: &Response, collision: &Collision) -> Response {
+    let sphere = &response.sphere;
+    let movement = &response.movement;
     // The paper adjusts the sliding plane VERY_CLOSE_DISTANCE in front of the actual collision
     // but it does so moving in the direction of the sphere center, so the sliding plane can still be
     // very close (if the movement is almost parallel to the the plane of collision.

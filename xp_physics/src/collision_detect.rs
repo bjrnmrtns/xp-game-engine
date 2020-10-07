@@ -1,4 +1,4 @@
-use crate::{Collision, Sphere, Triangle};
+use crate::{Collision, Response, Sphere, Triangle};
 use nalgebra_glm::{dot, Vec3};
 use xp_math::get_roots;
 
@@ -152,11 +152,12 @@ fn detect_edges_collision(
 }
 
 // Sphere/Triangle collision detection Kasper Fauerby (2003) (Swept Sphere Volume Continuous Collision Detection)
-pub fn detect_sphere_triangle(
-    sphere: &Sphere,
+pub fn sphere_triangle_detect_collision(
+    response: &Response,
     triangle: &Triangle,
-    movement: &Vec3,
 ) -> Option<Collision> {
+    let sphere = &response.sphere;
+    let movement = &response.movement;
     assert_eq!(sphere.r, 1.0);
     let normal = triangle.normal().normalize();
     let normalized_movement = movement.normalize();
@@ -209,8 +210,8 @@ pub fn detect_sphere_triangle(
 
 #[cfg(test)]
 mod tests {
-    use crate::collision_detect::detect_sphere_triangle;
-    use crate::{Sphere, Triangle};
+    use crate::collision_detect::sphere_triangle_detect_collision;
+    use crate::{Response, Sphere, Triangle};
     use nalgebra_glm::vec3;
 
     #[test]
@@ -222,7 +223,7 @@ mod tests {
         );
         let sphere = Sphere::new(vec3(0.0, 4.0, 0.0), 1.0);
         let movement = vec3(0.0, -2.0, 0.0);
-        let c = detect_sphere_triangle(&sphere, &triangle, &movement);
+        let c = sphere_triangle_detect_collision(&Response { sphere, movement }, &triangle);
         assert_eq!(c.unwrap().time_to, 0.5);
     }
 
@@ -236,7 +237,7 @@ mod tests {
         // vertex will be hit at 0.0, 0.0, 0.0
         let sphere = Sphere::new(vec3(0.0, 4.0, 0.0), 1.0);
         let movement = vec3(0.0, -8.0, 0.0);
-        let c = detect_sphere_triangle(&sphere, &triangle, &movement);
+        let c = sphere_triangle_detect_collision(&Response { sphere, movement }, &triangle);
         assert_eq!(c.unwrap().time_to, 0.375);
     }
 
@@ -250,7 +251,7 @@ mod tests {
         // vertex will be hit at 0.0, 0.0, 0.0
         let sphere = Sphere::new(vec3(0.0, 4.0, 0.0), 1.0);
         let movement = vec3(0.0, -8.0, 0.0);
-        let c = detect_sphere_triangle(&sphere, &triangle, &movement);
+        let c = sphere_triangle_detect_collision(&Response { sphere, movement }, &triangle);
         assert_eq!(c.unwrap().time_to, 0.5);
     }
 }
