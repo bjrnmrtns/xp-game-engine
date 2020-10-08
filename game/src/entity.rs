@@ -41,12 +41,6 @@ impl Entity {
     }
 
     pub fn handle_frame(&mut self, frame_command: FrameCommand, frame_time: f32) {
-        self.fall_velocity -= 9.81 * frame_time;
-        self.pose.position.y += self.fall_velocity * frame_time;
-        if self.pose.position.y < 0.0 {
-            self.pose.position.y = 0.0
-        };
-
         if let Some(orientation_change) = frame_command.command.orientation_change {
             self.orient(orientation_change.horizontal);
         }
@@ -61,6 +55,11 @@ impl Entity {
             None => 0.0,
         };
         self.move_(forward, right);
+        self.fall_velocity -= 9.81 * frame_time;
+        self.pose.position.y += self.fall_velocity * frame_time;
+        if self.pose.position.y < 0.0 {
+            self.pose.position.y = 0.0
+        };
     }
 
     pub fn move_(&mut self, forward: f32, right: f32) {

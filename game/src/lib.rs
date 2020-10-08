@@ -9,4 +9,6 @@ pub mod input;
 pub mod mesh;
 pub mod obj;
 pub mod simulation;
-mod transformation;
+pub mod transformation;
+
+pub mod terrain;

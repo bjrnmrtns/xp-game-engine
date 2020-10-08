@@ -1,8 +1,8 @@
-use crate::graphics;
 use crate::graphics::error::GraphicsError;
 use crate::graphics::{create_drawable_from, texture, Drawable};
+use crate::terrain;
+use crate::terrain::Generator;
 use nalgebra_glm::{identity, vec3, Mat4, Vec3};
-use noise::NoiseFn;
 use std::io::Read;
 use wgpu::util::DeviceExt;
 use wgpu::{BindingResource, Device, RenderPass, TextureViewDimension};
@@ -138,6 +138,7 @@ pub struct Renderable {
     pub bind_group: wgpu::BindGroup,
     pub render_pipeline: wgpu::RenderPipeline,
     pub texture: wgpu::Texture,
+    pub generator: Box<dyn Generator>,
 
     uniforms: Uniforms,
     pub clipmap_data: Clipmap,
@@ -454,11 +455,11 @@ impl Renderable {
             texture,
             uniforms,
             clipmap_data: Clipmap::new(CM_MAX_LEVELS),
+            generator: Box::new(terrain::Fbm::new()),
         })
     }
 
     pub fn pre_render(&mut self, queue: &wgpu::Queue, uniforms: Uniforms) {
-        let perlin = Fbm::new();
         self.uniforms = uniforms;
         self.clipmap_data.copy_regions.clear();
         for level in 0..CM_MAX_LEVELS {
@@ -469,7 +470,7 @@ impl Renderable {
                     self.uniforms.camera_position.z,
                 ],
                 level,
-                &perlin,
+                &*self.generator,
             );
         }
         queue.write_buffer(
@@ -790,39 +791,6 @@ pub fn create_grid(size_x: u32, size_z: u32) -> (Vec<Vertex>, Vec<u32>) {
     (vertices, indices)
 }
 
-pub trait Generator {
-    fn generate(&self, pos: [f32; 2]) -> f32;
-}
-
-struct Sine;
-
-impl graphics::clipmap::Generator for Sine {
-    fn generate(&self, pos: [f32; 2]) -> f32 {
-        (pos[0] / 4.0).sin() + (pos[1] / 4.0).sin()
-    }
-}
-
-struct Fbm {
-    noise: noise::Fbm,
-}
-
-impl Fbm {
-    pub fn new() -> Self {
-        Self {
-            noise: noise::Fbm::new(),
-        }
-    }
-}
-
-impl graphics::clipmap::Generator for Fbm {
-    fn generate(&self, pos: [f32; 2]) -> f32 {
-        (self
-            .noise
-            .get([(pos[0] / 40.0) as f64, (pos[1] / 40.0) as f64])
-            * 10.0) as f32
-    }
-}
-
 fn level_factor(level: u32) -> u32 {
     2u32.pow(level)
 }
@@ -849,12 +817,12 @@ fn equal_coords(first: &[i32; 2], second: &[i32; 2]) -> bool {
     first[0] == second[0] && first[1] == second[1]
 }
 
-fn update_xrows<T: Generator>(
+fn update_xrows(
     clipmap: &mut Clipmap,
     xrange: &std::ops::Range<i32>,
     zstart: i32,
     level: u32,
-    generator: &T,
+    generator: &dyn terrain::Generator,
 ) {
     let unit_size = unit_size_for_level(level);
     for z in zstart..zstart + CM_TEXTURE_SIZE as i32 {
@@ -869,12 +837,12 @@ fn update_xrows<T: Generator>(
     }
 }
 
-fn update_zrows<T: Generator>(
+fn update_zrows(
     clipmap: &mut Clipmap,
     zrange: &std::ops::Range<i32>,
     xstart: i32,
     level: u32,
-    generator: &T,
+    generator: &dyn terrain::Generator,
 ) {
     let unit_size = unit_size_for_level(level);
     for z in zrange.clone() {
@@ -889,11 +857,11 @@ fn update_zrows<T: Generator>(
     }
 }
 
-fn update_heightmap<T: Generator>(
+fn update_heightmap(
     mut clipmap: &mut Clipmap,
     center: [f32; 2],
     level: u32,
-    generator: &T,
+    generator: &dyn terrain::Generator,
 ) {
     let base_x = snap_to_index_for_level(center[0], level) - BASE_OFFSET as i32;
     let base_z = snap_to_index_for_level(center[1], level) - BASE_OFFSET as i32;
@@ -901,8 +869,8 @@ fn update_heightmap<T: Generator>(
         if !equal_coords(&previous, &[base_x, base_z]) {
             let xrows = calculate_update_range_1d(previous[0], base_x, CM_TEXTURE_SIZE as i32);
             let zrows = calculate_update_range_1d(previous[1], base_z, CM_TEXTURE_SIZE as i32);
-            update_xrows(&mut clipmap, &xrows, base_z, level, generator);
-            update_zrows(&mut clipmap, &zrows, base_x, level, generator);
+            update_xrows(&mut clipmap, &xrows, base_z, level, &*generator);
+            update_zrows(&mut clipmap, &zrows, base_x, level, &*generator);
 
             let xranges = calculate_copy_ranges_1d(&xrows, CM_TEXTURE_SIZE);
             for xrange in xranges {
