@@ -795,7 +795,7 @@ fn level_factor(level: u32) -> u32 {
     2u32.pow(level)
 }
 
-fn unit_size_for_level(level: u32) -> f32 {
+pub fn unit_size_for_level(level: u32) -> f32 {
     level_factor(level) as f32 * CM_UNIT_SIZE_SMALLEST
 }
 
