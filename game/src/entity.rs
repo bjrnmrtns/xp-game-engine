@@ -1,5 +1,6 @@
 use crate::client::command::FrameCommand;
 use crate::input::player_input_state::{ForwardMovement, StrafeMovement};
+use crate::terrain::Generator;
 use crate::transformation;
 use nalgebra_glm::{identity, quat_identity, quat_to_mat4, translate, vec3, Mat4, Quat, Vec3};
 
@@ -24,7 +25,6 @@ pub struct Entity {
     pub pose: Pose,
     pub collider: Collider,
     pub velocity: f32,
-    pub fall_velocity: f32,
 }
 
 impl Entity {
@@ -35,12 +35,16 @@ impl Entity {
                 orientation: quat_identity(),
             },
             collider: Collider::Sphere { radius: 1.0 },
-            velocity: 6.0,
-            fall_velocity: 0.0,
+            velocity: 3.0,
         }
     }
 
-    pub fn handle_frame(&mut self, frame_command: FrameCommand, frame_time: f32) {
+    pub fn handle_frame(
+        &mut self,
+        frame_command: FrameCommand,
+        frame_time: f32,
+        generator: &dyn Generator,
+    ) {
         if let Some(orientation_change) = frame_command.command.orientation_change {
             self.orient(orientation_change.horizontal);
         }
@@ -55,10 +59,10 @@ impl Entity {
             None => 0.0,
         };
         self.move_(forward, right);
-        self.fall_velocity -= 9.81 * frame_time;
-        self.pose.position.y += self.fall_velocity * frame_time;
-        if self.pose.position.y < 0.0 {
-            self.pose.position.y = 0.0
+        self.pose.position.y -= 9.81 * frame_time;
+        let height_at_pos = generator.generate([self.pose.position.x, self.pose.position.z]);
+        if self.pose.position.y < height_at_pos + 1.0 {
+            self.pose.position.y = height_at_pos + 1.0;
         };
     }
 

@@ -126,7 +126,12 @@ fn game(options: Options) {
         let commands_received = client::receive(&mut client, frame_counter.count());
         client::send(&mut *record, commands_received.as_slice());
 
-        simulation::handle_frame(commands_received, &mut player, 1.0 / FPS as f32);
+        simulation::handle_frame(
+            commands_received,
+            &mut player,
+            1.0 / FPS as f32,
+            &*renderables.clipmap.generator,
+        );
 
         match event {
             Event::RedrawRequested(_) => {
