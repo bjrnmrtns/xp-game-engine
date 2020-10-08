@@ -44,12 +44,13 @@ impl CommandQueue {
                 left: inputs.is_key_down(VirtualKeyCode::A),
                 right: inputs.is_key_down(VirtualKeyCode::D),
             }));
-            frame.extend(
-                self.commands
-                    .iter()
-                    .filter(|c| c.0 == frame_nr)
-                    .map(|c| c.1.clone()),
-            );
+            frame.extend(self.commands.iter().filter_map(|c| {
+                if c.0 == frame_nr {
+                    return Some(c.1.clone());
+                } else {
+                    return None;
+                }
+            }));
             frames.push((frame_nr, frame));
         }
         self.last_frame_nr = current_frame_nr;
