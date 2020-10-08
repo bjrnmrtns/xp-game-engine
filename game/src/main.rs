@@ -2,8 +2,12 @@ use std::path::PathBuf;
 use std::time::Instant;
 use structopt::StructOpt;
 
+use game::client::local_client::LocalClient;
+use game::client::recording;
 use game::command_queue::CommandQueue;
 use game::graphics::clipmap;
+use game::input::input_handler::InputHandler;
+use game::input::mouse_keyboard::MouseKeyboardInputHandler;
 use game::*;
 use nalgebra_glm::{identity, ortho, perspective, vec3, Mat4};
 use winit::event::DeviceEvent::MouseMotion;
@@ -92,10 +96,9 @@ fn game(options: Options) {
 
     let mut previous_time = Instant::now();
 
-    let mut inputs = input::InputQueue::new();
+    let mut input_handler = MouseKeyboardInputHandler::new();
     let mut commands_queue = CommandQueue::new();
-    let mut simulation = simulation::Simulation {};
-    let mut client = local_client::LocalClient::new();
+    let mut client = LocalClient::new();
     let mut record = recording::try_create_recorder(options.record_path);
     let replaying = options.replay_path != None;
     let mut replay = recording::try_create_replayer(options.replay_path);
@@ -113,17 +116,17 @@ fn game(options: Options) {
         *control_flow = ControlFlow::Poll;
         frame_counter.run();
         if !replaying {
-            let input_commands = commands_queue.handle_input(&mut inputs, frame_counter.count());
-            client::send(&mut client, input_commands.as_slice());
+            let commands =
+                commands_queue.input_to_commands(&input_handler.state(), frame_counter.count());
+            client::send(&mut client, commands.as_slice());
         } else {
             let replay_commands = client::receive(&mut *replay, frame_counter.count());
             client::send(&mut client, replay_commands.as_slice());
         }
         let commands_received = client::receive(&mut client, frame_counter.count());
         client::send(&mut *record, commands_received.as_slice());
-        for frame in &commands_received {
-            let _ = simulation.handle_frame(frame, &mut player, 1.0 / FPS as f32);
-        }
+
+        simulation::handle_frame(commands_received, &mut player, 1.0 / FPS as f32);
 
         match event {
             Event::RedrawRequested(_) => {
@@ -229,7 +232,7 @@ fn game(options: Options) {
                 MouseMotion { delta } => {
                     if !game_state.ui_enabled {
                         match game_state.camera {
-                            camera::CameraType::Follow => inputs.push_mouse_movement(delta),
+                            camera::CameraType::Follow => input_handler.handle_mouse(delta),
                             _ => freelook
                                 .camera_rotate(-delta.1 as f32 / 100.0, -delta.0 as f32 / 100.0),
                         }
@@ -307,24 +310,24 @@ fn game(options: Options) {
                             game_state.camera = camera::CameraType::Follow
                         }
                     },
-                    _ => match game_state.camera {
-                        camera::CameraType::Follow => inputs.push_keyboard_input(input),
-                        _ => match input {
-                            #[allow(deprecated)]
-                            KeyboardInput {
-                                scancode: _,
-                                state: _,
-                                virtual_keycode: Some(key_code),
-                                modifiers: _,
-                            } => {
+                    _ => match input {
+                        #[allow(deprecated)]
+                        KeyboardInput {
+                            scancode: _,
+                            state: _,
+                            virtual_keycode: Some(key_code),
+                            modifiers: _,
+                        } => match game_state.camera {
+                            camera::CameraType::Follow => input_handler.handle_keyboard(&input),
+                            _ => {
                                 let forward = (key_code == &VirtualKeyCode::W) as i32
                                     - (key_code == &VirtualKeyCode::S) as i32;
                                 let right = (key_code == &VirtualKeyCode::D) as i32
                                     - (key_code == &VirtualKeyCode::A) as i32;
                                 freelook.move_(forward as f32, right as f32);
                             }
-                            _ => (),
                         },
+                        _ => (),
                     },
                 },
                 _ => {}

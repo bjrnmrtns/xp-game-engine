@@ -1,11 +1,11 @@
-use crate::client::{NullReceiver, NullSender, Receiver, Sender};
-use crate::commands::Command;
-use crate::packet;
+use crate::client::client::{NullReceiver, NullSender, Receiver, Sender};
+use crate::client::command::FrameCommand;
+use crate::client::packet;
 use std::path::PathBuf;
 
 pub struct Replayer {
     reader: Box<dyn std::io::Read>,
-    read_state: Vec<(u64, Vec<Command>)>,
+    read_state: Vec<FrameCommand>,
 }
 impl Replayer {
     pub fn new(reader: Box<dyn std::io::Read>) -> Replayer {
@@ -16,21 +16,21 @@ impl Replayer {
     }
 }
 impl Receiver for Replayer {
-    fn receive(&mut self, to_frame_nr: u64) -> Vec<(u64, Vec<Command>)> {
+    fn receive(&mut self, to_frame_nr: u64) -> Vec<FrameCommand> {
         loop {
             match packet::read(&mut *self.reader) {
                 Ok(Some(packet)) => {
-                    let mut deser: Vec<(u64, Vec<Command>)> =
+                    let mut deser: Vec<FrameCommand> =
                         serde_cbor::de::from_slice(packet.as_slice()).unwrap();
                     self.read_state.append(&mut deser);
-                    if self.read_state.iter().any(|c| c.0 >= to_frame_nr - 1) {
+                    if self.read_state.iter().any(|c| c.frame >= to_frame_nr - 1) {
                         let ret = self
                             .read_state
                             .iter()
-                            .filter(|c| c.0 < to_frame_nr)
+                            .filter(|c| c.frame < to_frame_nr)
                             .map(|c| c.clone())
                             .collect();
-                        self.read_state.retain(|c| c.0 >= to_frame_nr);
+                        self.read_state.retain(|c| c.frame >= to_frame_nr);
                         return ret;
                     }
                 }
@@ -52,7 +52,7 @@ impl Recorder {
     }
 }
 impl Sender for Recorder {
-    fn send(&mut self, commands: &[(u64, Vec<Command>)]) {
+    fn send(&mut self, commands: &[FrameCommand]) {
         packet::write(
             &mut *self.writer,
             serde_cbor::ser::to_vec(&commands).unwrap().as_slice(),

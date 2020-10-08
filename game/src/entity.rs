@@ -1,3 +1,5 @@
+use crate::client::command::FrameCommand;
+use crate::input::player_input_state::{ForwardMovement, StrafeMovement};
 use crate::transformation;
 use nalgebra_glm::{identity, quat_identity, quat_to_mat4, translate, vec3, Mat4, Quat, Vec3};
 
@@ -21,12 +23,8 @@ impl Pose {
 pub struct Entity {
     pub pose: Pose,
     pub collider: Collider,
-    pub max_acceleration: f32,
     pub velocity: f32,
     pub fall_velocity: f32,
-    pub target_velocity: f32,
-    pub max_direction_acceleration: f32,
-    pub target_direction: Option<Vec3>,
 }
 
 impl Entity {
@@ -37,14 +35,34 @@ impl Entity {
                 orientation: quat_identity(),
             },
             collider: Collider::Sphere { radius: 1.0 },
-            max_acceleration: 3.0,
-            velocity: 0.0,
+            velocity: 6.0,
             fall_velocity: 0.0,
-            target_velocity: 0.0,
-            max_direction_acceleration: 0.5 * std::f32::consts::PI,
-            target_direction: None,
         }
     }
+
+    pub fn handle_frame(&mut self, frame_command: FrameCommand, frame_time: f32) {
+        self.fall_velocity -= 9.81 * frame_time;
+        self.pose.position.y += self.fall_velocity * frame_time;
+        if self.pose.position.y < 0.0 {
+            self.pose.position.y = 0.0
+        };
+
+        if let Some(orientation_change) = frame_command.command.orientation_change {
+            self.orient(orientation_change.horizontal);
+        }
+        let forward = match frame_command.command.forward {
+            Some(ForwardMovement::Positive) => frame_time * self.velocity,
+            Some(ForwardMovement::Negative) => frame_time * -self.velocity,
+            None => 0.0,
+        };
+        let right = match frame_command.command.strafe {
+            Some(StrafeMovement::Right) => frame_time * self.velocity,
+            Some(StrafeMovement::Left) => frame_time * -self.velocity,
+            None => 0.0,
+        };
+        self.move_(forward, right);
+    }
+
     pub fn move_(&mut self, forward: f32, right: f32) {
         self.pose.position = transformation::move_along_local_axis(
             &self.pose.position,
