@@ -7,7 +7,6 @@ pub mod entity;
 pub mod graphics;
 pub mod input;
 pub mod mesh;
-pub mod obj;
 pub mod simulation;
 pub mod transformation;
 
