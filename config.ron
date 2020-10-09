@@ -1,4 +1,4 @@
 Config(
-    clipmap_enabled: true,
-    models: ["obj/axis.obj"],
+    models: [ Model (name: "axis", location: "obj/axis.obj"), Model (name: "arrow", location: "obj/arrow.obj"),],
+    entities: [ Entity (kind: Player, model: "arrow"), Entity (kind: Static, model: "axis"),],
 )

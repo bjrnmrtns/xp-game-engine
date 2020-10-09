@@ -1,16 +1,34 @@
 use std::fs::File;
 
 #[derive(Debug, serde::Deserialize)]
+pub enum EntityKind {
+    Player,
+    Static,
+}
+
+#[derive(Debug, serde::Deserialize)]
+pub struct Model {
+    name: String,
+    location: String,
+}
+
+#[derive(Debug, serde::Deserialize)]
+pub struct Entity {
+    kind: EntityKind,
+    model: String,
+}
+
+#[derive(Debug, serde::Deserialize)]
 pub struct Config {
-    clipmap_enabled: bool,
-    models: Vec<String>,
+    models: Vec<Model>,
+    entities: Vec<Entity>,
 }
 
 impl Config {
     pub fn default() -> Self {
         Self {
-            clipmap_enabled: false,
             models: vec![],
+            entities: vec![],
         }
     }
     pub fn load_config(path: &str) -> Self {
