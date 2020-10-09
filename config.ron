@@ -1,0 +1,4 @@
+Config(
+    clipmap_enabled: true,
+    models: ["obj/axis.obj"],
+)

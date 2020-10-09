@@ -10,4 +10,5 @@ pub mod mesh;
 pub mod simulation;
 pub mod transformation;
 
+pub mod configuration;
 pub mod terrain;

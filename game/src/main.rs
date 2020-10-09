@@ -5,6 +5,7 @@ use structopt::StructOpt;
 use game::client::local_client::LocalClient;
 use game::client::recording;
 use game::command_queue::CommandQueue;
+use game::configuration::Config;
 use game::graphics::clipmap;
 use game::input::input_handler::InputHandler;
 use game::input::mouse_keyboard::MouseKeyboardInputHandler;
@@ -35,7 +36,7 @@ pub struct UIContext {
 
 const FPS: u64 = 60;
 
-fn game(options: Options) {
+fn game(options: Options, config: Config) {
     let mut game_state = UIContext {
         ui_enabled: false,
         camera: camera::CameraType::Follow,
@@ -344,5 +345,6 @@ fn game(options: Options) {
 
 fn main() {
     let options = Options::from_args();
-    game(options)
+    let config = Config::load_config("config.ron");
+    game(options, config)
 }

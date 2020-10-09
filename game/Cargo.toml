@@ -22,6 +22,7 @@ glsl-to-spirv = "0.1.7"
 bytemuck = "1.4.1"
 noise = "0.6.0"
 genmesh = "0.6.2"
+ron = "0.6.2"
 
 xp_ui = { path = "../xp_ui" }
 xp_math = { path = "../xp_math" }
