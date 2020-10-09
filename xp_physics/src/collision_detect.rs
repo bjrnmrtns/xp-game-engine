@@ -185,10 +185,12 @@ pub fn sphere_triangle_detect_collision(
         if let Some(t) =
             detect_triangle_collision(&sphere, &triangle, &movement, sd, plane_normal_dot_movement)
         {
+            let position = sphere.c + movement * t;
             return Some(Collision {
                 time_to: t,
                 distance_to: movement_length * t,
-                position: sphere.c + movement * t,
+                position,
+                intersection: position + normalized_movement * sphere.r,
             });
         }
     }
@@ -198,10 +200,12 @@ pub fn sphere_triangle_detect_collision(
     );
     if let Some(t) = min(ts.as_slice()) {
         if t > 0.0 {
+            let position = sphere.c + movement * t;
             return Some(Collision {
                 time_to: t,
                 distance_to: movement_length * t,
-                position: sphere.c + movement * t,
+                position,
+                intersection: position + normalized_movement * sphere.r,
             });
         }
     }

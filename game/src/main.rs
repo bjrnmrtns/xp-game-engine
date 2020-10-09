@@ -130,7 +130,7 @@ fn game(options: Options) {
             commands_received,
             &mut player,
             1.0 / FPS as f32,
-            &*renderables.clipmap.generator,
+            &renderables.clipmap,
         );
 
         match event {

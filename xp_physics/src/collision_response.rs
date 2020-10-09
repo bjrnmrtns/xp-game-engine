@@ -12,23 +12,24 @@ pub fn sphere_triangle_calculate_response(response: &Response, collision: &Colli
     // Also we cannot move in another direction then the center of the sphere.
     // Therefore we will not adjust, we try to fix this in the collision detection step, and make sure we do
     // adjust for floating point errors there. So no adjusting here.
-    let slide_plane_origin = collision.position;
-    let slide_plane_normal = nalgebra_glm::normalize(&(sphere.c - slide_plane_origin));
+    let slide_plane_origin = collision.intersection;
+    let slide_plane_normal = nalgebra_glm::normalize(&(collision.position - slide_plane_origin));
 
     let original_destination = sphere.c + movement;
 
     let original_destination_to_plane_distance = dot(&original_destination, &slide_plane_normal)
         + plane_constant(&slide_plane_origin, &slide_plane_normal);
+    assert!(original_destination_to_plane_distance >= 0.0);
 
     let new_destination =
         original_destination - original_destination_to_plane_distance * slide_plane_normal;
-    let movement = new_destination - collision.position;
+    let new_movement = new_destination - collision.position;
 
     Response {
         sphere: Sphere {
             c: new_destination,
             r: 1.0,
         },
-        movement,
+        movement: new_movement,
     }
 }

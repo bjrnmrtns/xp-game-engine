@@ -4,15 +4,9 @@ const GLOBAL_DIR_X: f32 = 1.0;
 const GLOBAL_DIR_Y: f32 = 1.0;
 const GLOBAL_DIR_Z: f32 = -1.0;
 
-pub fn move_along_local_axis(
-    position: &Vec3,
-    orientation: &Quat,
-    forward: f32,
-    right: f32,
-    up: f32,
-) -> Vec3 {
+pub fn move_along_local_axis(orientation: &Quat, forward: f32, right: f32, up: f32) -> Vec3 {
     // point small vector in same direction as player and add it to player position
-    let movement = vec4_to_vec3(
+    vec4_to_vec3(
         &(quat_to_mat4(&orientation)
             * vec4(
                 GLOBAL_DIR_X * right,
@@ -20,8 +14,7 @@ pub fn move_along_local_axis(
                 GLOBAL_DIR_Z * forward,
                 1.0,
             )),
-    );
-    position + movement
+    )
 }
 
 pub fn rotate_around_local_axis(

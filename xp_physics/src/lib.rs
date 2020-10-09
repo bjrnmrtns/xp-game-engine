@@ -10,8 +10,21 @@ pub use crate::response::Response;
 pub use collision::Collision;
 pub use collision_detect::sphere_triangle_detect_collision;
 pub use collision_response::sphere_triangle_calculate_response;
+use nalgebra_glm::Vec3;
 pub use sphere::Sphere;
 pub use triangle::Triangle;
+
+pub fn collision_response_non_trianulated(response: Response, triangles: &[Vec3]) -> Response {
+    let mut result = Vec::new();
+    for vs in triangles.chunks(3) {
+        result.push(Triangle {
+            v0: vs[0],
+            v1: vs[1],
+            v2: vs[2],
+        });
+    }
+    collision_response(response, result.as_slice())
+}
 
 pub fn collision_response(response: Response, triangles: &[Triangle]) -> Response {
     let mut response = response;
@@ -27,7 +40,9 @@ pub fn collision_response(response: Response, triangles: &[Triangle]) -> Respons
                 }
             });
         match closest_collision {
-            Some(c) => response = sphere_triangle_calculate_response(&response, &c),
+            Some(closest_collision) => {
+                response = sphere_triangle_calculate_response(&response, &closest_collision)
+            }
             None => {
                 break response;
             }
