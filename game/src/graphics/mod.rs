@@ -6,7 +6,6 @@ pub mod clipmap;
 pub mod debug;
 pub mod default;
 pub mod error;
-pub mod helpers;
 pub mod texture;
 pub mod ui;
 

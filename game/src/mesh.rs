@@ -1,8 +1,62 @@
 use crate::graphics;
+use crate::graphics::default::Vertex;
+use crate::graphics::Mesh;
 use genmesh::{MapToVertices, Triangulate, Vertices};
-use nalgebra_glm::Vec3;
+use nalgebra_glm::{make_vec3, triangle_normal, Vec3};
+use std::collections::HashSet;
+use std::convert::TryInto;
 use xp_physics::{Sphere, Triangle};
 use xp_ui::{Widget, UI};
+
+fn make_mesh_from_flat_obj(
+    vertices_flat: &[f32],
+    indices: &[u32],
+    in_color: &[f32; 3],
+) -> Mesh<Vertex> {
+    let mut vertices: Vec<Vertex> = vertices_flat
+        .chunks(3)
+        .map(|v| Vertex {
+            position: [v[0], v[1], v[2]],
+            normal: [0.0, 0.0, 0.0],
+            color: *in_color,
+        })
+        .collect();
+    let mut new_indices: Vec<u32> = Vec::new();
+    let mut used_as_provoking: HashSet<u32> = HashSet::new();
+    for face in indices.chunks(3) {
+        if used_as_provoking.contains(&face[0]) {
+            vertices.push(vertices[face[0] as usize].clone());
+            new_indices.extend([vertices.len() as u32 - 1, face[1], face[2]].to_vec());
+        } else {
+            used_as_provoking.insert(face[0]);
+            new_indices.extend(face);
+        }
+    }
+    for face in new_indices.chunks(3) {
+        let n = create_normal([
+            vertices[face[0] as usize].position,
+            vertices[face[1] as usize].position,
+            vertices[face[2] as usize].position,
+        ]);
+        vertices[face[0] as usize].normal = n;
+    }
+    let mesh = Mesh {
+        vertices,
+        indices: new_indices,
+    };
+    mesh
+}
+
+fn create_normal(in_positions: [[f32; 3]; 3]) -> [f32; 3] {
+    triangle_normal(
+        &make_vec3(&in_positions[0]),
+        &make_vec3(&in_positions[1]),
+        &make_vec3(&in_positions[2]),
+    )
+    .as_slice()
+    .try_into()
+    .unwrap()
+}
 
 pub fn create_collision_triangle_and_sphere(
     triangle: Triangle,
@@ -86,7 +140,7 @@ pub fn create_mesh_from(obj_file_name: &str) -> graphics::Mesh<graphics::default
         } else {
             [0.8, 0.0, 0.8]
         };
-        let model_mesh = graphics::helpers::make_mesh_from_flat_obj(
+        let model_mesh = make_mesh_from_flat_obj(
             model.mesh.positions.as_ref(),
             model.mesh.indices.as_ref(),
             &color,
