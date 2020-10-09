@@ -139,7 +139,7 @@ fn game(options: Options) {
                 // for the view matrix we can also use player_move and player_rotate, and use the inverse of the resulting matrix
                 let view = match game_state.camera {
                     camera::CameraType::FreeLook => freelook.view(),
-                    camera::CameraType::Follow => camera::view_on(&player.pose).0,
+                    camera::CameraType::Follow => camera::view_on(&player).0,
                 };
                 let current_time = Instant::now();
                 let fps = (1000.0 / (current_time - previous_time).as_millis() as f32) as u32;
@@ -165,7 +165,7 @@ fn game(options: Options) {
                 // update all renderers
                 let mut instances = Vec::new();
                 instances.push(graphics::default::Instance {
-                    model: player.pose.to_mat4(),
+                    model: player.to_mat4(),
                 });
                 instances.push(graphics::default::Instance { model: identity() });
                 renderables.default.pre_render(
@@ -182,7 +182,7 @@ fn game(options: Options) {
                     clipmap::Uniforms {
                         projection: projection_3d.clone() as Mat4,
                         view: view.clone() as Mat4,
-                        camera_position: camera::view_on(&player.pose).1, //simulation.freelook_camera.position,
+                        camera_position: camera::view_on(&player).1, //simulation.freelook_camera.position,
                     },
                 );
                 renderables.debug.pre_render(

@@ -27,6 +27,7 @@ pub fn collision_response_non_trianulated(response: Response, triangles: &[Vec3]
 }
 
 pub fn collision_response(response: Response, triangles: &[Triangle]) -> Response {
+    let mut iterations = 0;
     let mut response = response;
     loop {
         let closest_collision = triangles
@@ -41,13 +42,20 @@ pub fn collision_response(response: Response, triangles: &[Triangle]) -> Respons
             });
         match closest_collision {
             Some(closest_collision) => {
+                iterations += 1;
                 response = sphere_triangle_calculate_response(&response, &closest_collision)
             }
             None => {
+                if iterations > 0 {
+                    println!("{}", iterations);
+                }
                 break response;
             }
         }
         if nalgebra_glm::length(&response.movement) < DISTANCE_EPSILON {
+            if iterations > 0 {
+                println!("{}", iterations);
+            }
             break response;
         }
     }
