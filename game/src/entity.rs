@@ -1,5 +1,4 @@
 use crate::client::command::FrameCommand;
-use crate::graphics::clipmap;
 use crate::input::player_input_state::{ForwardMovement, StrafeMovement};
 use crate::terrain::Generator;
 use crate::transformation;
@@ -62,21 +61,19 @@ impl Entity {
             Some(StrafeMovement::Left) => frame_time * -self.velocity,
             None => 0.0,
         };
-        let mut new_position = transformation::move_along_local_axis(
+        let mut destination = transformation::move_along_local_axis(
             &self.pose.position,
             &self.pose.orientation,
             forward,
             right,
             0.0,
         );
-        new_position.y -= 9.81 * frame_time;
-        let height_at_pos = generator.generate([new_position.x, new_position.z]);
-        if new_position.y < height_at_pos + 1.0 {
-            new_position.y = height_at_pos + 1.0;
+        destination.y -= 9.81 * frame_time;
+        let height_at_pos = generator.generate([destination.x, destination.z]);
+        if destination.y < height_at_pos + 1.0 {
+            destination.y = height_at_pos + 1.0;
         };
 
-        let unit_size = clipmap::unit_size_for_level(0);
-
-        self.pose.position = new_position;
+        self.pose.position = destination;
     }
 }

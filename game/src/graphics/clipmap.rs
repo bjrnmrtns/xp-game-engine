@@ -2,7 +2,7 @@ use crate::graphics::error::GraphicsError;
 use crate::graphics::{create_drawable_from, texture, Drawable};
 use crate::terrain;
 use crate::terrain::Generator;
-use nalgebra_glm::{identity, vec3, Mat4, Vec3};
+use nalgebra_glm::{identity, vec3, Mat4, Vec2, Vec3};
 use std::io::Read;
 use wgpu::util::DeviceExt;
 use wgpu::{BindingResource, Device, RenderPass, TextureViewDimension};
@@ -665,6 +665,66 @@ impl Renderable {
             end_degen_v_left + full_level * CM_INSTANCE_SIZE_ONE_DEGENERATE..end_degen_v_right,
         );
     }
+
+    pub fn create_triangle_mesh_around(&self, coords: &[Vec2], margin: f32) -> Vec<Vec3> {
+        assert!(coords.len() > 1);
+        let order = |val0: &f32, val1: &f32| {
+            if val0 < val1 {
+                std::cmp::Ordering::Less
+            } else {
+                std::cmp::Ordering::Greater
+            }
+        };
+        let min_x = snap_down_to_index(
+            coords.iter().map(|c| c.x).min_by(order).unwrap() - margin,
+            0,
+        );
+        let min_z = snap_down_to_index(
+            coords.iter().map(|c| c.y).min_by(order).unwrap() - margin,
+            0,
+        );
+        let max_x = snap_up_to_index(
+            coords.iter().map(|c| c.x).max_by(order).unwrap() + margin,
+            0,
+        );
+        let max_z = snap_up_to_index(
+            coords.iter().map(|c| c.y).max_by(order).unwrap() + margin,
+            0,
+        );
+        let unit_size = unit_size_for_level(0);
+        let mut mesh = Vec::new();
+        for z in min_z..max_z {
+            for x in min_x..max_x {
+                let z = z as f32;
+                let x = x as f32;
+                let v0 = vec3(
+                    x * unit_size,
+                    self.generator.generate([x * unit_size, z * unit_size]),
+                    z * unit_size,
+                );
+                let v1 = vec3(
+                    (x + 1.0) * unit_size,
+                    self.generator
+                        .generate([(x + 1.0) * unit_size, z * unit_size]),
+                    z * unit_size,
+                );
+                let v2 = vec3(
+                    x * unit_size,
+                    self.generator
+                        .generate([x * unit_size, (z + 1.0) * unit_size]),
+                    (z + 1.0) * unit_size,
+                );
+                let v3 = vec3(
+                    (x + 1.0) * unit_size,
+                    self.generator
+                        .generate([(x + 1.0) * unit_size, (z + 1.0) * unit_size]),
+                    (z + 1.0) * unit_size,
+                );
+                mesh.extend_from_slice(&[v0, v2, v1, v1.clone(), v2.clone(), v3])
+            }
+        }
+        mesh
+    }
 }
 
 pub fn create_degenerates_top(size: u32) -> (Vec<Vertex>, Vec<u32>) {
@@ -795,22 +855,27 @@ fn level_factor(level: u32) -> u32 {
     2u32.pow(level)
 }
 
-pub fn unit_size_for_level(level: u32) -> f32 {
+fn unit_size_for_level(level: u32) -> f32 {
     level_factor(level) as f32 * CM_UNIT_SIZE_SMALLEST
 }
 
 fn snap_diff(val: f32, level_a: u32, level_b: u32) -> f32 {
-    snap_value_for_level(val, level_a) - snap_value_for_level(val, level_b)
+    snap_down(val, level_a) - snap_down(val, level_b)
 }
 
-fn snap_value_for_level(val: f32, level: u32) -> f32 {
+fn snap_down(val: f32, level: u32) -> f32 {
     let snap_size = unit_size_for_level(level + 1);
     (val / snap_size).floor() * snap_size
 }
 
-fn snap_to_index_for_level(val: f32, level: u32) -> i32 {
+fn snap_down_to_index(val: f32, level: u32) -> i32 {
     let snap_size = unit_size_for_level(level + 1);
     ((val / snap_size).floor() * 2.0) as i32
+}
+
+fn snap_up_to_index(val: f32, level: u32) -> i32 {
+    let snap_size = unit_size_for_level(level + 1);
+    ((val / snap_size).ceil() * 2.0) as i32
 }
 
 fn equal_coords(first: &[i32; 2], second: &[i32; 2]) -> bool {
@@ -863,8 +928,8 @@ fn update_heightmap(
     level: u32,
     generator: &dyn terrain::Generator,
 ) {
-    let base_x = snap_to_index_for_level(center[0], level) - BASE_OFFSET as i32;
-    let base_z = snap_to_index_for_level(center[1], level) - BASE_OFFSET as i32;
+    let base_x = snap_down_to_index(center[0], level) - BASE_OFFSET as i32;
+    let base_z = snap_down_to_index(center[1], level) - BASE_OFFSET as i32;
     if let Some(previous) = clipmap.base[level as usize] {
         if !equal_coords(&previous, &[base_x, base_z]) {
             let xrows = calculate_update_range_1d(previous[0], base_x, CM_TEXTURE_SIZE as i32);
