@@ -81,7 +81,7 @@ impl Renderable {
     ) -> Result<Self> {
         let (mut spirv_vs_bytes, mut spirv_fs_bytes) = (Vec::new(), Vec::new());
         match glsl_to_spirv::compile(
-            include_str!("../shader_ui.vert"),
+            include_str!("../shaders/shader_ui.vert"),
             glsl_to_spirv::ShaderType::Vertex,
         ) {
             Ok(mut spirv_vs_output) => {
@@ -92,7 +92,7 @@ impl Renderable {
             }
         }
         match glsl_to_spirv::compile(
-            include_str!("../shader_ui.frag"),
+            include_str!("../shaders/shader_ui.frag"),
             glsl_to_spirv::ShaderType::Fragment,
         ) {
             Ok(mut spirv_vs_output) => {
