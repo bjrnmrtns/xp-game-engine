@@ -6,11 +6,12 @@ use game::client::local_client::LocalClient;
 use game::client::recording;
 use game::command_queue::CommandQueue;
 use game::configuration::Config;
-use game::graphics::clipmap;
+use game::entity::{Entity, Kind};
+use game::graphics::{clipmap, Drawable};
 use game::input::input_handler::InputHandler;
 use game::input::mouse_keyboard::MouseKeyboardInputHandler;
 use game::*;
-use nalgebra_glm::{identity, ortho, perspective, vec3, Mat4};
+use nalgebra_glm::{identity, ortho, perspective, quat_identity, vec3, Mat4};
 use winit::event::DeviceEvent::MouseMotion;
 use winit::event::{ElementState, Event, KeyboardInput, MouseButton, VirtualKeyCode, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
@@ -46,11 +47,11 @@ fn game(options: Options, config: Config) {
         .build(&event_loop)
         .expect("Could not create window");
 
-    let mut player = entity::Entity::new();
-
-    //    let player_mesh = mesh::create_mesh_from("obj/arrow.obj");
-    let player_lifter_sphere_mesh = mesh::create_player_sphere();
-    let axis_mesh = mesh::create_mesh_from("obj/axis.obj");
+    let meshes: Vec<(String, graphics::Mesh<graphics::default::Vertex>)> = config
+        .models
+        .iter()
+        .map(|model| (model.name.clone(), mesh::create_mesh_from(&model.location)))
+        .collect();
 
     let collision_triangle = Triangle::new(
         vec3(-2.0, 2.0, -2.0),
@@ -88,12 +89,30 @@ fn game(options: Options, config: Config) {
         &graphics.sc_descriptor,
     ))
     .expect("Could not create graphics renderer");
-    renderables
-        .default
-        .create_drawable(&graphics.device, &player_lifter_sphere_mesh);
-    renderables
-        .default
-        .create_drawable(&graphics.device, &axis_mesh);
+    for m in meshes {
+        renderables
+            .default
+            .create_drawable(&graphics.device, m.0, &m.1);
+    }
+    renderables.default.create_drawable(
+        &graphics.device,
+        "lifter_sphere".to_string(),
+        &mesh::create_player_sphere(),
+    );
+
+    let mut entities = config
+        .entities
+        .iter()
+        .map(|e| Entity {
+            graphics_handle: renderables
+                .default
+                .get_graphics_handle(e.model_name.as_str()),
+            kind: e.kind.clone(),
+            position: vec3(0.0, 0.0, 0.0),
+            orientation: quat_identity(),
+            velocity: 0.0,
+        })
+        .collect::<Vec<_>>();
 
     let mut previous_time = Instant::now();
 
@@ -129,7 +148,7 @@ fn game(options: Options, config: Config) {
 
         simulation::handle_frame(
             commands_received,
-            &mut player,
+            &mut entities,
             1.0 / FPS as f32,
             &renderables.clipmap,
         );
@@ -140,7 +159,7 @@ fn game(options: Options, config: Config) {
                 // for the view matrix we can also use player_move and player_rotate, and use the inverse of the resulting matrix
                 let view = match game_state.camera {
                     camera::CameraType::FreeLook => freelook.view(),
-                    camera::CameraType::Follow => camera::view_on(&player).0,
+                    camera::CameraType::Follow => camera::view_on(&entities[0]).0,
                 };
                 let current_time = Instant::now();
                 let fps = (1000.0 / (current_time - previous_time).as_millis() as f32) as u32;
@@ -164,18 +183,13 @@ fn game(options: Options, config: Config) {
                 );
 
                 // update all renderers
-                let mut instances = Vec::new();
-                instances.push(graphics::default::Instance {
-                    model: player.to_mat4(),
-                });
-                instances.push(graphics::default::Instance { model: identity() });
                 renderables.default.pre_render(
                     &graphics.queue,
                     graphics::default::Uniforms {
                         projection: projection_3d.clone() as Mat4,
                         view: view.clone() as Mat4,
                     },
-                    instances,
+                    entities.as_slice(),
                 );
                 let time_before_clipmap_update = std::time::Instant::now();
                 renderables.clipmap.pre_render(
@@ -183,7 +197,7 @@ fn game(options: Options, config: Config) {
                     clipmap::Uniforms {
                         projection: projection_3d.clone() as Mat4,
                         view: view.clone() as Mat4,
-                        camera_position: camera::view_on(&player).1, //simulation.freelook_camera.position,
+                        camera_position: camera::view_on(&entities[0]).1, //simulation.freelook_camera.position,
                     },
                 );
                 renderables.debug.pre_render(

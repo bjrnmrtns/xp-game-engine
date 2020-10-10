@@ -1,6 +1,6 @@
 use crate::graphics;
 use crate::graphics::error::GraphicsError;
-use crate::graphics::{texture, Drawable, Graphics, Mesh};
+use crate::graphics::{texture, Buffer, Graphics, Mesh};
 use nalgebra_glm::{identity, Mat4};
 use std::io::Read;
 use wgpu::util::DeviceExt;
@@ -63,7 +63,7 @@ impl Vertex {
 }
 
 pub struct Renderable {
-    pub drawable: Option<Drawable>,
+    pub drawable: Option<Buffer>,
     pub uniform_bind_group: wgpu::BindGroup,
     pub uniform_buffer: wgpu::Buffer,
     pub render_pipeline: wgpu::RenderPipeline,
@@ -250,7 +250,7 @@ impl Renderable {
         ui_mesh: Option<(Mesh<Vertex>, Vec<Text>)>,
     ) {
         if let Some(ui_mesh) = ui_mesh {
-            self.drawable = Some(Drawable {
+            self.drawable = Some(Buffer {
                 vertex_buffer: device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                     label: None,
                     contents: bytemuck::cast_slice(ui_mesh.0.vertices.as_slice()),

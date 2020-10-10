@@ -1,4 +1,5 @@
 use crate::graphics::error::GraphicsError;
+use nalgebra_glm::Mat4;
 use wgpu::util::DeviceExt;
 use winit::window::Window;
 
@@ -25,20 +26,25 @@ impl<T> Mesh<T> {
     }
 }
 
-pub struct Drawable {
+pub trait Drawable {
+    fn model_matrix(&self) -> Mat4;
+    fn graphics_handle(&self) -> Option<usize>;
+}
+
+pub struct Buffer {
     pub vertex_buffer: wgpu::Buffer,
     pub index_buffer: wgpu::Buffer,
     pub index_buffer_len: u32,
 }
 
-pub fn create_drawable_from<
+pub fn create_buffer_from<
     V: bytemuck::Zeroable + bytemuck::Pod,
     I: bytemuck::Zeroable + bytemuck::Pod,
 >(
     device: &wgpu::Device,
     verts_and_ind: (&[V], &[I]),
-) -> Drawable {
-    Drawable {
+) -> Buffer {
+    Buffer {
         vertex_buffer: device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: None,
             contents: bytemuck::cast_slice(verts_and_ind.0),

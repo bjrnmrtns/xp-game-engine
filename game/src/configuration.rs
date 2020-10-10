@@ -1,28 +1,23 @@
+use crate::entity;
 use std::collections::HashSet;
 use std::fs::File;
 
 #[derive(Debug, serde::Deserialize)]
-pub enum EntityKind {
-    Player,
-    Static,
-}
-
-#[derive(Debug, serde::Deserialize)]
 pub struct Model {
-    name: String,
-    location: String,
+    pub name: String,
+    pub location: String,
 }
 
 #[derive(Debug, serde::Deserialize)]
 pub struct Entity {
-    kind: EntityKind,
-    model_name: String,
+    pub kind: entity::Kind,
+    pub model_name: String,
 }
 
 #[derive(Debug, serde::Deserialize)]
 pub struct Config {
-    models: Vec<Model>,
-    entities: Vec<Entity>,
+    pub models: Vec<Model>,
+    pub entities: Vec<Entity>,
 }
 
 impl Config {
@@ -35,11 +30,7 @@ impl Config {
     fn is_valid(&self) -> bool {
         let mut uniq = HashSet::new();
         let model_names_uniq = self.models.iter().all(|x| uniq.insert(x.name.clone()));
-        let model_names_found = self
-            .entities
-            .iter()
-            .all(|x| !uniq.insert(x.model_name.clone()));
-        model_names_uniq && model_names_found
+        model_names_uniq
     }
     pub fn load_config(path: &str) -> Self {
         match File::open(&path) {

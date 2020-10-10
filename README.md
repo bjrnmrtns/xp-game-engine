@@ -5,4 +5,5 @@
 - Continueous Sphere/Triangle collision detection and response using SSV (Swept Sphere Volume) 
 - Add some boxes procedurally located to the world
 - clipmap interpolate height between different clipmap levels 
+- debug rendering interface, which is passed to calculations 
 

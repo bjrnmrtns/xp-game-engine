@@ -1,5 +1,5 @@
 use crate::graphics::error::GraphicsError;
-use crate::graphics::{create_drawable_from, texture, Drawable};
+use crate::graphics::{create_buffer_from, texture, Buffer};
 use crate::terrain;
 use crate::terrain::Generator;
 use nalgebra_glm::{identity, vec3, Mat4, Vec2, Vec3};
@@ -142,16 +142,16 @@ pub struct Renderable {
 
     uniforms: Uniforms,
     pub clipmap_data: Clipmap,
-    clipmap_full: Drawable,
-    clipmap_ring_mxm: Drawable,
-    clipmap_ring_pxm: Drawable,
-    clipmap_ring_mxp: Drawable,
-    clipmap_interior_h: Drawable,
-    clipmap_interior_v: Drawable,
-    clipmap_degenerates_h_top: Drawable,
-    clipmap_degenerates_h_bottom: Drawable,
-    clipmap_degenerates_v_left: Drawable,
-    clipmap_degenerates_v_right: Drawable,
+    clipmap_full: Buffer,
+    clipmap_ring_mxm: Buffer,
+    clipmap_ring_pxm: Buffer,
+    clipmap_ring_mxp: Buffer,
+    clipmap_interior_h: Buffer,
+    clipmap_interior_v: Buffer,
+    clipmap_degenerates_h_top: Buffer,
+    clipmap_degenerates_h_bottom: Buffer,
+    clipmap_degenerates_v_left: Buffer,
+    clipmap_degenerates_v_right: Buffer,
 }
 
 impl Renderable {
@@ -331,28 +331,26 @@ impl Renderable {
         let texture = create_clipmap_storage_texture(&device, CM_TEXTURE_SIZE as u32);
         assert_eq!(CM_N, (2 as u32).pow(CM_K) - 1);
         let (v, i) = create_grid(CM_N, CM_N);
-        let clipmap_full = create_drawable_from(&device, (v.as_slice(), i.as_slice()));
+        let clipmap_full = create_buffer_from(&device, (v.as_slice(), i.as_slice()));
         let (v, i) = create_grid(CM_M, CM_M);
-        let clipmap_ring_mxm = create_drawable_from(&device, (v.as_slice(), i.as_slice()));
+        let clipmap_ring_mxm = create_buffer_from(&device, (v.as_slice(), i.as_slice()));
         let (v, i) = create_grid(CM_P, CM_M);
-        let clipmap_ring_pxm = create_drawable_from(&device, (v.as_slice(), i.as_slice()));
+        let clipmap_ring_pxm = create_buffer_from(&device, (v.as_slice(), i.as_slice()));
         let (v, i) = create_grid(CM_M, CM_P);
-        let clipmap_ring_mxp = create_drawable_from(&device, (v.as_slice(), i.as_slice()));
+        let clipmap_ring_mxp = create_buffer_from(&device, (v.as_slice(), i.as_slice()));
         let (v, i) = create_grid(CM_INTERIOR_SIZE, 2);
-        let clipmap_interior_h = create_drawable_from(&device, (v.as_slice(), i.as_slice()));
+        let clipmap_interior_h = create_buffer_from(&device, (v.as_slice(), i.as_slice()));
         let (v, i) = create_grid(2, CM_INTERIOR_SIZE);
-        let clipmap_interior_v = create_drawable_from(&device, (v.as_slice(), i.as_slice()));
+        let clipmap_interior_v = create_buffer_from(&device, (v.as_slice(), i.as_slice()));
         let (v, i) = create_degenerates_top(CM_N);
-        let clipmap_degenerates_h_top = create_drawable_from(&device, (v.as_slice(), i.as_slice()));
+        let clipmap_degenerates_h_top = create_buffer_from(&device, (v.as_slice(), i.as_slice()));
         let (v, i) = create_degenerates_bottom(CM_N);
         let clipmap_degenerates_h_bottom =
-            create_drawable_from(&device, (v.as_slice(), i.as_slice()));
+            create_buffer_from(&device, (v.as_slice(), i.as_slice()));
         let (v, i) = create_degenerates_left(CM_N);
-        let clipmap_degenerates_v_left =
-            create_drawable_from(&device, (v.as_slice(), i.as_slice()));
+        let clipmap_degenerates_v_left = create_buffer_from(&device, (v.as_slice(), i.as_slice()));
         let (v, i) = create_degenerates_right(CM_N);
-        let clipmap_degenerates_v_right =
-            create_drawable_from(&device, (v.as_slice(), i.as_slice()));
+        let clipmap_degenerates_v_right = create_buffer_from(&device, (v.as_slice(), i.as_slice()));
 
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &bind_group_layout,

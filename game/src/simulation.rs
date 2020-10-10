@@ -1,4 +1,5 @@
 use crate::client::command::FrameCommand;
+use crate::entity::Kind;
 use crate::graphics::clipmap;
 use crate::input::player_input_state::{ForwardMovement, StrafeMovement};
 use crate::{entity, transformation};
@@ -7,10 +8,11 @@ use xp_physics::{collision_response_non_trianulated, Response, Sphere};
 
 pub fn handle_frame(
     frame_commands: Vec<FrameCommand>,
-    player: &mut entity::Entity,
+    entities: &mut [entity::Entity],
     frame_time: f32,
     clipmap_renderer: &clipmap::Renderable,
 ) {
+    let player = &mut entities[0];
     for frame_command in frame_commands {
         if let Some(orientation_change) = frame_command.command.orientation_change {
             player.orientation = transformation::rotate_around_local_axis(
