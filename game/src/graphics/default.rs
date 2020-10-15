@@ -1,11 +1,11 @@
-use crate::entities::Entity;
 use crate::graphics::error::GraphicsError;
-use crate::graphics::{texture, Buffer, Drawable, Mesh};
+use crate::graphics::{texture, Buffer, Mesh};
 use crate::{entities, graphics};
 use nalgebra_glm::{identity, Mat4};
 use std::collections::HashSet;
 use std::io::Read;
 use wgpu::util::DeviceExt;
+use xp_math::model_matrix;
 
 type Result<T> = std::result::Result<T, GraphicsError>;
 
@@ -257,15 +257,6 @@ impl Renderable {
         }
     }
 
-    pub fn get_graphics_handle(&self, name: &str) -> Option<usize> {
-        for d in self.named_buffers.iter().enumerate() {
-            if d.1.name == name.to_string() {
-                return Some(d.0);
-            }
-        }
-        return None;
-    }
-
     pub fn create_drawable(
         &mut self,
         device: &wgpu::Device,
@@ -312,10 +303,10 @@ impl Renderable {
         let mut instances = Vec::new();
         for named_buffer in self.named_buffers.iter_mut().enumerate() {
             instances.extend(entities.get_entities().iter().filter_map(|d| {
-                if let Some(handle) = d.graphics_handle() {
-                    if handle == named_buffer.0 {
+                if let Some(id) = d.id {
+                    if named_buffer.1.entity_ids.contains(&id) {
                         return Some(Instance {
-                            model: d.model_matrix(),
+                            model: model_matrix(&d.position, &d.orientation),
                         });
                     }
                 }

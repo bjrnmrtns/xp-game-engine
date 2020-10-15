@@ -7,11 +7,11 @@ use game::client::recording;
 use game::command_queue::CommandQueue;
 use game::configuration::Config;
 use game::entities::{Entities, Entity, EntityType};
-use game::graphics::{clipmap, Drawable};
+use game::graphics::clipmap;
 use game::input::input_handler::InputHandler;
 use game::input::mouse_keyboard::MouseKeyboardInputHandler;
 use game::*;
-use nalgebra_glm::{identity, ortho, perspective, quat_identity, vec3, Mat4};
+use nalgebra_glm::{ortho, perspective, quat_identity, vec3, Mat4};
 use winit::event::DeviceEvent::MouseMotion;
 use winit::event::{ElementState, Event, KeyboardInput, MouseButton, VirtualKeyCode, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
@@ -103,14 +103,12 @@ fn game(options: Options, config: Config) {
     for config_entity in config.entities {
         let id = entities.add(Entity {
             id: None,
-            graphics_handle: renderables
-                .default
-                .get_graphics_handle(config_entity.model_name.as_str()),
-            entity_type: EntityType::Player,
+            entity_type: config_entity.entity_type,
             position: config_entity.start_position.into(),
             orientation: quat_identity(),
             max_velocity: config_entity.max_velocity,
         });
+        println!("{}", id);
         renderables
             .default
             .register_entity(&config_entity.model_name, id);
