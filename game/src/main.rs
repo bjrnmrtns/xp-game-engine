@@ -6,7 +6,7 @@ use game::client::local_client::LocalClient;
 use game::client::recording;
 use game::command_queue::CommandQueue;
 use game::configuration::Config;
-use game::entity::{Entity, EntityType};
+use game::entities::{Entity, EntityType};
 use game::graphics::{clipmap, Drawable};
 use game::input::input_handler::InputHandler;
 use game::input::mouse_keyboard::MouseKeyboardInputHandler;
@@ -104,6 +104,7 @@ fn game(options: Options, config: Config) {
         .entities
         .iter()
         .map(|e| Entity {
+            id: None,
             graphics_handle: renderables
                 .default
                 .get_graphics_handle(e.model_name.as_str()),

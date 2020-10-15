@@ -1,4 +1,4 @@
-use crate::entity::Entity;
+use crate::entities::Entity;
 use crate::graphics;
 use crate::graphics::error::GraphicsError;
 use crate::graphics::{texture, Buffer, Drawable, Mesh};

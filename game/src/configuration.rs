@@ -1,4 +1,4 @@
-use crate::entity;
+use crate::entities;
 use std::collections::HashSet;
 use std::fs::File;
 
@@ -11,7 +11,7 @@ pub struct Model {
 #[derive(Debug, serde::Deserialize)]
 pub struct Entity {
     pub model_name: String,
-    pub entity_type: entity::EntityType,
+    pub entity_type: entities::EntityType,
     pub start_position: [f32; 3],
     pub max_velocity: f32,
 }

@@ -3,7 +3,7 @@ pub mod camera;
 pub mod client;
 pub mod command_queue;
 pub mod counter;
-pub mod entity;
+pub mod entities;
 pub mod graphics;
 pub mod input;
 pub mod mesh;

@@ -1,4 +1,4 @@
-use crate::entity::Entity;
+use crate::entities::Entity;
 use nalgebra_glm::*;
 
 pub enum CameraType {

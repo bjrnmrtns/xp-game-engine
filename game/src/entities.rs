@@ -8,6 +8,7 @@ pub enum EntityType {
 }
 
 pub struct Entity {
+    pub id: Option<u32>,
     pub graphics_handle: Option<usize>,
     pub entity_type: EntityType,
     pub position: Vec3,
@@ -18,6 +19,7 @@ pub struct Entity {
 impl Entity {
     pub fn new(entity_type: EntityType) -> Self {
         Self {
+            id: None,
             graphics_handle: None,
             entity_type,
             position: vec3(0.0, 1.0, 0.0),
@@ -33,5 +35,29 @@ impl Entity {
 
     pub fn graphics_handle(&self) -> Option<usize> {
         self.graphics_handle
+    }
+}
+
+pub struct Entities {
+    items: Vec<Entity>,
+    last_id: Option<u32>,
+}
+
+impl Entities {
+    pub fn new() -> Self {
+        Self {
+            items: vec![],
+            last_id: None,
+        }
+    }
+    pub fn add(&mut self, entity: Entity) -> u32 {
+        let mut entity = entity;
+        let id = self.generate();
+        entity.id = Some(id);
+        self.items.push(entity);
+        id
+    }
+    fn generate(&self) -> u32 {
+        self.last_id.map(|last| last + 1).unwrap_or(0)
     }
 }
