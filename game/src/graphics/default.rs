@@ -303,12 +303,10 @@ impl Renderable {
         let mut instances = Vec::new();
         for named_buffer in self.named_buffers.iter_mut().enumerate() {
             instances.extend(entities.get_entities().iter().filter_map(|d| {
-                if let Some(id) = d.id {
-                    if named_buffer.1.entity_ids.contains(&id) {
-                        return Some(Instance {
-                            model: model_matrix(&d.position, &d.orientation),
-                        });
-                    }
+                if named_buffer.1.entity_ids.contains(&d.id) {
+                    return Some(Instance {
+                        model: model_matrix(&d.position, &d.orientation),
+                    });
                 }
                 return None;
             }));

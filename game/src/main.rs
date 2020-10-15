@@ -6,7 +6,7 @@ use game::client::local_client::LocalClient;
 use game::client::recording;
 use game::command_queue::CommandQueue;
 use game::configuration::Config;
-use game::entities::{Entities, Entity, EntityType};
+use game::entities::{Entities, EntityType};
 use game::graphics::clipmap;
 use game::input::input_handler::InputHandler;
 use game::input::mouse_keyboard::MouseKeyboardInputHandler;
@@ -101,14 +101,12 @@ fn game(options: Options, config: Config) {
     );
     let mut entities = Entities::new();
     for config_entity in config.entities {
-        let id = entities.add(Entity {
-            id: None,
-            entity_type: config_entity.entity_type,
-            position: config_entity.start_position.into(),
-            orientation: quat_identity(),
-            max_velocity: config_entity.max_velocity,
-        });
-        println!("{}", id);
+        let id = entities.add(
+            config_entity.entity_type,
+            config_entity.start_position.into(),
+            quat_identity(),
+            config_entity.max_velocity,
+        );
         renderables
             .default
             .register_entity(&config_entity.model_name, id);

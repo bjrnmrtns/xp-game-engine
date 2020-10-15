@@ -8,7 +8,7 @@ pub enum EntityType {
 
 #[derive(Clone)]
 pub struct Entity {
-    pub id: Option<u32>,
+    pub id: u32,
     pub entity_type: EntityType,
     pub position: Vec3,
     pub orientation: Quat,
@@ -27,11 +27,21 @@ impl Entities {
             last_id: None,
         }
     }
-    pub fn add(&mut self, entity: Entity) -> u32 {
-        let mut entity = entity;
+    pub fn add(
+        &mut self,
+        entity_type: EntityType,
+        position: Vec3,
+        orientation: Quat,
+        max_velocity: f32,
+    ) -> u32 {
         let id = self.generate();
-        entity.id = Some(id);
-        self.items.push(entity);
+        self.items.push(Entity {
+            id,
+            entity_type,
+            position,
+            orientation,
+            max_velocity,
+        });
         self.last_id = Some(id);
         id
     }
