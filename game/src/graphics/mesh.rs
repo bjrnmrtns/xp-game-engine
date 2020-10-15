@@ -299,16 +299,12 @@ impl Renderer {
         render_pass.set_pipeline(&self.render_pipeline);
 
         for (index, draw_description) in self.drawables.draw_descriptions.iter().enumerate() {
-            render_pass.set_vertex_buffer(
-                0,
-                self.drawables.buffers[draw_description.vertex_buffer_index].slice(..),
-            );
-            render_pass.set_index_buffer(
-                self.drawables.buffers[draw_description.index_buffer_index].slice(..),
-            );
+            render_pass
+                .set_vertex_buffer(0, self.drawables.buffers[draw_description.vbi].slice(..));
+            render_pass.set_index_buffer(self.drawables.buffers[draw_description.ibi].slice(..));
             render_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
             render_pass.draw_indexed(
-                0..draw_description.index_buffer_len as u32,
+                0..draw_description.ib_len as u32,
                 0,
                 instance_ranges[index].clone(),
             );

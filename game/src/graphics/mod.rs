@@ -15,9 +15,9 @@ type Result<T> = std::result::Result<T, GraphicsError>;
 
 pub struct DrawDescription {
     name: String,
-    index_buffer_index: usize,
-    vertex_buffer_index: usize,
-    index_buffer_len: usize,
+    ibi: usize,
+    vbi: usize,
+    ib_len: usize,
     entity_ids: HashSet<u32>,
 }
 
@@ -50,9 +50,9 @@ impl Drawables {
         self.buffers.push(index_buffer);
         self.draw_descriptions.push(DrawDescription {
             name,
-            vertex_buffer_index: self.buffers.len() - 2,
-            index_buffer_index: self.buffers.len() - 1,
-            index_buffer_len,
+            vbi: self.buffers.len() - 2,
+            ibi: self.buffers.len() - 1,
+            ib_len: index_buffer_len,
             entity_ids: HashSet::new(),
         })
     }
