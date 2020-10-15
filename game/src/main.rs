@@ -101,7 +101,7 @@ fn game(options: Options, config: Config) {
     );
     let mut entities = Entities::new();
     for config_entity in config.entities {
-        entities.add(Entity {
+        let id = entities.add(Entity {
             id: None,
             graphics_handle: renderables
                 .default
@@ -111,6 +111,9 @@ fn game(options: Options, config: Config) {
             orientation: quat_identity(),
             max_velocity: config_entity.max_velocity,
         });
+        renderables
+            .default
+            .register_entity(&config_entity.model_name, id);
     }
 
     let mut previous_time = Instant::now();

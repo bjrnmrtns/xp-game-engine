@@ -3,6 +3,7 @@ use crate::graphics::error::GraphicsError;
 use crate::graphics::{texture, Buffer, Drawable, Mesh};
 use crate::{entities, graphics};
 use nalgebra_glm::{identity, Mat4};
+use std::collections::HashSet;
 use std::io::Read;
 use wgpu::util::DeviceExt;
 
@@ -81,6 +82,7 @@ pub struct NamedBuffer {
     pub name: String,
     pub buffer: Buffer,
     pub instance_range: Option<std::ops::Range<u32>>,
+    pub entity_ids: HashSet<u32>,
 }
 
 pub struct Renderable {
@@ -247,6 +249,14 @@ impl Renderable {
         })
     }
 
+    pub fn register_entity(&mut self, name: &String, entity_id: u32) {
+        for named_buffer in &mut self.named_buffers {
+            if &named_buffer.name == name {
+                named_buffer.entity_ids.insert(entity_id);
+            }
+        }
+    }
+
     pub fn get_graphics_handle(&self, name: &str) -> Option<usize> {
         for d in self.named_buffers.iter().enumerate() {
             if d.1.name == name.to_string() {
@@ -280,6 +290,7 @@ impl Renderable {
                 index_buffer_len: mesh.indices.len() as u32,
             },
             instance_range: None,
+            entity_ids: HashSet::new(),
         });
         self.named_buffers.len() - 1
     }

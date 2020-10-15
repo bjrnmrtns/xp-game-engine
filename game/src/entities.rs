@@ -18,16 +18,6 @@ pub struct Entity {
 }
 
 impl Entity {
-    pub fn new(entity_type: EntityType) -> Self {
-        Self {
-            id: None,
-            graphics_handle: None,
-            entity_type,
-            position: vec3(0.0, 1.0, 0.0),
-            orientation: quat_identity(),
-            max_velocity: 3.0,
-        }
-    }
     pub fn model_matrix(&self) -> Mat4 {
         let translate = translate(&identity(), &self.position);
         let rotate = quat_to_mat4(&self.orientation);
