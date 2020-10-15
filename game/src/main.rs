@@ -12,10 +12,12 @@ use game::input::input_handler::InputHandler;
 use game::input::mouse_keyboard::MouseKeyboardInputHandler;
 use game::*;
 use nalgebra_glm::{ortho, perspective, quat_identity, vec3, Mat4};
+use std::collections::HashMap;
 use winit::event::DeviceEvent::MouseMotion;
 use winit::event::{ElementState, Event, KeyboardInput, MouseButton, VirtualKeyCode, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::WindowBuilder;
+use xp_math::model_matrix;
 use xp_physics::{Sphere, Triangle};
 use xp_ui::Widget::LabelW;
 use xp_ui::{ActionType, Label, DEFAULT_LAYOUT, UI};
@@ -47,7 +49,7 @@ fn game(options: Options, config: Config) {
         .build(&event_loop)
         .expect("Could not create window");
 
-    let meshes: Vec<(String, graphics::Mesh<graphics::default::Vertex>)> = config
+    let meshes: Vec<(String, graphics::Mesh<graphics::mesh::Vertex>)> = config
         .models
         .iter()
         .map(|model| (model.name.clone(), mesh::create_mesh_from(&model.location)))
@@ -79,22 +81,23 @@ fn game(options: Options, config: Config) {
             camera::CameraType::FreeLook => context.camera = camera::CameraType::Follow,
         },
     );
-    let mut freelook = camera::FreeLook::new(vec3(0.0, 3.0, 3.0), vec3(0.0, -1.0, -1.0));
+
     ui.layout();
+    let mut freelook = camera::FreeLook::new(vec3(0.0, 3.0, 3.0), vec3(0.0, -1.0, -1.0));
     let mut graphics = futures::executor::block_on(graphics::Graphics::new(&window))
         .expect("Could not create graphics renderer");
-    let mut renderables = futures::executor::block_on(graphics::Renderables::new(
+    let mut renderers = futures::executor::block_on(graphics::Renderers::new(
         &graphics.device,
         &graphics.queue,
         &graphics.sc_descriptor,
     ))
     .expect("Could not create graphics renderer");
     for m in meshes {
-        renderables
+        renderers
             .default
-            .create_drawable(&graphics.device, m.0, &m.1);
+            .add_mesh_with_name(&graphics.device, m.0, &m.1);
     }
-    renderables.default.create_drawable(
+    renderers.default.add_mesh_with_name(
         &graphics.device,
         "lifter_sphere".to_string(),
         &mesh::create_player_sphere(),
@@ -107,9 +110,7 @@ fn game(options: Options, config: Config) {
             quat_identity(),
             config_entity.max_velocity,
         );
-        renderables
-            .default
-            .register_entity(&config_entity.model_name, id);
+        renderers.default.add_entity(id, &config_entity.model_name);
     }
 
     let mut previous_time = Instant::now();
@@ -148,7 +149,7 @@ fn game(options: Options, config: Config) {
             commands_received,
             &mut entities,
             1.0 / FPS as f32,
-            &renderables.clipmap,
+            &renderers.clipmap,
         );
 
         match event {
@@ -183,17 +184,8 @@ fn game(options: Options, config: Config) {
                     10000.0,
                 );
 
-                // update all renderers
-                renderables.default.pre_render(
-                    &graphics.queue,
-                    graphics::default::Uniforms {
-                        projection: projection_3d.clone() as Mat4,
-                        view: view.clone() as Mat4,
-                    },
-                    &entities,
-                );
                 let time_before_clipmap_update = std::time::Instant::now();
-                renderables.clipmap.pre_render(
+                renderers.clipmap.pre_render(
                     &graphics.queue,
                     clipmap::Uniforms {
                         projection: projection_3d.clone() as Mat4,
@@ -204,7 +196,7 @@ fn game(options: Options, config: Config) {
                         .1, //simulation.freelook_camera.position,
                     },
                 );
-                renderables.debug.pre_render(
+                renderers.debug.pre_render(
                     &graphics.device,
                     &mesh::create_collision_triangle_and_sphere(
                         collision_triangle,
@@ -217,10 +209,10 @@ fn game(options: Options, config: Config) {
                     &graphics.queue,
                 );
                 let time_after_clipmap_update = std::time::Instant::now();
-                renderables
+                renderers
                     .ui
                     .create_drawable(&graphics.device, Some(mesh::create_mesh(&ui)));
-                renderables.ui.pre_render(
+                renderers.ui.pre_render(
                     &graphics.queue,
                     graphics::ui::Uniforms {
                         projection: projection_2d,
@@ -235,8 +227,18 @@ fn game(options: Options, config: Config) {
                     .output
                     .view;
                 let time_before_render = std::time::Instant::now();
+                let mut id_with_model = HashMap::new();
+                id_with_model.extend(
+                    entities
+                        .get_entities()
+                        .iter()
+                        .map(|e| (e.id, model_matrix(&e.position, &e.orientation))),
+                );
                 graphics::render_loop(
-                    &renderables,
+                    &renderers,
+                    id_with_model,
+                    projection_3d.clone(),
+                    view.clone(),
                     &graphics.device,
                     &graphics.queue,
                     target,

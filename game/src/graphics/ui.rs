@@ -62,7 +62,7 @@ impl Vertex {
     }
 }
 
-pub struct Renderable {
+pub struct Renderer {
     pub drawable: Option<Buffer>,
     pub uniform_bind_group: wgpu::BindGroup,
     pub uniform_buffer: wgpu::Buffer,
@@ -73,7 +73,7 @@ pub struct Renderable {
     enabled: bool,
 }
 
-impl Renderable {
+impl Renderer {
     pub async fn new(
         device: &Device,
         sc_descriptor: &wgpu::SwapChainDescriptor,
@@ -290,7 +290,7 @@ impl Renderable {
         );
     }
 }
-impl graphics::Renderable for Renderable {
+impl graphics::Renderer for Renderer {
     fn render<'a, 'b>(&'a self, render_pass: &'b mut RenderPass<'a>)
     where
         'a: 'b,

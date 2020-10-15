@@ -1,11 +1,10 @@
+use crate::graphics;
 use crate::graphics::error::GraphicsError;
-use crate::graphics::{texture, Buffer, Mesh};
-use crate::{entities, graphics};
+use crate::graphics::{texture, Drawables, Mesh};
 use nalgebra_glm::{identity, Mat4};
-use std::collections::HashSet;
+use std::collections::HashMap;
 use std::io::Read;
 use wgpu::util::DeviceExt;
-use xp_math::model_matrix;
 
 type Result<T> = std::result::Result<T, GraphicsError>;
 
@@ -78,22 +77,14 @@ pub struct Uniforms {
 unsafe impl bytemuck::Pod for Uniforms {}
 unsafe impl bytemuck::Zeroable for Uniforms {}
 
-pub struct NamedBuffer {
-    pub name: String,
-    pub buffer: Buffer,
-    pub instance_range: Option<std::ops::Range<u32>>,
-    pub entity_ids: HashSet<u32>,
-}
-
-pub struct Renderable {
-    pub named_buffers: Vec<NamedBuffer>,
+pub struct Renderer {
+    drawables: Drawables,
     pub uniform_buffer: wgpu::Buffer,
     pub instance_buffer: wgpu::Buffer,
     pub uniform_bind_group: wgpu::BindGroup,
     pub render_pipeline: wgpu::RenderPipeline,
-    uniforms: Uniforms,
 }
-impl Renderable {
+impl Renderer {
     pub async fn new(
         device: &wgpu::Device,
         sc_descriptor: &wgpu::SwapChainDescriptor,
@@ -240,108 +231,87 @@ impl Renderable {
         });
 
         Ok(Self {
-            named_buffers: Vec::new(),
+            drawables: Drawables::new(),
             uniform_buffer,
             instance_buffer,
             uniform_bind_group,
             render_pipeline,
-            uniforms,
         })
     }
 
-    pub fn register_entity(&mut self, name: &String, entity_id: u32) {
-        for named_buffer in &mut self.named_buffers {
-            if &named_buffer.name == name {
-                named_buffer.entity_ids.insert(entity_id);
-            }
-        }
-    }
-
-    pub fn create_drawable(
-        &mut self,
-        device: &wgpu::Device,
-        name: String,
-        mesh: &Mesh<Vertex>,
-    ) -> usize {
-        let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+    pub fn add_mesh_with_name(&mut self, device: &wgpu::Device, name: String, mesh: &Mesh<Vertex>) {
+        let vb = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: None,
             contents: bytemuck::cast_slice(mesh.vertices.as_slice()),
             usage: wgpu::BufferUsage::VERTEX,
         });
-        let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        let ib = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: None,
             contents: bytemuck::cast_slice(mesh.indices.as_slice()),
             usage: wgpu::BufferUsage::INDEX,
         });
-        self.named_buffers.push(NamedBuffer {
-            name,
-            buffer: Buffer {
-                vertex_buffer,
-                index_buffer,
-                index_buffer_len: mesh.indices.len() as u32,
-            },
-            instance_range: None,
-            entity_ids: HashSet::new(),
-        });
-        self.named_buffers.len() - 1
+        self.drawables
+            .add_drawable(name, vb, ib, mesh.indices.len());
     }
 
-    pub fn pre_render(
-        &mut self,
+    pub fn add_entity(&mut self, id: u32, name: &String) {
+        self.drawables.add_entity(id, name);
+    }
+
+    pub fn render<'a, 'b>(
+        &'a self,
+        render_pass: &'b mut wgpu::RenderPass<'a>,
         queue: &wgpu::Queue,
-        uniforms: Uniforms,
-        entities: &entities::Entities,
-    ) {
+        projection: Mat4,
+        view: Mat4,
+        entities: HashMap<u32, Mat4>,
+    ) where
+        'a: 'b,
+    {
+        let uniforms = graphics::mesh::Uniforms {
+            projection: projection,
+            view: view,
+        };
         assert!(entities.len() <= MAX_NUMBER_OF_INSTANCES);
-        self.uniforms = uniforms;
-        queue.write_buffer(
-            &self.uniform_buffer,
-            0,
-            bytemuck::cast_slice(&[self.uniforms]),
-        );
-        let mut instances_total = 0;
+        queue.write_buffer(&self.uniform_buffer, 0, bytemuck::cast_slice(&[uniforms]));
         let mut instances = Vec::new();
-        for named_buffer in self.named_buffers.iter_mut().enumerate() {
-            instances.extend(entities.get_entities().iter().filter_map(|d| {
-                if named_buffer.1.entity_ids.contains(&d.id) {
+        let mut instance_ranges = Vec::new();
+        let mut end_previous = 0;
+        for draw_description in &self.drawables.draw_descriptions {
+            instances.extend(draw_description.entity_ids.iter().filter_map(|id| {
+                let model = entities.get(id);
+                if let Some(model) = model {
                     return Some(Instance {
-                        model: model_matrix(&d.position, &d.orientation),
+                        model: model.clone(),
                     });
+                } else {
+                    return None;
                 }
-                return None;
             }));
-            if !instances.is_empty() {
-                named_buffer.1.instance_range =
-                    Some(instances_total as u32..(instances_total + instances.len()) as u32);
-                instances_total += instances.len();
-            }
+            instance_ranges.push(end_previous as u32..(end_previous + instances.len()) as u32);
+            end_previous += instances.len();
         }
         queue.write_buffer(
             &self.instance_buffer,
             0,
             bytemuck::cast_slice(instances.as_slice()),
         );
-    }
-}
-
-impl graphics::Renderable for Renderable {
-    fn render<'a, 'b>(&'a self, render_pass: &'b mut wgpu::RenderPass<'a>)
-    where
-        'a: 'b,
-    {
         render_pass.set_pipeline(&self.render_pipeline);
 
-        for named_buffer in &self.named_buffers {
-            if let Some(instance_range) = &named_buffer.instance_range {
-                render_pass.set_vertex_buffer(0, named_buffer.buffer.vertex_buffer.slice(..));
-                render_pass.set_index_buffer(named_buffer.buffer.index_buffer.slice(..));
-                render_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
-                render_pass.draw_indexed(
-                    0..named_buffer.buffer.index_buffer_len,
-                    0,
-                    instance_range.clone(),
-                );
-            }
+        for (index, draw_description) in self.drawables.draw_descriptions.iter().enumerate() {
+            render_pass.set_vertex_buffer(
+                0,
+                self.drawables.buffers[draw_description.vertex_buffer_index].slice(..),
+            );
+            render_pass.set_index_buffer(
+                self.drawables.buffers[draw_description.index_buffer_index].slice(..),
+            );
+            render_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
+            render_pass.draw_indexed(
+                0..draw_description.index_buffer_len as u32,
+                0,
+                instance_ranges[index].clone(),
+            );
         }
     }
 }

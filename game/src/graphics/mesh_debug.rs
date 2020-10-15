@@ -41,7 +41,7 @@ pub struct Uniforms {
 unsafe impl bytemuck::Pod for Uniforms {}
 unsafe impl bytemuck::Zeroable for Uniforms {}
 
-pub struct Renderable {
+pub struct Renderer {
     pub uniform_buffer: wgpu::Buffer,
     pub vb: wgpu::Buffer,
     pub ib: wgpu::Buffer,
@@ -50,7 +50,7 @@ pub struct Renderable {
     pub render_pipeline: wgpu::RenderPipeline,
 }
 
-impl Renderable {
+impl Renderer {
     pub async fn new(
         device: &wgpu::Device,
         sc_descriptor: &wgpu::SwapChainDescriptor,
@@ -218,7 +218,7 @@ impl Renderable {
     }
 }
 
-impl graphics::Renderable for Renderable {
+impl graphics::Renderer for Renderer {
     fn render<'a, 'b>(&'a self, render_pass: &'b mut wgpu::RenderPass<'a>)
     where
         'a: 'b,

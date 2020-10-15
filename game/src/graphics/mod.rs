@@ -1,16 +1,69 @@
 use crate::graphics::error::GraphicsError;
 use nalgebra_glm::Mat4;
+use std::collections::{HashMap, HashSet};
 use wgpu::util::DeviceExt;
 use winit::window::Window;
 
 pub mod clipmap;
-pub mod debug;
-pub mod default;
 pub mod error;
+pub mod mesh;
+pub mod mesh_debug;
 pub mod texture;
 pub mod ui;
 
 type Result<T> = std::result::Result<T, GraphicsError>;
+
+pub struct DrawDescription {
+    name: String,
+    index_buffer_index: usize,
+    vertex_buffer_index: usize,
+    index_buffer_len: usize,
+    entity_ids: HashSet<u32>,
+}
+
+impl DrawDescription {
+    pub fn add_entity_id(&mut self, id: u32) {
+        self.entity_ids.insert(id);
+    }
+}
+
+pub struct Drawables {
+    buffers: Vec<wgpu::Buffer>,
+    draw_descriptions: Vec<DrawDescription>,
+}
+
+impl Drawables {
+    pub fn new() -> Self {
+        Self {
+            buffers: vec![],
+            draw_descriptions: vec![],
+        }
+    }
+    pub fn add_drawable(
+        &mut self,
+        name: String,
+        vertex_buffer: wgpu::Buffer,
+        index_buffer: wgpu::Buffer,
+        index_buffer_len: usize,
+    ) {
+        self.buffers.push(vertex_buffer);
+        self.buffers.push(index_buffer);
+        self.draw_descriptions.push(DrawDescription {
+            name,
+            vertex_buffer_index: self.buffers.len() - 2,
+            index_buffer_index: self.buffers.len() - 1,
+            index_buffer_len,
+            entity_ids: HashSet::new(),
+        })
+    }
+    pub fn add_entity(&mut self, id: u32, name: &String) {
+        for draw_description in &mut self.draw_descriptions {
+            if &draw_description.name == name {
+                draw_description.entity_ids.insert(id);
+            }
+        }
+    }
+}
 
 pub struct Mesh<T> {
     pub vertices: Vec<T>,
@@ -24,11 +77,6 @@ impl<T> Mesh<T> {
             indices: Vec::new(),
         }
     }
-}
-
-pub trait Drawable {
-    fn model_matrix(&self) -> Mat4;
-    fn graphics_handle(&self) -> Option<usize>;
 }
 
 pub struct Buffer {
@@ -59,30 +107,30 @@ pub fn create_buffer_from<
     }
 }
 
-pub struct Renderables {
-    pub ui: ui::Renderable,
-    pub default: default::Renderable,
-    pub clipmap: clipmap::Renderable,
-    pub debug: debug::Renderable,
+pub struct Renderers {
+    pub ui: ui::Renderer,
+    pub default: mesh::Renderer,
+    pub clipmap: clipmap::Renderer,
+    pub debug: mesh_debug::Renderer,
 }
 
-pub trait Renderable {
+pub trait Renderer {
     fn render<'a, 'b>(&'a self, render_pass: &'b mut wgpu::RenderPass<'a>)
     where
         'a: 'b;
 }
 
-impl Renderables {
+impl Renderers {
     pub async fn new(
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         swapchain_descriptor: &wgpu::SwapChainDescriptor,
     ) -> Result<Self> {
         Ok(Self {
-            ui: ui::Renderable::new(&device, &swapchain_descriptor, &queue).await?,
-            default: default::Renderable::new(&device, &swapchain_descriptor, &queue).await?,
-            clipmap: clipmap::Renderable::new(&device, &swapchain_descriptor, &queue).await?,
-            debug: debug::Renderable::new(&device, &swapchain_descriptor, &queue).await?,
+            ui: ui::Renderer::new(&device, &swapchain_descriptor, &queue).await?,
+            default: mesh::Renderer::new(&device, &swapchain_descriptor, &queue).await?,
+            clipmap: clipmap::Renderer::new(&device, &swapchain_descriptor, &queue).await?,
+            debug: mesh_debug::Renderer::new(&device, &swapchain_descriptor, &queue).await?,
         })
     }
 }
@@ -173,7 +221,10 @@ impl Graphics {
 }
 
 pub fn render_loop(
-    renderables: &Renderables,
+    renderables: &Renderers,
+    entities: HashMap<u32, Mat4>,
+    projection: Mat4,
+    view: Mat4,
     device: &wgpu::Device,
     queue: &wgpu::Queue,
     target: &wgpu::TextureView,
@@ -208,7 +259,9 @@ pub fn render_loop(
                 }),
             }),
         });
-        renderables.default.render(&mut game_render_pass);
+        renderables
+            .default
+            .render(&mut game_render_pass, queue, projection, view, entities);
         renderables.clipmap.render(&mut game_render_pass);
         renderables.debug.render(&mut game_render_pass);
     }

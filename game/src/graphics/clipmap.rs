@@ -132,7 +132,7 @@ pub struct Uniforms {
 unsafe impl bytemuck::Pod for Uniforms {}
 unsafe impl bytemuck::Zeroable for Uniforms {}
 
-pub struct Renderable {
+pub struct Renderer {
     pub uniforms_buffer: wgpu::Buffer,
     pub instance_buffer: wgpu::Buffer,
     pub bind_group: wgpu::BindGroup,
@@ -154,7 +154,7 @@ pub struct Renderable {
     clipmap_degenerates_v_right: Buffer,
 }
 
-impl Renderable {
+impl Renderer {
     pub async fn new(
         device: &Device,
         sc_descriptor: &wgpu::SwapChainDescriptor,

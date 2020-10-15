@@ -10,7 +10,7 @@ pub fn handle_frame(
     frame_commands: Vec<FrameCommand>,
     entities: &mut entities::Entities,
     frame_time: f32,
-    clipmap_renderer: &clipmap::Renderable,
+    clipmap_renderer: &clipmap::Renderer,
 ) {
     let mut player = entities.get_first_entity_with(EntityType::Player).unwrap();
     for frame_command in frame_commands {

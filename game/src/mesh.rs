@@ -1,5 +1,5 @@
 use crate::graphics;
-use crate::graphics::default::Vertex;
+use crate::graphics::mesh::Vertex;
 use crate::graphics::Mesh;
 use genmesh::{MapToVertices, Triangulate, Vertices};
 use nalgebra_glm::{make_vec3, triangle_normal, Vec3};
@@ -63,15 +63,15 @@ pub fn create_collision_triangle_and_sphere(
     sphere: Sphere,
     sphere_movement: Vec3,
     render_sphere_at_t: &[f32],
-) -> (Vec<graphics::debug::Vertex>, Vec<u32>) {
+) -> (Vec<graphics::mesh_debug::Vertex>, Vec<u32>) {
     let mut vertices = Vec::new();
-    vertices.push(graphics::debug::Vertex {
+    vertices.push(graphics::mesh_debug::Vertex {
         position: triangle.v0.into(),
     });
-    vertices.push(graphics::debug::Vertex {
+    vertices.push(graphics::mesh_debug::Vertex {
         position: triangle.v1.into(),
     });
-    vertices.push(graphics::debug::Vertex {
+    vertices.push(graphics::mesh_debug::Vertex {
         position: triangle.v2.into(),
     });
     assert_eq!(sphere.r, 1.0);
@@ -84,7 +84,7 @@ pub fn create_collision_triangle_and_sphere(
                         sphere.c[1] + v.pos.y + sphere_movement[1] * t,
                         sphere.c[2] + v.pos.z + sphere_movement[2] * t,
                     ];
-                    graphics::debug::Vertex { position: pos }
+                    graphics::mesh_debug::Vertex { position: pos }
                 })
                 .triangulate()
                 .vertices(),
@@ -104,13 +104,13 @@ pub fn create_collision_triangle_and_sphere(
     (vertices, indices)
 }
 
-pub fn create_player_sphere() -> graphics::Mesh<graphics::default::Vertex> {
+pub fn create_player_sphere() -> graphics::Mesh<graphics::mesh::Vertex> {
     let mut mesh = graphics::Mesh {
         vertices: Vec::new(),
         indices: Vec::new(),
     };
     mesh.vertices = genmesh::generators::SphereUv::new(10, 10)
-        .vertex(|v| graphics::default::Vertex {
+        .vertex(|v| graphics::mesh::Vertex {
             position: v.pos.into(),
             normal: v.normal.into(),
             color: [0.0, 1.0, 0.0],
@@ -127,7 +127,7 @@ pub fn create_player_sphere() -> graphics::Mesh<graphics::default::Vertex> {
     mesh
 }
 
-pub fn create_mesh_from(obj_file_name: &str) -> graphics::Mesh<graphics::default::Vertex> {
+pub fn create_mesh_from(obj_file_name: &str) -> graphics::Mesh<graphics::mesh::Vertex> {
     let (models, materials) = tobj::load_obj(obj_file_name, true)
         .expect(format!("Could not read obj file: {}", obj_file_name).as_str());
     let mut mesh = graphics::Mesh {
