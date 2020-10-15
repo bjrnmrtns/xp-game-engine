@@ -110,7 +110,7 @@ fn game(options: Options, config: Config) {
             kind: e.kind.clone(),
             position: vec3(0.0, 0.0, 0.0),
             orientation: quat_identity(),
-            velocity: 0.0,
+            velocity: 3.0,
         })
         .collect::<Vec<_>>();
 
