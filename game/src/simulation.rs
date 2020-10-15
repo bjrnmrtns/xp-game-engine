@@ -8,11 +8,11 @@ use xp_physics::{collision_response_non_trianulated, Response, Sphere};
 
 pub fn handle_frame(
     frame_commands: Vec<FrameCommand>,
-    entities: &mut [entities::Entity],
+    entities: &mut entities::Entities,
     frame_time: f32,
     clipmap_renderer: &clipmap::Renderable,
 ) {
-    let player = &mut entities[0];
+    let mut player = entities.get_first_entity_with(EntityType::Player).unwrap();
     for frame_command in frame_commands {
         if let Some(orientation_change) = frame_command.command.orientation_change {
             player.orientation = transformation::rotate_around_local_axis(
@@ -72,5 +72,6 @@ pub fn handle_frame(
             triangles.as_slice(),
         );*/
         player.position = response.sphere.c + response.movement;
+        entities.update(player.clone());
     }
 }

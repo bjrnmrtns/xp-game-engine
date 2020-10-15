@@ -6,7 +6,7 @@ use game::client::local_client::LocalClient;
 use game::client::recording;
 use game::command_queue::CommandQueue;
 use game::configuration::Config;
-use game::entities::{Entity, EntityType};
+use game::entities::{Entities, Entity, EntityType};
 use game::graphics::{clipmap, Drawable};
 use game::input::input_handler::InputHandler;
 use game::input::mouse_keyboard::MouseKeyboardInputHandler;
@@ -99,21 +99,19 @@ fn game(options: Options, config: Config) {
         "lifter_sphere".to_string(),
         &mesh::create_player_sphere(),
     );
-
-    let mut entities = config
-        .entities
-        .iter()
-        .map(|e| Entity {
+    let mut entities = Entities::new();
+    for config_entity in config.entities {
+        entities.add(Entity {
             id: None,
             graphics_handle: renderables
                 .default
-                .get_graphics_handle(e.model_name.as_str()),
-            entity_type: e.entity_type.clone(),
-            position: e.start_position.into(),
+                .get_graphics_handle(config_entity.model_name.as_str()),
+            entity_type: EntityType::Player,
+            position: config_entity.start_position.into(),
             orientation: quat_identity(),
-            max_velocity: 3.0,
-        })
-        .collect::<Vec<_>>();
+            max_velocity: config_entity.max_velocity,
+        });
+    }
 
     let mut previous_time = Instant::now();
 
@@ -160,7 +158,10 @@ fn game(options: Options, config: Config) {
                 // for the view matrix we can also use player_move and player_rotate, and use the inverse of the resulting matrix
                 let view = match game_state.camera {
                     camera::CameraType::FreeLook => freelook.view(),
-                    camera::CameraType::Follow => camera::view_on(&entities[0]).0,
+                    camera::CameraType::Follow => {
+                        camera::view_on(entities.get_first_entity_with(EntityType::Player).unwrap())
+                            .0
+                    }
                 };
                 let current_time = Instant::now();
                 let fps = (1000.0 / (current_time - previous_time).as_millis() as f32) as u32;
@@ -190,7 +191,7 @@ fn game(options: Options, config: Config) {
                         projection: projection_3d.clone() as Mat4,
                         view: view.clone() as Mat4,
                     },
-                    entities.as_slice(),
+                    &entities,
                 );
                 let time_before_clipmap_update = std::time::Instant::now();
                 renderables.clipmap.pre_render(
@@ -198,7 +199,10 @@ fn game(options: Options, config: Config) {
                     clipmap::Uniforms {
                         projection: projection_3d.clone() as Mat4,
                         view: view.clone() as Mat4,
-                        camera_position: camera::view_on(&entities[0]).1, //simulation.freelook_camera.position,
+                        camera_position: camera::view_on(
+                            entities.get_first_entity_with(EntityType::Player).unwrap(),
+                        )
+                        .1, //simulation.freelook_camera.position,
                     },
                 );
                 renderables.debug.pre_render(

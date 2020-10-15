@@ -1,7 +1,7 @@
 use crate::entities::Entity;
-use crate::graphics;
 use crate::graphics::error::GraphicsError;
 use crate::graphics::{texture, Buffer, Drawable, Mesh};
+use crate::{entities, graphics};
 use nalgebra_glm::{identity, Mat4};
 use std::io::Read;
 use wgpu::util::DeviceExt;
@@ -284,7 +284,12 @@ impl Renderable {
         self.named_buffers.len() - 1
     }
 
-    pub fn pre_render(&mut self, queue: &wgpu::Queue, uniforms: Uniforms, entities: &[Entity]) {
+    pub fn pre_render(
+        &mut self,
+        queue: &wgpu::Queue,
+        uniforms: Uniforms,
+        entities: &entities::Entities,
+    ) {
         assert!(entities.len() <= MAX_NUMBER_OF_INSTANCES);
         self.uniforms = uniforms;
         queue.write_buffer(
@@ -295,7 +300,7 @@ impl Renderable {
         let mut instances_total = 0;
         let mut instances = Vec::new();
         for named_buffer in self.named_buffers.iter_mut().enumerate() {
-            instances.extend(entities.iter().filter_map(|d| {
+            instances.extend(entities.get_entities().iter().filter_map(|d| {
                 if let Some(handle) = d.graphics_handle() {
                     if handle == named_buffer.0 {
                         return Some(Instance {

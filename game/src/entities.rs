@@ -7,6 +7,7 @@ pub enum EntityType {
     Static,
 }
 
+#[derive(Clone)]
 pub struct Entity {
     pub id: Option<u32>,
     pub graphics_handle: Option<usize>,
@@ -56,6 +57,27 @@ impl Entities {
         entity.id = Some(id);
         self.items.push(entity);
         id
+    }
+    pub fn update(&mut self, entity: Entity) {
+        for item in &mut self.items {
+            if entity.entity_type == item.entity_type {
+                *item = entity.clone();
+            }
+        }
+    }
+    pub fn get_first_entity_with(&self, entity_type: EntityType) -> Option<Entity> {
+        for item in &self.items {
+            if entity_type == item.entity_type {
+                return Some(item.clone());
+            }
+        }
+        None
+    }
+    pub fn len(&self) -> usize {
+        self.items.len()
+    }
+    pub fn get_entities(&self) -> &[Entity] {
+        self.items.as_slice()
     }
     fn generate(&self) -> u32 {
         self.last_id.map(|last| last + 1).unwrap_or(0)
