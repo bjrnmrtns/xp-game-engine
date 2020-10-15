@@ -10,8 +10,10 @@ pub struct Model {
 
 #[derive(Debug, serde::Deserialize)]
 pub struct Entity {
-    pub kind: entity::Kind,
     pub model_name: String,
+    pub entity_type: entity::EntityType,
+    pub start_position: [f32; 3],
+    pub max_velocity: f32,
 }
 
 #[derive(Debug, serde::Deserialize)]

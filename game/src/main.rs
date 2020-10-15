@@ -6,7 +6,7 @@ use game::client::local_client::LocalClient;
 use game::client::recording;
 use game::command_queue::CommandQueue;
 use game::configuration::Config;
-use game::entity::{Entity, Kind};
+use game::entity::{Entity, EntityType};
 use game::graphics::{clipmap, Drawable};
 use game::input::input_handler::InputHandler;
 use game::input::mouse_keyboard::MouseKeyboardInputHandler;
@@ -107,10 +107,10 @@ fn game(options: Options, config: Config) {
             graphics_handle: renderables
                 .default
                 .get_graphics_handle(e.model_name.as_str()),
-            kind: e.kind.clone(),
-            position: vec3(0.0, 0.0, 0.0),
+            entity_type: e.entity_type.clone(),
+            position: e.start_position.into(),
             orientation: quat_identity(),
-            velocity: 3.0,
+            max_velocity: 3.0,
         })
         .collect::<Vec<_>>();
 

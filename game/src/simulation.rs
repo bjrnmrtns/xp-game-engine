@@ -1,5 +1,5 @@
 use crate::client::command::FrameCommand;
-use crate::entity::Kind;
+use crate::entity::EntityType;
 use crate::graphics::clipmap;
 use crate::input::player_input_state::{ForwardMovement, StrafeMovement};
 use crate::{entity, transformation};
@@ -23,13 +23,13 @@ pub fn handle_frame(
             )
         }
         let forward = match frame_command.command.forward {
-            Some(ForwardMovement::Positive) => frame_time * player.velocity,
-            Some(ForwardMovement::Negative) => frame_time * -player.velocity,
+            Some(ForwardMovement::Positive) => frame_time * player.max_velocity,
+            Some(ForwardMovement::Negative) => frame_time * -player.max_velocity,
             None => 0.0,
         };
         let right = match frame_command.command.strafe {
-            Some(StrafeMovement::Right) => frame_time * player.velocity,
-            Some(StrafeMovement::Left) => frame_time * -player.velocity,
+            Some(StrafeMovement::Right) => frame_time * player.max_velocity,
+            Some(StrafeMovement::Left) => frame_time * -player.max_velocity,
             None => 0.0,
         };
         let player_movement =

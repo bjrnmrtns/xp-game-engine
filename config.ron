@@ -1,4 +1,5 @@
 Config(
     models: [ Model (name: "axis", location: "obj/axis.obj"), Model (name: "arrow", location: "obj/arrow.obj"),],
-    entities: [ Entity (kind: Player, model_name: "arrow"), Entity (kind: Static, model_name: "axis"), Entity (kind: Static, model_name: "axis")],
+    entities: [ Entity (model_name: "arrow", entity_type: Player, start_position: (0.0, 20.0, 0.0), max_velocity: 3.0),
+                Entity (model_name: "axis", entity_type: Static, start_position: (0.0, 0.0, 0.0), max_velocity: 0.0),
 )
