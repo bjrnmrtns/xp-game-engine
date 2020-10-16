@@ -6,7 +6,6 @@ pub mod counter;
 pub mod entities;
 pub mod graphics;
 pub mod input;
-pub mod mesh;
 pub mod simulation;
 pub mod transformation;
 

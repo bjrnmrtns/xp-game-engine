@@ -1,0 +1,9 @@
+[package]
+name = "xp_mesh"
+version = "0.1.0"
+authors = ["Bjorn Martens <bjorn@expeditious.nl>"]
+edition = "2018"
+
+[dependencies]
+nalgebra-glm = "0.8.0"
+tobj = "2.0.2"

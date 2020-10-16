@@ -7,7 +7,6 @@ use winit::window::Window;
 pub mod clipmap;
 pub mod error;
 pub mod mesh;
-pub mod mesh_debug;
 pub mod texture;
 pub mod ui;
 
@@ -111,7 +110,6 @@ pub struct Renderers {
     pub ui: ui::Renderer,
     pub default: mesh::Renderer,
     pub clipmap: clipmap::Renderer,
-    pub debug: mesh_debug::Renderer,
 }
 
 pub trait Renderer {
@@ -130,7 +128,6 @@ impl Renderers {
             ui: ui::Renderer::new(&device, &swapchain_descriptor, &queue).await?,
             default: mesh::Renderer::new(&device, &swapchain_descriptor, &queue).await?,
             clipmap: clipmap::Renderer::new(&device, &swapchain_descriptor, &queue).await?,
-            debug: mesh_debug::Renderer::new(&device, &swapchain_descriptor, &queue).await?,
         })
     }
 }
@@ -263,7 +260,6 @@ pub fn render_loop(
             .default
             .render(&mut game_render_pass, queue, projection, view, entities);
         renderables.clipmap.render(&mut game_render_pass);
-        renderables.debug.render(&mut game_render_pass);
     }
     {
         let mut ui_render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {

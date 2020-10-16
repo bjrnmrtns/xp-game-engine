@@ -5,6 +5,7 @@ use nalgebra_glm::{identity, Mat4};
 use std::io::Read;
 use wgpu::util::DeviceExt;
 use wgpu::*;
+use xp_ui::{Widget, UI};
 
 type Result<T> = std::result::Result<T, GraphicsError>;
 
@@ -307,4 +308,63 @@ impl graphics::Renderer for Renderer {
             //TODO: render glyphs without mut in some way, self.glyph_brush.draw_queued(&graphics.device, &mut encoder, target, graphics.sc_descriptor.width, graphics.sc_descriptor.height,).expect("Cannot draw glyph_brush");
         }
     }
+}
+pub fn create_mesh<T>(
+    ui: &UI<T, u32>,
+) -> (
+    graphics::Mesh<graphics::ui::Vertex>,
+    Vec<graphics::ui::Text>,
+) {
+    let mut mesh = graphics::Mesh::<graphics::ui::Vertex> {
+        vertices: Vec::new(),
+        indices: Vec::new(),
+    };
+    let mut text = Vec::new();
+    for (_, widget) in ui.widgets() {
+        match widget {
+            Widget::LabelW(layout, label) => {
+                let top_left = graphics::ui::Vertex {
+                    position: [layout.position.x, layout.position.y],
+                    uv: [0.0, 0.0],
+                    color: label.color,
+                };
+                let bottom_left = graphics::ui::Vertex {
+                    position: [layout.position.x, layout.position.y - layout.size.height],
+                    uv: [0.0, 0.0],
+                    color: label.color,
+                };
+                let top_right = graphics::ui::Vertex {
+                    position: [layout.position.x + layout.size.width, layout.position.y],
+                    uv: [0.0, 0.0],
+                    color: label.color,
+                };
+                let bottom_right = graphics::ui::Vertex {
+                    position: [
+                        layout.position.x + layout.size.width,
+                        layout.position.y - layout.size.height,
+                    ],
+                    uv: [0.0, 0.0],
+                    color: label.color,
+                };
+                text.push(graphics::ui::Text {
+                    pos: (layout.position.x, layout.position.y - ui.window_size.1),
+                    text: label.text.text.clone(),
+                    font_size: label.text.font_size,
+                    color: label.text.color,
+                });
+                let offset = mesh.vertices.len() as u32;
+                mesh.indices.extend_from_slice(&[
+                    offset + 0,
+                    offset + 1,
+                    offset + 2,
+                    offset + 2,
+                    offset + 1,
+                    offset + 3,
+                ]);
+                mesh.vertices
+                    .extend_from_slice(&[top_left, bottom_left, top_right, bottom_right]);
+            }
+        }
+    }
+    (mesh, text)
 }

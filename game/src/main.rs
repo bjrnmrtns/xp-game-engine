@@ -18,7 +18,6 @@ use winit::event::{ElementState, Event, KeyboardInput, MouseButton, VirtualKeyCo
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::WindowBuilder;
 use xp_math::model_matrix;
-use xp_physics::{Sphere, Triangle};
 use xp_ui::Widget::LabelW;
 use xp_ui::{ActionType, Label, DEFAULT_LAYOUT, UI};
 
@@ -49,18 +48,17 @@ fn game(options: Options, config: Config) {
         .build(&event_loop)
         .expect("Could not create window");
 
-    let meshes: Vec<(String, graphics::Mesh<graphics::mesh::Vertex>)> = config
+    let meshes: Vec<(String, xp_mesh::mesh::Obj)> = config
         .models
         .iter()
-        .map(|model| (model.name.clone(), mesh::create_mesh_from(&model.location)))
+        .map(|model| {
+            (
+                model.name.clone(),
+                xp_mesh::mesh::Obj::load(&model.location).unwrap(),
+            )
+        })
         .collect();
 
-    let collision_triangle = Triangle::new(
-        vec3(-2.0, 2.0, -2.0),
-        vec3(-2.0, 2.0, 2.0),
-        vec3(2.0, 2.0, 0.0),
-    );
-    let collision_sphere = Sphere::new(vec3(0.0, 4.0, 0.0), 1.0);
     let mut ui = UI::<UIContext, u32>::new(
         window.inner_size().width as f32,
         window.inner_size().height as f32,
@@ -95,13 +93,8 @@ fn game(options: Options, config: Config) {
     for m in meshes {
         renderers
             .default
-            .add_mesh_with_name(&graphics.device, m.0, &m.1);
+            .add_mesh_with_name2(&graphics.device, m.0, m.1.into_iter());
     }
-    renderers.default.add_mesh_with_name(
-        &graphics.device,
-        "lifter_sphere".to_string(),
-        &mesh::create_player_sphere(),
-    );
     let mut entities = Entities::new();
     for config_entity in config.entities {
         let id = entities.add(
@@ -196,22 +189,10 @@ fn game(options: Options, config: Config) {
                         .1, //simulation.freelook_camera.position,
                     },
                 );
-                renderers.debug.pre_render(
-                    &graphics.device,
-                    &mesh::create_collision_triangle_and_sphere(
-                        collision_triangle,
-                        collision_sphere,
-                        vec3(0.0, -3.0, 0.0),
-                        &[0.0, 0.5, 1.0],
-                    ),
-                    projection_3d.clone() as Mat4,
-                    view.clone() as Mat4,
-                    &graphics.queue,
-                );
                 let time_after_clipmap_update = std::time::Instant::now();
                 renderers
                     .ui
-                    .create_drawable(&graphics.device, Some(mesh::create_mesh(&ui)));
+                    .create_drawable(&graphics.device, Some(graphics::ui::create_mesh(&ui)));
                 renderers.ui.pre_render(
                     &graphics.queue,
                     graphics::ui::Uniforms {

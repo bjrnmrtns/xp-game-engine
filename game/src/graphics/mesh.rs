@@ -1,10 +1,11 @@
 use crate::graphics;
 use crate::graphics::error::GraphicsError;
-use crate::graphics::{texture, Drawables, Mesh};
-use nalgebra_glm::{identity, Mat4};
+use crate::graphics::{texture, Drawables};
+use nalgebra_glm::{identity, triangle_normal, vec3, Mat4, Vec3};
 use std::collections::HashMap;
 use std::io::Read;
 use wgpu::util::DeviceExt;
+use xp_mesh::Triangle;
 
 type Result<T> = std::result::Result<T, GraphicsError>;
 
@@ -12,22 +13,11 @@ const MAX_NUMBER_OF_INSTANCES: usize = 16;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
-pub struct Vertex {
-    pub position: [f32; 3],
-    pub normal: [f32; 3],
-    pub color: [f32; 3],
+struct Vertex {
+    pub position: Vec3,
+    pub normal: Vec3,
+    pub color: Vec3,
 }
-
-impl From<&[f32; 3]> for Vertex {
-    fn from(p: &[f32; 3]) -> Self {
-        Self {
-            position: *p,
-            normal: [0.0, 1.0, 0.0],
-            color: [0.0, 0.0, 0.0],
-        }
-    }
-}
-
 unsafe impl bytemuck::Pod for Vertex {}
 unsafe impl bytemuck::Zeroable for Vertex {}
 
@@ -79,10 +69,10 @@ unsafe impl bytemuck::Zeroable for Uniforms {}
 
 pub struct Renderer {
     drawables: Drawables,
-    pub uniform_buffer: wgpu::Buffer,
-    pub instance_buffer: wgpu::Buffer,
-    pub uniform_bind_group: wgpu::BindGroup,
-    pub render_pipeline: wgpu::RenderPipeline,
+    uniform_buffer: wgpu::Buffer,
+    instance_buffer: wgpu::Buffer,
+    uniform_bind_group: wgpu::BindGroup,
+    render_pipeline: wgpu::RenderPipeline,
 }
 impl Renderer {
     pub async fn new(
@@ -239,19 +229,56 @@ impl Renderer {
         })
     }
 
-    pub fn add_mesh_with_name(&mut self, device: &wgpu::Device, name: String, mesh: &Mesh<Vertex>) {
+    pub fn add_mesh_with_name2<I>(
+        &mut self,
+        device: &wgpu::Device,
+        name: String,
+        triangle_iterator: I,
+    ) where
+        I: Iterator<Item = Triangle<Vec3>>,
+    {
+        let mut vs = Vec::new();
+        for t in triangle_iterator {
+            let normal = triangle_normal(&t.positions[0], &t.positions[1], &t.positions[2]);
+            let diffuse_color = if let Some(diffuse_color) = t.diffuse_color {
+                diffuse_color
+            } else {
+                vec3(0.5, 0.5, 0.5)
+            };
+            vs.extend_from_slice(&[
+                Vertex {
+                    position: t.positions[0].clone(),
+                    normal,
+                    color: diffuse_color,
+                },
+                Vertex {
+                    position: t.positions[1].clone(),
+                    normal,
+                    color: diffuse_color,
+                },
+                Vertex {
+                    position: t.positions[2].clone(),
+                    normal,
+                    color: diffuse_color,
+                },
+            ]);
+        }
+        let inds = vs
+            .iter()
+            .enumerate()
+            .map(|(i, _)| i as u32)
+            .collect::<Vec<_>>();
         let vb = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: None,
-            contents: bytemuck::cast_slice(mesh.vertices.as_slice()),
+            contents: bytemuck::cast_slice(vs.as_slice()),
             usage: wgpu::BufferUsage::VERTEX,
         });
         let ib = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: None,
-            contents: bytemuck::cast_slice(mesh.indices.as_slice()),
+            contents: bytemuck::cast_slice(inds.as_slice()),
             usage: wgpu::BufferUsage::INDEX,
         });
-        self.drawables
-            .add_drawable(name, vb, ib, mesh.indices.len());
+        self.drawables.add_drawable(name, vb, ib, inds.len());
     }
 
     pub fn add_entity(&mut self, id: u32, name: &String) {
