@@ -263,22 +263,12 @@ impl Renderer {
                 },
             ]);
         }
-        let inds = vs
-            .iter()
-            .enumerate()
-            .map(|(i, _)| i as u32)
-            .collect::<Vec<_>>();
         let vb = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: None,
             contents: bytemuck::cast_slice(vs.as_slice()),
             usage: wgpu::BufferUsage::VERTEX,
         });
-        let ib = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: None,
-            contents: bytemuck::cast_slice(inds.as_slice()),
-            usage: wgpu::BufferUsage::INDEX,
-        });
-        self.drawables.add_drawable(name, vb, ib, inds.len());
+        self.drawables.add_drawable(name, vb, vs.len());
     }
 
     pub fn add_entity(&mut self, id: u32, name: &String) {
@@ -328,11 +318,9 @@ impl Renderer {
         for (index, draw_description) in self.drawables.draw_descriptions.iter().enumerate() {
             render_pass
                 .set_vertex_buffer(0, self.drawables.buffers[draw_description.vbi].slice(..));
-            render_pass.set_index_buffer(self.drawables.buffers[draw_description.ibi].slice(..));
             render_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
-            render_pass.draw_indexed(
-                0..draw_description.ib_len as u32,
-                0,
+            render_pass.draw(
+                0..draw_description.vb_len as u32,
                 instance_ranges[index].clone(),
             );
         }

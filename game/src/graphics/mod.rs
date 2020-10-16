@@ -14,9 +14,8 @@ type Result<T> = std::result::Result<T, GraphicsError>;
 
 pub struct DrawDescription {
     name: String,
-    ibi: usize,
     vbi: usize,
-    ib_len: usize,
+    vb_len: usize,
     entity_ids: HashSet<u32>,
 }
 
@@ -38,20 +37,12 @@ impl Drawables {
             draw_descriptions: vec![],
         }
     }
-    pub fn add_drawable(
-        &mut self,
-        name: String,
-        vertex_buffer: wgpu::Buffer,
-        index_buffer: wgpu::Buffer,
-        index_buffer_len: usize,
-    ) {
+    pub fn add_drawable(&mut self, name: String, vertex_buffer: wgpu::Buffer, vb_len: usize) {
         self.buffers.push(vertex_buffer);
-        self.buffers.push(index_buffer);
         self.draw_descriptions.push(DrawDescription {
             name,
-            vbi: self.buffers.len() - 2,
-            ibi: self.buffers.len() - 1,
-            ib_len: index_buffer_len,
+            vbi: self.buffers.len() - 1,
+            vb_len,
             entity_ids: HashSet::new(),
         })
     }
