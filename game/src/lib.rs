@@ -5,9 +5,10 @@ pub mod command_queue;
 pub mod counter;
 pub mod entities;
 pub mod graphics;
-pub mod input;
 pub mod simulation;
 pub mod transformation;
+pub mod window_input;
 
 pub mod configuration;
 pub mod terrain;
+pub mod winit_impl;

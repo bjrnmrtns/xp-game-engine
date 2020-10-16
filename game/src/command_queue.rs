@@ -1,5 +1,5 @@
 use crate::client::command::FrameCommand;
-use crate::input::PlayerInputState;
+use crate::window_input::input_state::InputState;
 
 pub struct CommandQueue {
     last_frame: Option<u64>,
@@ -12,7 +12,7 @@ impl CommandQueue {
 
     pub fn input_to_commands(
         &mut self,
-        player_input_state: &PlayerInputState,
+        input_state: InputState,
         current_frame: u64,
     ) -> Vec<FrameCommand> {
         let mut commands = Vec::new();
@@ -22,14 +22,13 @@ impl CommandQueue {
             current_frame
         };
         commands.push(FrameCommand {
-            command: player_input_state.clone(),
+            command: input_state.clone(),
             frame: last_frame_plus,
         });
         for frame_nr in last_frame_plus..=current_frame {
             commands.push(FrameCommand {
-                command: PlayerInputState {
-                    forward: player_input_state.forward.clone(),
-                    strafe: player_input_state.strafe.clone(),
+                command: InputState {
+                    movement: input_state.movement.clone(),
                     orientation_change: None,
                 },
                 frame: frame_nr,
