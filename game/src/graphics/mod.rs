@@ -130,7 +130,7 @@ pub struct Graphics {
     pub sc_descriptor: wgpu::SwapChainDescriptor,
     pub swap_chain: wgpu::SwapChain,
     pub depth_texture: texture::Texture,
-    window_size: winit::dpi::PhysicalSize<u32>,
+    window_size: (u32, u32),
 }
 
 impl Graphics {
@@ -192,14 +192,14 @@ impl Graphics {
             sc_descriptor,
             swap_chain,
             depth_texture,
-            window_size: window.inner_size(),
+            window_size: (window.inner_size().width, window.inner_size().height),
         })
     }
 
-    pub async fn resize(&mut self, size: winit::dpi::PhysicalSize<u32>) {
-        self.window_size = size;
-        self.sc_descriptor.width = size.width;
-        self.sc_descriptor.height = size.height;
+    pub async fn resize(&mut self, width: u32, height: u32) {
+        self.window_size = (width, height);
+        self.sc_descriptor.width = width;
+        self.sc_descriptor.height = height;
         self.depth_texture =
             texture::Texture::create_depth_texture(&self.device, &self.sc_descriptor);
         self.swap_chain = self

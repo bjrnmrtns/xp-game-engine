@@ -10,8 +10,8 @@ use game::window_input::input_handler::InputHandler;
 use game::*;
 use nalgebra_glm::{perspective, quat_identity, vec3, Mat4};
 use std::collections::HashMap;
-use winit::event::DeviceEvent::MouseMotion;
-use winit::event::{ElementState, Event, KeyboardInput, MouseButton, VirtualKeyCode, WindowEvent};
+use window_input::WindowEvent;
+use winit::event::{ElementState, Event, KeyboardInput, MouseButton, VirtualKeyCode};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::WindowBuilder;
 use xp_math::model_matrix;
@@ -87,18 +87,18 @@ fn game(options: Options) {
     let mut frame_counter = counter::FrameCounter::new(FPS);
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Poll;
-        frame_counter.run();
-        let frame_commands = commands_queue
-            .input_to_commands(winit_handler.get_input_state(), frame_counter.count());
-        simulation::handle_frame(
-            frame_commands,
-            &mut entities,
-            1.0 / FPS as f32,
-            &renderers.clipmap,
-        );
+        match winit_handler.handle_event(&event, &window) {
+            Some(WindowEvent::Redraw) => {
+                frame_counter.run();
+                let frame_commands = commands_queue
+                    .input_to_commands(winit_handler.get_input_state(), frame_counter.count());
+                simulation::handle_frame(
+                    frame_commands,
+                    &mut entities,
+                    1.0 / FPS as f32,
+                    &renderers.clipmap,
+                );
 
-        match event {
-            Event::RedrawRequested(_) => {
                 // first rotate all vertices on 0,0,0 (rotate around origin), then translate all points towards location.
                 // for the view matrix we can also use player_move and player_rotate, and use the inverse of the resulting matrix
                 let view = match game_state.camera {
@@ -159,26 +159,10 @@ fn game(options: Options) {
                     (time_after_render - time_before_render).as_micros()
                 );
             }
-            Event::MainEventsCleared => {
-                window.request_redraw();
+            Some(WindowEvent::Resize(width, height)) => {
+                futures::executor::block_on(graphics.resize(width, height))
             }
-            Event::WindowEvent {
-                ref event,
-                window_id,
-            } if window_id == window.id() => {
-                winit_handler.handle_event(&event);
-                match event {
-                    #[allow(deprecated)]
-                    WindowEvent::Resized(physical_size) => {
-                        futures::executor::block_on(graphics.resize(*physical_size));
-                    }
-                    WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
-                        futures::executor::block_on(graphics.resize(**new_inner_size));
-                    }
-                    _ => (),
-                }
-            }
-            _ => {}
+            None => (),
         }
     });
 }

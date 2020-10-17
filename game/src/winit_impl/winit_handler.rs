@@ -1,10 +1,11 @@
 use crate::window_input::events::{UserInterfaceEvent, UserInterfaceEvents};
 use crate::window_input::input_handler::InputHandler;
 use crate::window_input::input_state::{InputState, Movement, OrientationChange};
-use crate::window_input::Position;
+use crate::window_input::{window_event, Position};
 use nalgebra_glm::vec2;
-use winit::event::{ElementState, KeyboardInput, MouseButton, VirtualKeyCode, WindowEvent};
+use winit::event::{ElementState, Event, KeyboardInput, MouseButton, VirtualKeyCode, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
+use winit::window::Window;
 
 pub struct WinitHandler {
     keyboard_state: Vec<bool>,
@@ -74,7 +75,39 @@ impl WinitHandler {
         }
     }
 
-    pub fn handle_event(&mut self, event: &WindowEvent) {
+    pub fn handle_event(
+        &mut self,
+        event: &Event<()>,
+        window: &Window,
+    ) -> Option<window_event::WindowEvent> {
+        match event {
+            Event::MainEventsCleared => {
+                window.request_redraw();
+                None
+            }
+            Event::RedrawRequested(_) => Some(window_event::WindowEvent::Redraw),
+            Event::WindowEvent {
+                ref event,
+                window_id,
+            } if window_id == &window.id() => match event {
+                #[allow(deprecated)]
+                WindowEvent::Resized(physical_size) => Some(window_event::WindowEvent::Resize(
+                    physical_size.width,
+                    physical_size.height,
+                )),
+                WindowEvent::ScaleFactorChanged { new_inner_size, .. } => Some(
+                    window_event::WindowEvent::Resize(new_inner_size.width, new_inner_size.height),
+                ),
+                _ => {
+                    self.handle_window_event(&event);
+                    None
+                }
+            },
+            _ => None,
+        }
+    }
+
+    pub fn handle_window_event(&mut self, event: &WindowEvent) {
         match event {
             WindowEvent::KeyboardInput {
                 input: keyboard_input,
