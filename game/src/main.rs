@@ -1,8 +1,6 @@
 use std::path::PathBuf;
-use std::time::Instant;
 use structopt::StructOpt;
 
-use game::client::local_client::LocalClient;
 use game::client::recording;
 use game::command_queue::CommandQueue;
 use game::configuration::Config;
@@ -10,7 +8,7 @@ use game::entities::{Entities, EntityType};
 use game::graphics::clipmap;
 use game::window_input::input_handler::InputHandler;
 use game::*;
-use nalgebra_glm::{ortho, perspective, quat_identity, vec3, Mat4};
+use nalgebra_glm::{perspective, quat_identity, vec3, Mat4};
 use std::collections::HashMap;
 use winit::event::DeviceEvent::MouseMotion;
 use winit::event::{ElementState, Event, KeyboardInput, MouseButton, VirtualKeyCode, WindowEvent};
@@ -60,30 +58,6 @@ fn game(options: Options) {
         })
         .collect();
 
-    /*    let mut ui = UI::<UIContext, u32>::new(
-           window.inner_size().width as f32,
-           window.inner_size().height as f32,
-       );
-
-    let fps_label_id = ui.add(LabelW(
-        DEFAULT_LAYOUT,
-        Label::build("fps").with_color([255, 255, 0, 255]),
-    ));
-    let camera_button_id = ui.add(LabelW(
-        DEFAULT_LAYOUT,
-        Label::build("camera").with_color([0, 0, 255, 255]),
-    ));
-    ui.add_action_for_id(
-        camera_button_id,
-        ActionType::OnClick,
-        |context| match context.camera {
-            camera::CameraType::Follow => context.camera = camera::CameraType::FreeLook,
-            camera::CameraType::FreeLook => context.camera = camera::CameraType::Follow,
-        },
-    );
-
-    ui.layout();
-     */
     let mut freelook = camera::FreeLook::new(vec3(0.0, 3.0, 3.0), vec3(0.0, -1.0, -1.0));
     let mut graphics = futures::executor::block_on(graphics::Graphics::new(&window))
         .expect("Could not create graphics renderer");
@@ -109,14 +83,7 @@ fn game(options: Options) {
         renderers.default.add_entity(id, &config_entity.model_name);
     }
 
-    let mut previous_time = Instant::now();
-
     let mut commands_queue = CommandQueue::new();
-    let mut client = LocalClient::new();
-    let mut record = recording::try_create_recorder(options.record_path);
-    let replaying = options.replay_path != None;
-    let mut replay = recording::try_create_replayer(options.replay_path);
-
     let mut frame_counter = counter::FrameCounter::new(FPS);
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Poll;
@@ -141,21 +108,6 @@ fn game(options: Options) {
                             .0
                     }
                 };
-                /*
-                let current_time = Instant::now();
-                let fps = (1000.0 / (current_time - previous_time).as_millis() as f32) as u32;
-                if let Some(fps_label) = ui.try_get_mut_label(fps_label_id) {
-                    fps_label.text.text = fps.to_string();
-                }
-                previous_time = current_time;
-                let projection_2d = ortho(
-                    0.0,
-                    graphics.sc_descriptor.width as f32,
-                    0.0,
-                    graphics.sc_descriptor.height as f32,
-                    -1.0,
-                    1.0,
-                );*/
                 let projection_3d = perspective(
                     graphics.sc_descriptor.width as f32 / graphics.sc_descriptor.height as f32,
                     45.0,
@@ -176,17 +128,6 @@ fn game(options: Options) {
                     },
                 );
                 let time_after_clipmap_update = std::time::Instant::now();
-                /*   renderers
-                                    .ui
-                                    .create_drawable(&graphics.device, Some(graphics::ui::create_mesh(&ui)));
-                                renderers.ui.pre_render(
-                                    &graphics.queue,
-                                    graphics::ui::Uniforms {
-                                        projection: projection_2d,
-                                    },
-                                    game_state.ui_enabled,
-                                );
-                */
                 let target = &graphics
                     .swap_chain
                     .get_current_frame()
@@ -229,14 +170,9 @@ fn game(options: Options) {
                 match event {
                     #[allow(deprecated)]
                     WindowEvent::Resized(physical_size) => {
-                        //ui.update_window_size(physical_size.width as f32, physical_size.height as f32);
                         futures::executor::block_on(graphics.resize(*physical_size));
                     }
                     WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
-                        /*ui.update_window_size(
-                            new_inner_size.width as f32,
-                            new_inner_size.height as f32,
-                        );*/
                         futures::executor::block_on(graphics.resize(**new_inner_size));
                     }
                     _ => (),
