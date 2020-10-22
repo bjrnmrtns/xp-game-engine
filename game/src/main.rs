@@ -83,11 +83,8 @@ fn game(options: Options) {
                     &renderers.clipmap,
                 );
 
-                let view = if let Some(scene::Entity::Player { pose, .. }) = entities.get_player() {
-                    scene::view_on(&pose).0
-                } else {
-                    identity()
-                };
+                let view = cameras.get_view(&entities.get_player().unwrap());
+
                 let projection_3d = perspective(
                     graphics.sc_descriptor.width as f32 / graphics.sc_descriptor.height as f32,
                     45.0,

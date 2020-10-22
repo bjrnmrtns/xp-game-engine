@@ -30,7 +30,7 @@ impl Cameras {
         assert!(self.cameras.len() > 0);
         Some(&mut self.cameras[self.selected])
     }
-    pub fn get_view(&self, player: scene::Entity) -> Mat4 {
+    pub fn get_view(&self, player: &scene::Entity) -> Mat4 {
         assert!(self.cameras.len() > 0);
         match &self.cameras[self.selected] {
             Camera::Follow => {
