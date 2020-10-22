@@ -1,4 +1,4 @@
-use nalgebra_glm::{quat_identity, Quat, Vec3};
+use nalgebra_glm::{Quat, Vec3};
 use std::collections::HashMap;
 
 #[derive(Clone)]
@@ -34,9 +34,9 @@ impl Entities {
         self.entities.get_mut(&id)
     }
     pub fn get_player(&mut self) -> Option<&mut Entity> {
-        for (id, e) in &mut self.entities {
+        for (_, e) in &mut self.entities {
             match e {
-                Entity::Player { pose, max_velocity } => {
+                Entity::Player { .. } => {
                     return Some(e);
                 }
                 _ => (),

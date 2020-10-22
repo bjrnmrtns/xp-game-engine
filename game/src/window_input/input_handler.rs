@@ -6,4 +6,5 @@ pub trait InputHandler {
     fn get_input_state(&mut self) -> InputState;
     fn get_camera_toggled(&mut self) -> u32;
     fn get_ui_events(&mut self) -> UserInterfaceEvents;
+    fn quit(&self) -> bool;
 }

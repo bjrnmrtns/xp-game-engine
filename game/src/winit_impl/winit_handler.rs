@@ -4,7 +4,6 @@ use crate::window_input::input_state::{InputState, Movement, OrientationChange};
 use crate::window_input::{window_event, Position};
 use nalgebra_glm::vec2;
 use winit::event::{ElementState, Event, KeyboardInput, MouseButton, VirtualKeyCode, WindowEvent};
-use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::Window;
 
 pub struct WinitHandler {
@@ -188,5 +187,9 @@ impl InputHandler for WinitHandler {
         let result = self.toggle_camera;
         self.toggle_camera = 0;
         result
+    }
+
+    fn quit(&self) -> bool {
+        self.quit
     }
 }

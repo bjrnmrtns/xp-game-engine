@@ -1,23 +1,18 @@
 use std::path::PathBuf;
 use structopt::StructOpt;
 
-use game::client::recording;
-use game::configuration::Camera::{Follow, Freelook};
 use game::configuration::Config;
 use game::graphics::clipmap;
 use game::process_input::process_input;
 use game::scene;
 use game::window_input::input_handler::InputHandler;
 use game::*;
-use nalgebra_glm::{identity, perspective, quat_identity, vec3, Mat4};
+use nalgebra_glm::{perspective, Mat4};
 use std::collections::HashMap;
 use window_input::WindowEvent;
-use winit::event::{ElementState, Event, KeyboardInput, MouseButton, VirtualKeyCode};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::WindowBuilder;
 use xp_math::model_matrix;
-use xp_ui::Widget::LabelW;
-use xp_ui::{ActionType, Label, DEFAULT_LAYOUT, UI};
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "options", about = "command line options")]
@@ -31,7 +26,7 @@ pub struct Options {
 
 const FPS: u64 = 60;
 
-fn game(options: Options) {
+fn game(_options: Options) {
     let config = Config::load_config("config.ron");
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()
@@ -62,6 +57,9 @@ fn game(options: Options) {
     let mut frame_counter = counter::FrameCounter::new(FPS);
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Poll;
+        if winit_handler.quit() {
+            *control_flow = ControlFlow::Exit
+        }
         match winit_handler.handle_event(&event, &window) {
             Some(WindowEvent::Redraw) => {
                 cameras.toggle(winit_handler.get_camera_toggled() as usize);

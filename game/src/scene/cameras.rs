@@ -1,7 +1,6 @@
 use crate::scene;
 use crate::scene::view_on;
 use nalgebra_glm::*;
-use std::collections::HashMap;
 
 pub enum Camera {
     Freelook { position: Vec3, direction: Vec3 },

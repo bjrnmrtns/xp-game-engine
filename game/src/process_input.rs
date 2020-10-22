@@ -54,7 +54,6 @@ pub fn process_input(
         }
         None => assert!(false),
     }
-
     commands
 }
 
