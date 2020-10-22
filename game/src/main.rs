@@ -2,13 +2,14 @@ use std::path::PathBuf;
 use structopt::StructOpt;
 
 use game::client::recording;
-use game::command_queue::CommandQueue;
+use game::configuration::Camera::{Follow, Freelook};
 use game::configuration::Config;
-use game::entities::{Entities, EntityType};
 use game::graphics::clipmap;
+use game::process_input::process_input;
+use game::scene;
 use game::window_input::input_handler::InputHandler;
 use game::*;
-use nalgebra_glm::{perspective, quat_identity, vec3, Mat4};
+use nalgebra_glm::{identity, perspective, quat_identity, vec3, Mat4};
 use std::collections::HashMap;
 use window_input::WindowEvent;
 use winit::event::{ElementState, Event, KeyboardInput, MouseButton, VirtualKeyCode};
@@ -28,37 +29,16 @@ pub struct Options {
     replay_path: Option<PathBuf>,
 }
 
-pub struct UIContext {
-    pub ui_enabled: bool,
-    pub camera: camera::CameraType,
-}
-
 const FPS: u64 = 60;
 
 fn game(options: Options) {
     let config = Config::load_config("config.ron");
-    let mut game_state = UIContext {
-        ui_enabled: false,
-        camera: camera::CameraType::Follow,
-    };
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()
         .build(&event_loop)
         .expect("Could not create window");
     let mut winit_handler = winit_impl::WinitHandler::new();
 
-    let meshes: Vec<(String, xp_mesh::mesh::Obj)> = config
-        .models
-        .iter()
-        .map(|model| {
-            (
-                model.name.clone(),
-                xp_mesh::mesh::Obj::load(&model.location).unwrap(),
-            )
-        })
-        .collect();
-
-    let mut freelook = camera::FreeLook::new(vec3(0.0, 3.0, 3.0), vec3(0.0, -1.0, -1.0));
     let mut graphics = futures::executor::block_on(graphics::Graphics::new(&window))
         .expect("Could not create graphics renderer");
     let mut renderers = futures::executor::block_on(graphics::Renderers::new(
@@ -67,46 +47,46 @@ fn game(options: Options) {
         &graphics.sc_descriptor,
     ))
     .expect("Could not create graphics renderer");
+    let meshes = from_config::create_model_meshes(config.models.as_slice());
+    let (mapping, mut entities) = from_config::create_entities(config.entities.as_slice());
+    let mut cameras = from_config::create_cameras(config.cameras.as_slice());
+
     for m in meshes {
         renderers
             .default
-            .add_mesh_with_name2(&graphics.device, m.0, m.1.into_iter());
+            .add_mesh_with_name(&graphics.device, m.0, m.1.into_iter());
     }
-    let mut entities = Entities::new();
-    for config_entity in config.entities {
-        let id = entities.add(
-            config_entity.entity_type,
-            config_entity.start_position.into(),
-            quat_identity(),
-            config_entity.max_velocity,
-        );
-        renderers.default.add_entity(id, &config_entity.model_name);
-    }
+    renderers.default.add_entities(mapping.as_slice());
 
-    let mut commands_queue = CommandQueue::new();
+    let mut last_frame: Option<u64> = None;
     let mut frame_counter = counter::FrameCounter::new(FPS);
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Poll;
         match winit_handler.handle_event(&event, &window) {
             Some(WindowEvent::Redraw) => {
+                cameras.toggle(winit_handler.get_camera_toggled() as usize);
                 frame_counter.run();
-                let frame_commands = commands_queue
-                    .input_to_commands(winit_handler.get_input_state(), frame_counter.count());
+                let current_frame = frame_counter.count();
+                let selected_camera = cameras.get_selected();
+                let frame_commands = process_input(
+                    winit_handler.get_input_state(),
+                    last_frame,
+                    current_frame,
+                    selected_camera,
+                );
+                last_frame = Some(current_frame);
+
                 simulation::handle_frame(
                     frame_commands,
-                    &mut entities,
+                    entities.get_player().unwrap(),
                     1.0 / FPS as f32,
                     &renderers.clipmap,
                 );
 
-                // first rotate all vertices on 0,0,0 (rotate around origin), then translate all points towards location.
-                // for the view matrix we can also use player_move and player_rotate, and use the inverse of the resulting matrix
-                let view = match game_state.camera {
-                    camera::CameraType::FreeLook => freelook.view(),
-                    camera::CameraType::Follow => {
-                        camera::view_on(entities.get_first_entity_with(EntityType::Player).unwrap())
-                            .0
-                    }
+                let view = if let Some(scene::Entity::Player { pose, .. }) = entities.get_player() {
+                    scene::view_on(&pose).0
+                } else {
+                    identity()
                 };
                 let projection_3d = perspective(
                     graphics.sc_descriptor.width as f32 / graphics.sc_descriptor.height as f32,
@@ -116,17 +96,16 @@ fn game(options: Options) {
                 );
 
                 let time_before_clipmap_update = std::time::Instant::now();
-                renderers.clipmap.pre_render(
-                    &graphics.queue,
-                    clipmap::Uniforms {
-                        projection: projection_3d.clone() as Mat4,
-                        view: view.clone() as Mat4,
-                        camera_position: camera::view_on(
-                            entities.get_first_entity_with(EntityType::Player).unwrap(),
-                        )
-                        .1, //simulation.freelook_camera.position,
-                    },
-                );
+                if let Some(scene::Entity::Player { pose, .. }) = entities.get_player() {
+                    renderers.clipmap.pre_render(
+                        &graphics.queue,
+                        clipmap::Uniforms {
+                            projection: projection_3d.clone() as Mat4,
+                            view,
+                            camera_position: scene::view_on(pose).1,
+                        },
+                    );
+                }
                 let time_after_clipmap_update = std::time::Instant::now();
                 let target = &graphics
                     .swap_chain
@@ -136,12 +115,14 @@ fn game(options: Options) {
                     .view;
                 let time_before_render = std::time::Instant::now();
                 let mut id_with_model = HashMap::new();
-                id_with_model.extend(
-                    entities
-                        .get_entities()
-                        .iter()
-                        .map(|e| (e.id, model_matrix(&e.position, &e.orientation))),
-                );
+                id_with_model.extend(entities.entities.iter().map(|(id, e)| match e {
+                    scene::Entity::Player { pose, .. } => {
+                        (*id, model_matrix(&pose.position, &pose.orientation))
+                    }
+                    scene::Entity::Static { pose, .. } => {
+                        (*id, model_matrix(&pose.position, &pose.orientation))
+                    }
+                }));
                 graphics::render_loop(
                     &renderers,
                     id_with_model,

@@ -1,6 +1,14 @@
-use crate::entities;
 use std::collections::HashSet;
 use std::fs::File;
+
+#[derive(Debug, serde::Deserialize)]
+pub enum Camera {
+    Follow,
+    Freelook {
+        position: [f32; 3],
+        direction: [f32; 3],
+    },
+}
 
 #[derive(Debug, serde::Deserialize)]
 pub struct Model {
@@ -9,17 +17,23 @@ pub struct Model {
 }
 
 #[derive(Debug, serde::Deserialize)]
-pub struct Entity {
-    pub model_name: String,
-    pub entity_type: entities::EntityType,
-    pub start_position: [f32; 3],
-    pub max_velocity: f32,
+pub enum Entity {
+    Player {
+        model_name: String,
+        start_position: [f32; 3],
+        max_velocity: f32,
+    },
+    Static {
+        model_name: String,
+        start_position: [f32; 3],
+    },
 }
 
 #[derive(Debug, serde::Deserialize)]
 pub struct Config {
     pub models: Vec<Model>,
     pub entities: Vec<Entity>,
+    pub cameras: Vec<Camera>,
 }
 
 impl Config {
@@ -27,6 +41,7 @@ impl Config {
         Self {
             models: vec![],
             entities: vec![],
+            cameras: vec![],
         }
     }
     fn is_valid(&self) -> bool {

@@ -229,7 +229,7 @@ impl Renderer {
         })
     }
 
-    pub fn add_mesh_with_name2<I>(
+    pub fn add_mesh_with_name<I>(
         &mut self,
         device: &wgpu::Device,
         name: String,
@@ -269,6 +269,12 @@ impl Renderer {
             usage: wgpu::BufferUsage::VERTEX,
         });
         self.drawables.add_drawable(name, vb, vs.len());
+    }
+
+    pub fn add_entities(&mut self, mapping: &[(u32, &String)]) {
+        for m in mapping {
+            self.drawables.add_entity(m.0, m.1);
+        }
     }
 
     pub fn add_entity(&mut self, id: u32, name: &String) {
