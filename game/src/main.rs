@@ -1,39 +1,20 @@
-use std::path::PathBuf;
-use structopt::StructOpt;
-
-use game::configuration::Config;
-use game::graphics::clipmap;
-use game::process_input::process_input;
-use game::scene;
-use game::window_input::input_handler::InputHandler;
-use game::*;
+use crate::window_input::InputHandler;
+use game::{
+    configuration, counter, from_config, graphics, process_input, scene, simulation, window_input,
+    winit_impl,
+};
 use nalgebra_glm::{perspective, Mat4};
 use std::collections::HashMap;
-use window_input::WindowEvent;
-use winit::event_loop::{ControlFlow, EventLoop};
-use winit::window::WindowBuilder;
-use xp_math::model_matrix;
-
-#[derive(Debug, StructOpt)]
-#[structopt(name = "options", about = "command line options")]
-pub struct Options {
-    #[structopt(long = "recording", parse(from_os_str))]
-    record_path: Option<PathBuf>,
-
-    #[structopt(long = "replay", parse(from_os_str))]
-    replay_path: Option<PathBuf>,
-}
 
 const FPS: u64 = 60;
 
-fn game(_options: Options) {
-    let config = Config::load_config("config.ron");
-    let event_loop = EventLoop::new();
-    let window = WindowBuilder::new()
+fn main() {
+    let config = configuration::Config::load_config("config.ron");
+    let event_loop = winit::event_loop::EventLoop::new();
+    let window = winit::window::WindowBuilder::new()
         .build(&event_loop)
         .expect("Could not create window");
     let mut winit_handler = winit_impl::WinitHandler::new();
-
     let mut graphics = futures::executor::block_on(graphics::Graphics::new(&window))
         .expect("Could not create graphics renderer");
     let mut renderers = futures::executor::block_on(graphics::Renderers::new(
@@ -56,17 +37,17 @@ fn game(_options: Options) {
     let mut last_frame: Option<u64> = None;
     let mut frame_counter = counter::FrameCounter::new(FPS);
     event_loop.run(move |event, _, control_flow| {
-        *control_flow = ControlFlow::Poll;
+        *control_flow = winit::event_loop::ControlFlow::Poll;
         if winit_handler.quit() {
-            *control_flow = ControlFlow::Exit
+            *control_flow = winit::event_loop::ControlFlow::Exit
         }
         match winit_handler.handle_event(&event, &window) {
-            Some(WindowEvent::Redraw) => {
+            Some(window_input::WindowEvent::Redraw) => {
                 cameras.toggle(winit_handler.get_camera_toggled() as usize);
                 frame_counter.run();
                 let current_frame = frame_counter.count();
                 let selected_camera = cameras.get_selected();
-                let frame_commands = process_input(
+                let frame_commands = process_input::process_input(
                     winit_handler.get_input_state(),
                     last_frame,
                     current_frame,
@@ -94,7 +75,7 @@ fn game(_options: Options) {
                 if let Some(scene::Entity::Player { pose, .. }) = entities.get_player() {
                     renderers.clipmap.pre_render(
                         &graphics.queue,
-                        clipmap::Uniforms {
+                        graphics::clipmap::Uniforms {
                             projection: projection_3d.clone() as Mat4,
                             view,
                             camera_position: scene::view_on(pose).1,
@@ -111,12 +92,14 @@ fn game(_options: Options) {
                 let time_before_render = std::time::Instant::now();
                 let mut id_with_model = HashMap::new();
                 id_with_model.extend(entities.entities.iter().map(|(id, e)| match e {
-                    scene::Entity::Player { pose, .. } => {
-                        (*id, model_matrix(&pose.position, &pose.orientation))
-                    }
-                    scene::Entity::Static { pose, .. } => {
-                        (*id, model_matrix(&pose.position, &pose.orientation))
-                    }
+                    scene::Entity::Player { pose, .. } => (
+                        *id,
+                        xp_math::model_matrix(&pose.position, &pose.orientation),
+                    ),
+                    scene::Entity::Static { pose, .. } => (
+                        *id,
+                        xp_math::model_matrix(&pose.position, &pose.orientation),
+                    ),
                 }));
                 graphics::render_loop(
                     &renderers,
@@ -135,15 +118,10 @@ fn game(_options: Options) {
                     (time_after_render - time_before_render).as_micros()
                 );
             }
-            Some(WindowEvent::Resize(width, height)) => {
+            Some(window_input::WindowEvent::Resize(width, height)) => {
                 futures::executor::block_on(graphics.resize(width, height))
             }
             None => (),
         }
     });
-}
-
-fn main() {
-    let options = Options::from_args();
-    game(options)
 }

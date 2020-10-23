@@ -8,6 +8,7 @@ pub mod transformation;
 pub mod window_input;
 
 pub mod configuration;
+pub mod engine;
 pub mod from_config;
 pub mod scene;
 pub mod terrain;
