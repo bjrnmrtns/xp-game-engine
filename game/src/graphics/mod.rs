@@ -1,5 +1,5 @@
 use crate::graphics::error::GraphicsError;
-use nalgebra_glm::Mat4;
+use nalgebra_glm::{Mat4, Vec3};
 use std::collections::{HashMap, HashSet};
 use wgpu::util::DeviceExt;
 use winit::window::Window;
@@ -97,32 +97,6 @@ pub fn create_buffer_from<
     }
 }
 
-pub struct Renderers {
-    pub ui: ui::Renderer,
-    pub default: mesh::Renderer,
-    pub clipmap: clipmap::Renderer,
-}
-
-pub trait Renderer {
-    fn render<'a, 'b>(&'a self, render_pass: &'b mut wgpu::RenderPass<'a>)
-    where
-        'a: 'b;
-}
-
-impl Renderers {
-    pub async fn new(
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        swapchain_descriptor: &wgpu::SwapChainDescriptor,
-    ) -> Result<Self> {
-        Ok(Self {
-            ui: ui::Renderer::new(&device, &swapchain_descriptor, &queue).await?,
-            default: mesh::Renderer::new(&device, &swapchain_descriptor, &queue).await?,
-            clipmap: clipmap::Renderer::new(&device, &swapchain_descriptor, &queue).await?,
-        })
-    }
-}
-
 pub struct Graphics {
     surface: wgpu::Surface,
     pub device: wgpu::Device,
@@ -131,6 +105,9 @@ pub struct Graphics {
     pub swap_chain: wgpu::SwapChain,
     pub depth_texture: texture::Texture,
     window_size: (u32, u32),
+    pub mesh_renderer: mesh::Renderer,
+    pub clipmap_renderer: clipmap::Renderer,
+    pub ui_renderer: ui::Renderer,
 }
 
 impl Graphics {
@@ -184,6 +161,9 @@ impl Graphics {
         };
         let swap_chain = device.create_swap_chain(&surface, &sc_descriptor);
         let depth_texture = texture::Texture::create_depth_texture(&device, &sc_descriptor);
+        let ui_renderer = ui::Renderer::new(&device, &sc_descriptor, &queue).await?;
+        let mesh_renderer = mesh::Renderer::new(&device, &sc_descriptor, &queue).await?;
+        let clipmap_renderer = clipmap::Renderer::new(&device, &sc_descriptor, &queue).await?;
 
         Ok(Self {
             surface,
@@ -193,6 +173,9 @@ impl Graphics {
             swap_chain,
             depth_texture,
             window_size: (window.inner_size().width, window.inner_size().height),
+            mesh_renderer,
+            clipmap_renderer,
+            ui_renderer,
         })
     }
 
@@ -206,65 +189,93 @@ impl Graphics {
             .device
             .create_swap_chain(&self.surface, &self.sc_descriptor);
     }
-}
 
-pub fn render_loop(
-    renderables: &Renderers,
-    entities: HashMap<u32, Mat4>,
-    projection: Mat4,
-    view: Mat4,
-    device: &wgpu::Device,
-    queue: &wgpu::Queue,
-    target: &wgpu::TextureView,
-    depth_attachment: &wgpu::TextureView,
-) {
-    let mut encoder =
-        device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+    pub fn add_mesh_with_name<I>(&mut self, name: String, triangle_iterator: I)
+    where
+        I: Iterator<Item = xp_mesh::Triangle<Vec3>>,
     {
-        let mut game_render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-                attachment: target,
-                resolve_target: None,
-                ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(wgpu::Color {
-                        r: 0.0,
-                        g: 0.0,
-                        b: 0.0,
-                        a: 1.0,
+        self.mesh_renderer
+            .add_mesh_with_name(&mut self.device, name, triangle_iterator);
+    }
+
+    pub fn add_entities(&mut self, mapping: &[(u32, &String)]) {
+        self.mesh_renderer.add_entities(mapping);
+    }
+
+    pub fn render_loop(
+        &mut self,
+        entities: HashMap<u32, Mat4>,
+        projection: Mat4,
+        view: Mat4,
+        player_view_position_for_clipmap: Vec3,
+    ) {
+        let target = &self
+            .swap_chain
+            .get_current_frame()
+            .expect("failed to get next texture")
+            .output
+            .view;
+        self.clipmap_renderer.pre_render(
+            &self.queue,
+            clipmap::Uniforms {
+                projection: projection.clone() as Mat4,
+                view,
+                camera_position: player_view_position_for_clipmap,
+            },
+        );
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+        {
+            let mut game_render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
+                    attachment: target,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color {
+                            r: 0.0,
+                            g: 0.0,
+                            b: 0.0,
+                            a: 1.0,
+                        }),
+                        store: true,
+                    },
+                }],
+                depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachmentDescriptor {
+                    attachment: &self.depth_texture.view,
+                    depth_ops: Some(wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(1.0),
+                        store: true,
                     }),
-                    store: true,
-                },
-            }],
-            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachmentDescriptor {
-                attachment: &depth_attachment,
-                depth_ops: Some(wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(1.0),
-                    store: true,
+                    stencil_ops: Some(wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(0),
+                        store: true,
+                    }),
                 }),
-                stencil_ops: Some(wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(0),
-                    store: true,
-                }),
-            }),
-        });
-        renderables
-            .default
-            .render(&mut game_render_pass, queue, projection, view, entities);
-        renderables.clipmap.render(&mut game_render_pass);
+            });
+            self.mesh_renderer.render(
+                &mut game_render_pass,
+                &self.queue,
+                projection,
+                view,
+                entities,
+            );
+            self.clipmap_renderer.render(&mut game_render_pass);
+        }
+        {
+            let mut ui_render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
+                    attachment: target,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Load,
+                        store: true,
+                    },
+                }],
+                depth_stencil_attachment: None,
+            });
+            self.ui_renderer.render(&mut ui_render_pass);
+        }
+        self.queue.submit(std::iter::once(encoder.finish()));
     }
-    {
-        let mut ui_render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-                attachment: target,
-                resolve_target: None,
-                ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Load,
-                    store: true,
-                },
-            }],
-            depth_stencil_attachment: None,
-        });
-        renderables.ui.render(&mut ui_render_pass);
-    }
-    queue.submit(std::iter::once(encoder.finish()));
 }

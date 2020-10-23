@@ -290,9 +290,7 @@ impl Renderer {
             bytemuck::cast_slice(&[self.uniforms]),
         );
     }
-}
-impl graphics::Renderer for Renderer {
-    fn render<'a, 'b>(&'a self, render_pass: &'b mut RenderPass<'a>)
+    pub fn render<'a, 'b>(&'a self, render_pass: &'b mut RenderPass<'a>)
     where
         'a: 'b,
     {

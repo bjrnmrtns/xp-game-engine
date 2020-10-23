@@ -3,7 +3,7 @@ use game::{
     configuration, counter, from_config, graphics, process_input, scene, simulation, window_input,
     winit_impl,
 };
-use nalgebra_glm::{perspective, Mat4};
+use nalgebra_glm::{perspective, vec3};
 use std::collections::HashMap;
 
 const FPS: u64 = 60;
@@ -17,22 +17,14 @@ fn main() {
     let mut winit_handler = winit_impl::WinitHandler::new();
     let mut graphics = futures::executor::block_on(graphics::Graphics::new(&window))
         .expect("Could not create graphics renderer");
-    let mut renderers = futures::executor::block_on(graphics::Renderers::new(
-        &graphics.device,
-        &graphics.queue,
-        &graphics.sc_descriptor,
-    ))
-    .expect("Could not create graphics renderer");
     let meshes = from_config::create_model_meshes(config.models.as_slice());
     let (mapping, mut entities) = from_config::create_entities(config.entities.as_slice());
     let mut cameras = from_config::create_cameras(config.cameras.as_slice());
 
     for m in meshes {
-        renderers
-            .default
-            .add_mesh_with_name(&graphics.device, m.0, m.1.into_iter());
+        graphics.add_mesh_with_name(m.0, m.1.into_iter());
     }
-    renderers.default.add_entities(mapping.as_slice());
+    graphics.add_entities(mapping.as_slice());
 
     let mut last_frame: Option<u64> = None;
     let mut frame_counter = counter::FrameCounter::new(FPS);
@@ -59,7 +51,7 @@ fn main() {
                     frame_commands,
                     entities.get_player().unwrap(),
                     1.0 / FPS as f32,
-                    &renderers.clipmap,
+                    &graphics.clipmap_renderer,
                 );
 
                 let view = cameras.get_view(&entities.get_player().unwrap());
@@ -72,23 +64,14 @@ fn main() {
                 );
 
                 let time_before_clipmap_update = std::time::Instant::now();
-                if let Some(scene::Entity::Player { pose, .. }) = entities.get_player() {
-                    renderers.clipmap.pre_render(
-                        &graphics.queue,
-                        graphics::clipmap::Uniforms {
-                            projection: projection_3d.clone() as Mat4,
-                            view,
-                            camera_position: scene::view_on(pose).1,
-                        },
-                    );
-                }
+                let player_view_position =
+                    if let Some(scene::Entity::Player { pose, .. }) = entities.get_player() {
+                        scene::view_on(pose).1
+                    } else {
+                        assert!(false);
+                        vec3(0.0, 0.0, 0.0)
+                    };
                 let time_after_clipmap_update = std::time::Instant::now();
-                let target = &graphics
-                    .swap_chain
-                    .get_current_frame()
-                    .expect("failed to get next texture")
-                    .output
-                    .view;
                 let time_before_render = std::time::Instant::now();
                 let mut id_with_model = HashMap::new();
                 id_with_model.extend(entities.entities.iter().map(|(id, e)| match e {
@@ -101,15 +84,11 @@ fn main() {
                         xp_math::model_matrix(&pose.position, &pose.orientation),
                     ),
                 }));
-                graphics::render_loop(
-                    &renderers,
+                graphics.render_loop(
                     id_with_model,
                     projection_3d.clone(),
                     view.clone(),
-                    &graphics.device,
-                    &graphics.queue,
-                    target,
-                    &graphics.depth_texture.view,
+                    player_view_position,
                 );
                 let time_after_render = std::time::Instant::now();
                 println!(
