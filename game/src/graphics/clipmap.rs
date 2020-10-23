@@ -2,7 +2,7 @@ use crate::graphics::error::GraphicsError;
 use crate::graphics::{create_buffer_from, texture, Buffer};
 use crate::terrain;
 use crate::terrain::Generator;
-use nalgebra_glm::{identity, vec3, Mat4, Vec3};
+use nalgebra_glm::{identity, vec3, Mat4, Vec2, Vec3};
 use std::io::Read;
 use wgpu::util::DeviceExt;
 use wgpu::{BindingResource, Device, RenderPass, TextureViewDimension};
@@ -139,6 +139,7 @@ pub struct Renderer {
     pub render_pipeline: wgpu::RenderPipeline,
     pub texture: wgpu::Texture,
     pub generator: Box<dyn Generator>,
+    pub center: Option<[f32; 2]>,
 
     pub clipmap_data: Clipmap,
     clipmap_full: Buffer,
@@ -450,8 +451,9 @@ impl Renderer {
             bind_group: bind_group,
             render_pipeline,
             texture,
-            clipmap_data: Clipmap::new(CM_MAX_LEVELS),
+            clipmap_data: Clipmap::new(CM_MAX_LEVELS, CM_TEXTURE_SIZE),
             generator: Box::new(terrain::Fbm::new()),
+            center: None,
         })
     }
 
@@ -465,22 +467,11 @@ impl Renderer {
     ) where
         'a: 'b,
     {
-        let uniforms = Uniforms {
-            projection: projection.clone(),
-            view: view.clone(),
-            camera_position: position.clone(),
-        };
-        self.clipmap_data.copy_regions.clear();
-        for level in 0..CM_MAX_LEVELS {
-            update_heightmap(
-                &mut self.clipmap_data,
-                [uniforms.camera_position.x, uniforms.camera_position.z],
-                level,
-                &*self.generator,
-            );
-        }
-        queue.write_buffer(&self.uniforms_buffer, 0, bytemuck::cast_slice(&[uniforms]));
-        for copy_region in &self.clipmap_data.copy_regions {
+        self.clipmap_data
+            .update_heightmap([position.x, position.z], &*self.generator);
+        let (center, copy_regions) = self.clipmap_data.get_copy_descriptions(self.center);
+        self.center = center;
+        for copy_region in copy_regions {
             let offset_in_level = copy_region.x + (copy_region.y * CM_TEXTURE_SIZE);
             let begin_slice =
                 (copy_region.level * CM_TEXTURE_SIZE * CM_TEXTURE_SIZE) + offset_in_level;
@@ -511,6 +502,12 @@ impl Renderer {
                 },
             );
         }
+        let uniforms = Uniforms {
+            projection: projection.clone(),
+            view: view.clone(),
+            camera_position: position.clone(),
+        };
+        queue.write_buffer(&self.uniforms_buffer, 0, bytemuck::cast_slice(&[uniforms]));
 
         render_pass.set_pipeline(&self.render_pipeline);
         let start_ring_level = 1;
@@ -814,108 +811,7 @@ fn equal_coords(first: &[i32; 2], second: &[i32; 2]) -> bool {
     first[0] == second[0] && first[1] == second[1]
 }
 
-fn update_xrows(
-    clipmap: &mut Clipmap,
-    xrange: &std::ops::Range<i32>,
-    zstart: i32,
-    level: u32,
-    generator: &dyn terrain::Generator,
-) {
-    let unit_size = unit_size_for_level(level);
-    for z in zstart..zstart + CM_TEXTURE_SIZE as i32 {
-        for x in xrange.clone() {
-            let x_pos = x as f32 * unit_size;
-            let z_pos = z as f32 * unit_size;
-            let x_mod = x as u32 % CM_TEXTURE_SIZE;
-            let z_mod = z as u32 % CM_TEXTURE_SIZE;
-            //TODO: calculate normal of point, but expensive to call 4 times noise? -> first create heights, then derive rest
-            clipmap.set_height(x_mod, z_mod, level, generator.generate([x_pos, z_pos]));
-        }
-    }
-}
-
-fn update_zrows(
-    clipmap: &mut Clipmap,
-    zrange: &std::ops::Range<i32>,
-    xstart: i32,
-    level: u32,
-    generator: &dyn terrain::Generator,
-) {
-    let unit_size = unit_size_for_level(level);
-    for z in zrange.clone() {
-        for x in xstart..xstart + CM_TEXTURE_SIZE as i32 {
-            let x_pos = x as f32 * unit_size;
-            let z_pos = z as f32 * unit_size;
-            let x_mod = x as u32 % CM_TEXTURE_SIZE;
-            let z_mod = z as u32 % CM_TEXTURE_SIZE;
-            //TODO: calculate normal of point, but expensive to call 4 times noise? -> first create heights, then derive rest
-            clipmap.set_height(x_mod, z_mod, level, generator.generate([x_pos, z_pos]));
-        }
-    }
-}
-
-fn update_heightmap(
-    mut clipmap: &mut Clipmap,
-    center: [f32; 2],
-    level: u32,
-    generator: &dyn terrain::Generator,
-) {
-    let current_base_x = snap_down_to_index(center[0], level) - BASE_OFFSET as i32;
-    let current_base_z = snap_down_to_index(center[1], level) - BASE_OFFSET as i32;
-    if let Some(previous) = clipmap.previous_base[level as usize] {
-        if !equal_coords(&previous, &[current_base_x, current_base_z]) {
-            let xrows =
-                calculate_update_range_1d(previous[0], current_base_x, CM_TEXTURE_SIZE as i32);
-            let zrows =
-                calculate_update_range_1d(previous[1], current_base_z, CM_TEXTURE_SIZE as i32);
-            update_xrows(&mut clipmap, &xrows, current_base_z, level, &*generator);
-            update_zrows(&mut clipmap, &zrows, current_base_x, level, &*generator);
-
-            let xranges = calculate_copy_ranges_1d(&xrows, CM_TEXTURE_SIZE);
-            for xrange in xranges {
-                clipmap.copy_regions.push(CopyDescription {
-                    offset: 0,
-                    x: xrange.start,
-                    y: 0,
-                    xlen: xrange.end - xrange.start,
-                    ylen: CM_TEXTURE_SIZE,
-                    level,
-                });
-            }
-            let zranges = calculate_copy_ranges_1d(&zrows, CM_TEXTURE_SIZE);
-            for zrange in zranges {
-                clipmap.copy_regions.push(CopyDescription {
-                    offset: 0,
-                    x: 0,
-                    y: zrange.start,
-                    xlen: CM_TEXTURE_SIZE,
-                    ylen: zrange.end - zrange.start,
-                    level,
-                });
-            }
-        }
-    } else {
-        update_xrows(
-            &mut clipmap,
-            &(current_base_x..current_base_x + CM_TEXTURE_SIZE as i32),
-            current_base_z,
-            level,
-            generator,
-        );
-        clipmap.copy_regions.push(CopyDescription {
-            offset: 0,
-            x: 0,
-            y: 0,
-            xlen: CM_TEXTURE_SIZE,
-            ylen: CM_TEXTURE_SIZE,
-            level,
-        });
-    }
-    //TODO: as bytes_of_row needs to be a multiple of 256 bytes, we will figure the partial copy out after adding normals
-    clipmap.previous_base[level as usize] = Some([current_base_x, current_base_z]);
-}
-
-struct CopyDescription {
+pub struct CopyDescription {
     pub offset: u32,
     pub x: u32,
     pub y: u32,
@@ -941,26 +837,151 @@ impl Element {
 
 pub struct Clipmap {
     data: Vec<Element>,
-    previous_base: Vec<Option<[i32; 2]>>,
-    copy_regions: Vec<CopyDescription>,
+    center: Option<[f32; 2]>, // this is the center the data is generated around
+    size: u32,
+    levels: u32,
 }
 
 impl Clipmap {
-    pub fn new(levels: u32) -> Self {
+    pub fn new(levels: u32, size: u32) -> Self {
         Self {
-            data: vec![Element::new(0.0); (levels * CM_TEXTURE_SIZE * CM_TEXTURE_SIZE) as usize],
-            previous_base: vec![None; levels as usize],
-            copy_regions: Vec::new(),
+            data: vec![Element::new(0.0); (levels * size * size) as usize],
+            center: None,
+            size,
+            levels,
         }
     }
     pub fn set_height(&mut self, x: u32, z: u32, level: u32, height: f32) {
-        self.data
-            [((CM_TEXTURE_SIZE * CM_TEXTURE_SIZE * level) + x + z * CM_TEXTURE_SIZE) as usize]
-            .height = height;
+        self.data[((self.size * self.size * level) + x + z * self.size) as usize].height = height;
     }
     pub fn get_height(&self, x: u32, z: u32, level: u32) -> f32 {
-        self.data[((CM_TEXTURE_SIZE * CM_TEXTURE_SIZE * level) + x + z * CM_TEXTURE_SIZE) as usize]
-            .height
+        self.data[((self.size * self.size * level) + x + z * self.size) as usize].height
+    }
+
+    fn update_xrows(
+        &mut self,
+        xrange: &std::ops::Range<i32>,
+        zstart: i32,
+        level: u32,
+        generator: &dyn terrain::Generator,
+    ) {
+        let unit_size = unit_size_for_level(level);
+        for z in zstart..zstart + CM_TEXTURE_SIZE as i32 {
+            for x in xrange.clone() {
+                let x_pos = x as f32 * unit_size;
+                let z_pos = z as f32 * unit_size;
+                let x_mod = x as u32 % CM_TEXTURE_SIZE;
+                let z_mod = z as u32 % CM_TEXTURE_SIZE;
+                //TODO: calculate normal of point, but expensive to call 4 times noise? -> first create heights, then derive rest
+                self.set_height(x_mod, z_mod, level, generator.generate([x_pos, z_pos]));
+            }
+        }
+    }
+
+    fn update_zrows(
+        &mut self,
+        zrange: &std::ops::Range<i32>,
+        xstart: i32,
+        level: u32,
+        generator: &dyn terrain::Generator,
+    ) {
+        let unit_size = unit_size_for_level(level);
+        for z in zrange.clone() {
+            for x in xstart..xstart + CM_TEXTURE_SIZE as i32 {
+                let x_pos = x as f32 * unit_size;
+                let z_pos = z as f32 * unit_size;
+                let x_mod = x as u32 % CM_TEXTURE_SIZE;
+                let z_mod = z as u32 % CM_TEXTURE_SIZE;
+                //TODO: calculate normal of point, but expensive to call 4 times noise? -> first create heights, then derive rest
+                self.set_height(x_mod, z_mod, level, generator.generate([x_pos, z_pos]));
+            }
+        }
+    }
+
+    pub fn get_copy_descriptions(
+        &self,
+        previous: Option<[f32; 2]>,
+    ) -> (Option<[f32; 2]>, Vec<CopyDescription>) {
+        let mut copy_regions = Vec::new();
+        for level in 0..self.levels {
+            if let (Some(center), Some(previous)) = (self.center, previous) {
+                let previous = [
+                    snap_down_to_index(previous[0], level) - BASE_OFFSET as i32,
+                    snap_down_to_index(previous[1], level) - BASE_OFFSET as i32,
+                ];
+                let current_base_x = snap_down_to_index(center[0], level) - BASE_OFFSET as i32;
+                let current_base_z = snap_down_to_index(center[1], level) - BASE_OFFSET as i32;
+                if !equal_coords(&previous, &[current_base_x, current_base_z]) {
+                    let xrows =
+                        calculate_update_range_1d(previous[0], current_base_x, self.size as i32);
+                    let zrows =
+                        calculate_update_range_1d(previous[1], current_base_z, self.size as i32);
+
+                    let xranges = calculate_copy_ranges_1d(&xrows, self.size);
+                    for xrange in xranges {
+                        copy_regions.push(CopyDescription {
+                            offset: 0,
+                            x: xrange.start,
+                            y: 0,
+                            xlen: xrange.end - xrange.start,
+                            ylen: self.size,
+                            level,
+                        });
+                    }
+                    let zranges = calculate_copy_ranges_1d(&zrows, self.size);
+                    for zrange in zranges {
+                        copy_regions.push(CopyDescription {
+                            offset: 0,
+                            x: 0,
+                            y: zrange.start,
+                            xlen: self.size,
+                            ylen: zrange.end - zrange.start,
+                            level,
+                        });
+                    }
+                }
+            } else {
+                copy_regions.push(CopyDescription {
+                    offset: 0,
+                    x: 0,
+                    y: 0,
+                    xlen: self.size,
+                    ylen: self.size,
+                    level,
+                });
+            }
+        }
+        (self.center.clone(), copy_regions)
+    }
+
+    pub fn update_heightmap(&mut self, center: [f32; 2], generator: &dyn terrain::Generator) {
+        for level in 0..self.levels {
+            let current_base_x = snap_down_to_index(center[0], level) - BASE_OFFSET as i32;
+            let current_base_z = snap_down_to_index(center[1], level) - BASE_OFFSET as i32;
+            if let Some(center) = &self.center {
+                let previous = [
+                    snap_down_to_index(center[0], level) - BASE_OFFSET as i32,
+                    snap_down_to_index(center[1], level) - BASE_OFFSET as i32,
+                ];
+                if !equal_coords(&previous, &[current_base_x, current_base_z]) {
+                    let xrows =
+                        calculate_update_range_1d(previous[0], current_base_x, self.size as i32);
+                    let zrows =
+                        calculate_update_range_1d(previous[1], current_base_z, self.size as i32);
+                    self.update_xrows(&xrows, current_base_z, level, &*generator);
+                    self.update_zrows(&zrows, current_base_x, level, &*generator);
+                }
+            } else {
+                self.update_xrows(
+                    &(current_base_x..current_base_x + self.size as i32),
+                    current_base_z,
+                    level,
+                    generator,
+                );
+            }
+        }
+        //TODO: as bytes_of_row needs to be a multiple of 256 bytes, we will figure the partial copy out after adding normals
+        self.center = Some(center);
     }
 }
 
