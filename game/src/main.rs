@@ -51,7 +51,6 @@ fn main() {
                     frame_commands,
                     entities.get_player().unwrap(),
                     1.0 / FPS as f32,
-                    &graphics.clipmap_renderer,
                 );
 
                 let view = cameras.get_view(&entities.get_player().unwrap());
@@ -63,7 +62,6 @@ fn main() {
                     10000.0,
                 );
 
-                let time_before_clipmap_update = std::time::Instant::now();
                 let player_view_position =
                     if let Some(scene::Entity::Player { pose, .. }) = entities.get_player() {
                         scene::view_on(pose).1
@@ -71,7 +69,6 @@ fn main() {
                         assert!(false);
                         vec3(0.0, 0.0, 0.0)
                     };
-                let time_after_clipmap_update = std::time::Instant::now();
                 let time_before_render = std::time::Instant::now();
                 let mut id_with_model = HashMap::new();
                 id_with_model.extend(entities.entities.iter().map(|(id, e)| match e {
@@ -92,8 +89,7 @@ fn main() {
                 );
                 let time_after_render = std::time::Instant::now();
                 println!(
-                    "clipmap-update us: {} render us: {}",
-                    (time_after_clipmap_update - time_before_clipmap_update).as_micros(),
+                    "render us: {}",
                     (time_after_render - time_before_render).as_micros()
                 );
             }
