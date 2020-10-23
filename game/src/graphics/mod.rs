@@ -215,14 +215,6 @@ impl Graphics {
             .expect("failed to get next texture")
             .output
             .view;
-        self.clipmap_renderer.pre_render(
-            &self.queue,
-            clipmap::Uniforms {
-                projection: projection.clone() as Mat4,
-                view,
-                camera_position: player_view_position_for_clipmap,
-            },
-        );
         let mut encoder = self
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
@@ -260,7 +252,13 @@ impl Graphics {
                 view,
                 entities,
             );
-            self.clipmap_renderer.render(&mut game_render_pass);
+            self.clipmap_renderer.render(
+                &mut game_render_pass,
+                &self.queue,
+                &projection,
+                &view,
+                &player_view_position_for_clipmap,
+            );
         }
         {
             let mut ui_render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {

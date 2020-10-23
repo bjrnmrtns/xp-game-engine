@@ -140,7 +140,6 @@ pub struct Renderer {
     pub texture: wgpu::Texture,
     pub generator: Box<dyn Generator>,
 
-    uniforms: Uniforms,
     pub clipmap_data: Clipmap,
     clipmap_full: Buffer,
     clipmap_ring_mxm: Buffer,
@@ -451,31 +450,36 @@ impl Renderer {
             bind_group: bind_group,
             render_pipeline,
             texture,
-            uniforms,
             clipmap_data: Clipmap::new(CM_MAX_LEVELS),
             generator: Box::new(terrain::Fbm::new()),
         })
     }
 
-    pub fn pre_render(&mut self, queue: &wgpu::Queue, uniforms: Uniforms) {
-        self.uniforms = uniforms;
+    pub fn render<'a, 'b>(
+        &'a mut self,
+        render_pass: &'b mut RenderPass<'a>,
+        queue: &wgpu::Queue,
+        projection: &Mat4,
+        view: &Mat4,
+        position: &Vec3,
+    ) where
+        'a: 'b,
+    {
+        let uniforms = Uniforms {
+            projection: projection.clone(),
+            view: view.clone(),
+            camera_position: position.clone(),
+        };
         self.clipmap_data.copy_regions.clear();
         for level in 0..CM_MAX_LEVELS {
             update_heightmap(
                 &mut self.clipmap_data,
-                [
-                    self.uniforms.camera_position.x,
-                    self.uniforms.camera_position.z,
-                ],
+                [uniforms.camera_position.x, uniforms.camera_position.z],
                 level,
                 &*self.generator,
             );
         }
-        queue.write_buffer(
-            &self.uniforms_buffer,
-            0,
-            bytemuck::cast_slice(&[self.uniforms]),
-        );
+        queue.write_buffer(&self.uniforms_buffer, 0, bytemuck::cast_slice(&[uniforms]));
         for copy_region in &self.clipmap_data.copy_regions {
             let offset_in_level = copy_region.x + (copy_region.y * CM_TEXTURE_SIZE);
             let begin_slice =
@@ -507,12 +511,7 @@ impl Renderer {
                 },
             );
         }
-    }
 
-    pub fn render<'a, 'b>(&'a self, render_pass: &'b mut RenderPass<'a>)
-    where
-        'a: 'b,
-    {
         render_pass.set_pipeline(&self.render_pipeline);
         let start_ring_level = 1;
         let full_level = start_ring_level - 1;
@@ -569,7 +568,7 @@ impl Renderer {
 
         for level in start_ring_level..CM_MAX_LEVELS {
             //h_bottom
-            if snap_diff(self.uniforms.camera_position.z, level - 1, level) < std::f32::EPSILON {
+            if snap_diff(uniforms.camera_position.z, level - 1, level) < std::f32::EPSILON {
                 let start_instance = end_nxn + level * CM_INSTANCE_SIZE_ONE_INTERIOR;
                 render_pass.set_vertex_buffer(0, self.clipmap_interior_h.vertex_buffer.slice(..));
                 render_pass.set_index_buffer(self.clipmap_interior_h.index_buffer.slice(..));
@@ -584,7 +583,7 @@ impl Renderer {
 
         for level in start_ring_level..CM_MAX_LEVELS {
             //h_top
-            if snap_diff(self.uniforms.camera_position.z, level - 1, level) > std::f32::EPSILON {
+            if snap_diff(uniforms.camera_position.z, level - 1, level) > std::f32::EPSILON {
                 let start_instance = end_interior_h_bottom + level * CM_INSTANCE_SIZE_ONE_INTERIOR;
                 render_pass.set_vertex_buffer(0, self.clipmap_interior_h.vertex_buffer.slice(..));
                 render_pass.set_index_buffer(self.clipmap_interior_h.index_buffer.slice(..));
@@ -599,7 +598,7 @@ impl Renderer {
 
         for level in start_ring_level..CM_MAX_LEVELS {
             //v_left
-            if snap_diff(self.uniforms.camera_position.x, level - 1, level) > std::f32::EPSILON {
+            if snap_diff(uniforms.camera_position.x, level - 1, level) > std::f32::EPSILON {
                 let start_instance = end_interior_h_top + level * CM_INSTANCE_SIZE_ONE_INTERIOR;
                 render_pass.set_vertex_buffer(0, self.clipmap_interior_v.vertex_buffer.slice(..));
                 render_pass.set_index_buffer(self.clipmap_interior_v.index_buffer.slice(..));
@@ -614,7 +613,7 @@ impl Renderer {
 
         for level in start_ring_level..CM_MAX_LEVELS {
             //v_right
-            if snap_diff(self.uniforms.camera_position.x, level - 1, level) < std::f32::EPSILON {
+            if snap_diff(uniforms.camera_position.x, level - 1, level) < std::f32::EPSILON {
                 let start_instance = end_interior_v_left + level * CM_INSTANCE_SIZE_ONE_INTERIOR;
                 render_pass.set_vertex_buffer(0, self.clipmap_interior_v.vertex_buffer.slice(..));
                 render_pass.set_index_buffer(self.clipmap_interior_v.index_buffer.slice(..));
