@@ -26,8 +26,8 @@ fn main() {
     }
     graphics.add_entities(mapping.as_slice());
 
-    let mut last_frame: Option<u64> = None;
     let mut frame_counter = counter::FrameCounter::new(FPS);
+    let mut client = simulation::Client::new();
     event_loop.run(move |event, _, control_flow| {
         *control_flow = winit::event_loop::ControlFlow::Poll;
         if winit_handler.quit() {
@@ -36,21 +36,16 @@ fn main() {
         match winit_handler.handle_event(&event, &window) {
             Some(window_input::WindowEvent::Redraw) => {
                 cameras.toggle(winit_handler.get_camera_toggled() as usize);
-                frame_counter.run();
-                let current_frame = frame_counter.count();
+                let (time_elapsed, frames) = frame_counter.frames();
                 let selected_camera = cameras.get_selected();
-                let frame_commands = process_input::process_input(
+                process_input::process_input(
                     winit_handler.get_input_state(),
-                    last_frame,
-                    current_frame,
-                    selected_camera,
-                );
-                last_frame = Some(current_frame);
-
-                simulation::handle_frame(
-                    frame_commands,
-                    entities.get_player().unwrap(),
+                    frames,
                     1.0 / FPS as f32,
+                    time_elapsed,
+                    selected_camera,
+                    entities.get_player().unwrap(),
+                    &mut client,
                 );
 
                 let view = cameras.get_view(&entities.get_player().unwrap());

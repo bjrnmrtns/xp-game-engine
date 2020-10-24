@@ -2,7 +2,7 @@ use crate::graphics::error::GraphicsError;
 use crate::graphics::{create_buffer_from, texture, Buffer};
 use crate::terrain;
 use crate::terrain::Generator;
-use nalgebra_glm::{identity, vec3, Mat4, Vec2, Vec3};
+use nalgebra_glm::{identity, vec3, Mat4, Vec3};
 use std::io::Read;
 use wgpu::util::DeviceExt;
 use wgpu::{BindingResource, Device, RenderPass, TextureViewDimension};

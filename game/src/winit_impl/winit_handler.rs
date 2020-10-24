@@ -169,8 +169,8 @@ impl InputHandler for WinitHandler {
             (Some(current), Some(last)) => {
                 let change = current - last;
                 Some(OrientationChange {
-                    pitch: change.y / 100.0,
-                    yaw: -change.x / 100.0,
+                    pitch: change.y / 10.0,
+                    yaw: -change.x / 10.0,
                 })
             }
             _ => None,
