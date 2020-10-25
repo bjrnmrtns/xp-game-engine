@@ -27,7 +27,7 @@ fn main() {
     graphics.add_entities(mapping.as_slice());
 
     let mut frame_counter = counter::FrameCounter::new(FPS);
-    let mut client = simulation::Client::new();
+    let mut client = simulation::Client::new(1.0 / FPS as f64);
     event_loop.run(move |event, _, control_flow| {
         *control_flow = winit::event_loop::ControlFlow::Poll;
         if winit_handler.quit() {
