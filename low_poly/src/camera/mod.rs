@@ -1,30 +1,45 @@
 mod components;
 mod resources;
 
-pub use components::FollowCamera;
-pub use resources::SelectableCameras;
+pub use components::Followable;
+pub use resources::FollowCamera;
+pub use resources::FreelookCameras;
 
-use crate::physics;
-use bevy::prelude::*;
+use crate::{camera, client, physics};
+use bevy::{prelude::*, render::camera::ActiveCameras};
 
 pub struct CameraPlugin;
 
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut AppBuilder) {
-        app.add_resource(SelectableCameras {
-            selected: 0,
-            camera_ids: vec![],
-        })
-        .add_system(camera_follow_system.system());
+        app.add_resource(FreelookCameras::new())
+            .add_resource(FollowCamera::new())
+            .add_system(follow_entity_system.system())
+            .add_system(activate_correct_camera_system.system());
     }
 }
 
-fn camera_follow_system(
-    query_followables: Query<&physics::Position>,
-    mut query_follow_cameras: Query<(&mut Transform, &components::FollowCamera)>,
+fn follow_entity_system(
+    follow_camera: Res<camera::FollowCamera>,
+    mut query: Query<&mut Transform>,
 ) {
-    for (mut transform, follow) in query_follow_cameras.iter_mut() {
-        let position = query_followables.get(follow.entity).unwrap();
-        transform.look_at(position.0, Vec3::unit_y());
+    match (follow_camera.camera, follow_camera.entity) {
+        (Some(camera), Some(entity)) => {
+            let translation = query.get_mut(entity).unwrap().translation;
+            query
+                .get_mut(camera)
+                .unwrap()
+                .look_at(translation, Vec3::unit_y())
+        }
+        _ => (),
+    }
+}
+
+fn activate_correct_camera_system(
+    mut active_cameras: ResMut<ActiveCameras>,
+    controllable_cameras: Res<camera::FreelookCameras>,
+) {
+    if let Some(camera) = controllable_cameras.get_selected() {
+        active_cameras.set(bevy::render::render_graph::base::camera::CAMERA3D, camera);
     }
 }

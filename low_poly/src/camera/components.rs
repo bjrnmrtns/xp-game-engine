@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 
-#[derive(Debug, Properties)]
-pub struct FollowCamera {
-    pub entity: Entity,
-}
+#[derive(Debug, Default, Properties)]
+pub struct CameraController;
+
+#[derive(Debug, Default, Properties)]
+pub struct Followable;

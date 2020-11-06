@@ -1,4 +1,5 @@
 mod camera;
+mod client;
 mod input;
 mod physics;
 mod startup;
@@ -22,6 +23,7 @@ fn main() {
         .add_plugin(startup::StartupPlugin)
         .add_plugin(input::InputPlugin)
         .add_plugin(camera::CameraPlugin)
+        .add_plugin(client::ClientPlugin)
         .run();
 }
 

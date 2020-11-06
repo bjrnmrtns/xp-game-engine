@@ -1,9 +1,6 @@
 use bevy::prelude::*;
 use std::ops::{Deref, DerefMut};
 
-#[derive(Debug, Default, Properties)]
-pub struct EntityController;
-
 #[derive(Clone, Debug, Default, Properties)]
 pub struct Velocity(pub Vec3);
 
@@ -15,7 +12,6 @@ impl Velocity {
 
 impl Deref for Velocity {
     type Target = Vec3;
-
     fn deref(&self) -> &Self::Target {
         &self.0
     }

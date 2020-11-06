@@ -1,3 +1,3 @@
 mod components;
 
-pub use components::{EntityController, Position, Velocity};
+pub use components::{Position, Velocity};
