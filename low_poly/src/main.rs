@@ -1,11 +1,9 @@
-mod components;
-mod resources;
-mod setup_plugin;
-mod systems;
+mod camera;
+mod input;
+mod physics;
+mod startup;
 
-use bevy::input::mouse::MouseMotion;
 use bevy::prelude::*;
-use std::time::Duration;
 
 fn main() {
     App::build()
@@ -21,10 +19,12 @@ fn main() {
             ..Default::default()
         })
         .add_plugins(bevy::DefaultPlugins)
-        .add_plugin(setup_plugin::SetupPlugin)
-        .add_plugin(systems::GameLogicPlugin)
+        .add_plugin(startup::StartupPlugin)
+        .add_plugin(input::InputPlugin)
+        .add_plugin(camera::CameraPlugin)
         .run();
 }
+
 //TODO: fixed run time_step? .add_plugin(bevy::app::ScheduleRunnerPlugin::run_loop(
 //Duration::from_secs_f64(1.0 / 60.0),
 //))
