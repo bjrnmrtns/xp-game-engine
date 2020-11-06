@@ -15,6 +15,9 @@ impl FreelookCameras {
     }
     pub fn add(&mut self, entity: Entity) {
         self.cameras.push(entity);
+        if let None = self.selected {
+            self.selected = Some(0);
+        }
     }
     pub fn toggle(&mut self) {
         self.selected = match (self.selected, self.cameras.len() > 0) {

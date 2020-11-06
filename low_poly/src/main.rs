@@ -1,8 +1,6 @@
 mod camera;
 mod client;
 mod input;
-mod physics;
-mod startup;
 
 use bevy::prelude::*;
 
@@ -20,7 +18,6 @@ fn main() {
             ..Default::default()
         })
         .add_plugins(bevy::DefaultPlugins)
-        .add_plugin(startup::StartupPlugin)
         .add_plugin(input::InputPlugin)
         .add_plugin(camera::CameraPlugin)
         .add_plugin(client::ClientPlugin)
