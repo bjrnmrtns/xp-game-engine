@@ -1,12 +1,12 @@
 use bevy::prelude::*;
 
 #[derive(Debug, Default)]
-pub struct FreelookCameras {
+pub struct Cameras {
     selected: Option<usize>,
     cameras: Vec<Entity>,
 }
 
-impl FreelookCameras {
+impl Cameras {
     pub fn new() -> Self {
         Self {
             selected: None,
@@ -36,22 +36,15 @@ impl FreelookCameras {
 }
 
 #[derive(Debug, Default)]
-pub struct FollowCamera {
+pub struct FollowEntity {
     pub entity: Option<Entity>,
-    pub camera: Option<Entity>,
 }
 
-impl FollowCamera {
+impl FollowEntity {
     pub fn new() -> Self {
-        Self {
-            entity: None,
-            camera: None,
-        }
+        Self { entity: None }
     }
     pub fn set_entity(&mut self, entity: Entity) {
         self.entity = Some(entity);
-    }
-    pub fn set_follow_camera(&mut self, camera: Entity) {
-        self.camera = Some(camera);
     }
 }
