@@ -1,5 +1,5 @@
 Config(
-    models: [ Model (name: "axis", location: "obj/axis.obj"), Model (name: "arrow", location: "obj/arrow.obj"),],
+    models: [ Model (name: "axis", location: "res/obj/axis.obj"), Model (name: "arrow", location: "res/obj/arrow.obj"),],
     entities: [ Player (model_name: "arrow", start_position: (0.0, 1.0, 0.0), max_velocity: 3.0),
                 Static (model_name: "axis", start_position: (0.0, 0.0, 0.0))],
     cameras: [ Follow, Freelook(position: (0.0, 3.0, 3.0), direction: (0.0, -1.0, -1.0)),],
