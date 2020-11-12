@@ -5,7 +5,10 @@ pub use components::CameraNodeThirdPerson;
 pub use components::CharacterController;
 
 use bevy::prelude::*;
-use std::ops::DerefMut;
+use rapier3d::dynamics::{RigidBodyBuilder, RigidBodyHandle, RigidBodySet};
+use rapier3d::geometry::{ColliderBuilder, ColliderSet};
+use rapier3d::ncollide::na::{Isometry3, Vector3};
+use std::ops::{Deref, DerefMut};
 
 pub struct ClientPlugin;
 
@@ -19,9 +22,25 @@ impl Plugin for ClientPlugin {
 
 fn client_startup_system(
     commands: &mut Commands,
+    mut bodies: ResMut<RigidBodySet>,
+    mut colliders: ResMut<ColliderSet>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
+    let rigid_body_ground = RigidBodyBuilder::new_static()
+        .translation(0.0, -0.1, 0.0)
+        .build();
+    let rb_ground_handle = bodies.deref_mut().insert(rigid_body_ground);
+    let collider_ground = ColliderBuilder::cuboid(10.0, 0.1, 10.0).build();
+    colliders.insert(collider_ground, rb_ground_handle, bodies.deref_mut());
+
+    let rigid_body_player = RigidBodyBuilder::new_dynamic()
+        .translation(0.0, 20.0, 0.0)
+        .build();
+    let rb_player_handle = bodies.deref_mut().insert(rigid_body_player);
+    let collider_player = ColliderBuilder::ball(2.0).build();
+    colliders.insert(collider_player, rb_player_handle, bodies.deref_mut());
+
     commands.spawn(PbrComponents {
         mesh: meshes.add(Mesh::from(shape::Plane { size: 100.0 })),
         material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
@@ -41,6 +60,7 @@ fn client_startup_system(
             material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
             ..Default::default()
         })
+        .with(rb_player_handle)
         .with_children(|parent| {
             parent
                 .spawn(CameraNodeThirdPerson {
@@ -68,12 +88,23 @@ fn handle_player_camera(mut query: Query<(&CameraController, &mut Transform)>) {
     }
 }
 
-fn handle_physics(time: Res<Time>, mut query: Query<(&CharacterController, &mut Transform)>) {
-    for (character_controller, mut transform) in query.iter_mut() {
+fn handle_physics(
+    time: Res<Time>,
+    mut bodies: ResMut<RigidBodySet>,
+    mut query: Query<(&CharacterController, &mut Transform, &RigidBodyHandle)>,
+) {
+    for (character_controller, mut transform, rigid_body_handle) in query.iter_mut() {
+        let mut rb = bodies.get_mut(*rigid_body_handle).unwrap();
+        let player_position = rb.position.translation.vector;
+        transform.translation = Vec3::new(player_position.x, player_position.y, player_position.z);
         transform.rotate(Quat::from_rotation_y(character_controller.rotate_y / 100.0));
         if let Some(move_forward) = character_controller.move_forward {
-            let movement = transform.forward() * move_forward * time.delta_seconds;
-            transform.deref_mut().translation += movement;
+            let movement = transform.forward() * move_forward * time.delta_seconds * 10.0;
+            rb.set_position(Isometry3::translation(
+                player_position.x + movement.x(),
+                player_position.y + movement.y(),
+                player_position.z + movement.z(),
+            ));
         }
     }
 }
