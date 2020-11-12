@@ -1,5 +1,7 @@
 mod components;
 
+pub use components::CameraController;
+pub use components::CameraNodeThirdPerson;
 pub use components::CharacterController;
 
 use bevy::prelude::*;
@@ -10,7 +12,8 @@ pub struct ClientPlugin;
 impl Plugin for ClientPlugin {
     fn build(&self, app: &mut AppBuilder) {
         app.add_startup_system(client_startup_system.system())
-            .add_system(handle_physics.system());
+            .add_system(handle_physics.system())
+            .add_system(handle_player_camera.system());
     }
 }
 
@@ -39,15 +42,30 @@ fn client_startup_system(
             ..Default::default()
         })
         .with_children(|parent| {
-            let mut transform = Transform::from_translation(Vec3::new(-1.0, 1.0, -8.0));
-            transform.rotation =
-                Transform::from_rotation(Quat::from_rotation_y(std::f32::consts::PI)).rotation;
-            parent.spawn(Camera3dComponents {
-                transform,
-                ..Default::default()
-            });
+            parent
+                .spawn(CameraNodeThirdPerson {
+                    transform: Transform::identity(),
+                    global_transform: GlobalTransform::identity(),
+                })
+                .with_children(|parent| {
+                    let mut transform = Transform::from_translation(Vec3::new(-1.0, 1.0, -8.0));
+                    transform.rotation =
+                        Transform::from_rotation(Quat::from_rotation_y(std::f32::consts::PI))
+                            .rotation;
+                    parent.spawn(Camera3dComponents {
+                        transform,
+                        ..Default::default()
+                    });
+                })
+                .with(CameraController::new());
         })
         .with(CharacterController::new());
+}
+
+fn handle_player_camera(mut query: Query<(&CameraController, &mut Transform)>) {
+    for (camera_controller, mut camera_orbit) in query.iter_mut() {
+        camera_orbit.rotate(Quat::from_rotation_x(camera_controller.rotate_x / 100.0));
+    }
 }
 
 fn handle_physics(time: Res<Time>, mut query: Query<(&CharacterController, &mut Transform)>) {
