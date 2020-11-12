@@ -1,12 +1,11 @@
 mod components;
 mod resources;
 
-pub use components::EntityController;
-pub use components::Player;
+pub use components::CharacterController;
 pub use resources::ControllableEntities;
 
-use crate::camera;
 use bevy::prelude::*;
+use std::ops::{Deref, DerefMut};
 
 pub struct ClientPlugin;
 
@@ -22,7 +21,6 @@ fn client_startup_system(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    mut follow_camera: ResMut<camera::FollowEntity>,
     mut controllable_entities: ResMut<ControllableEntities>,
 ) {
     commands.spawn(PbrComponents {
@@ -35,7 +33,7 @@ fn client_startup_system(
         ..Default::default()
     });
 
-    let player1 = commands
+    let player = commands
         .spawn(PbrComponents {
             mesh: meshes.add(Mesh::from(shape::Icosphere {
                 radius: 2.0,
@@ -44,35 +42,26 @@ fn client_startup_system(
             material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
             ..Default::default()
         })
-        .with(Player::new())
-        .with(EntityController::new())
-        .current_entity();
-    let player2 = commands
-        .spawn(PbrComponents {
-            mesh: meshes.add(Mesh::from(shape::Icosphere {
-                radius: 2.0,
-                subdivisions: 3,
-            })),
-            material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
-            ..Default::default()
+        .with_children(|parent| {
+            let mut transform = Transform::from_translation(Vec3::new(-1.0, 1.0, -8.0));
+            transform.rotation =
+                Transform::from_rotation(Quat::from_rotation_y(std::f32::consts::PI)).rotation;
+            parent.spawn(Camera3dComponents {
+                transform,
+                ..Default::default()
+            });
         })
-        .with(Player::new().with_position(Vec3::new(3.0, 0.0, 3.0)))
-        .with(EntityController::new())
+        .with(CharacterController::new())
         .current_entity();
-    follow_camera.set_entity(player1.unwrap());
-    controllable_entities.add(player1.unwrap());
-    controllable_entities.add(player2.unwrap());
+
+    controllable_entities.add(player.unwrap());
 }
 
-fn handle_physics(
-    time: Res<Time>,
-    mut query: Query<(&EntityController, &mut Transform, &mut Player)>,
-) {
-    for (entity_controller, mut transform, mut player) in query.iter_mut() {
-        if let Some(move_forward) = entity_controller.move_forward {
-            let translation = player.direction * time.delta_seconds * move_forward;
-            player.position += translation;
-            transform.translation = player.position;
+fn handle_physics(time: Res<Time>, mut query: Query<(&CharacterController, &mut Transform)>) {
+    for (character_controller, mut transform) in query.iter_mut() {
+        if let Some(move_forward) = character_controller.move_forward {
+            let movement = transform.forward() * move_forward * time.delta_seconds;
+            transform.deref_mut().translation += movement;
         }
     }
 }

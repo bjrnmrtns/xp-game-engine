@@ -1,14 +1,14 @@
 use bevy::prelude::*;
 
 #[derive(Debug, Default, Properties)]
-pub struct EntityController {
+pub struct CharacterController {
     pub move_forward: Option<f32>,
     pub strafe_right: Option<f32>,
     pub direction_change: f32,
     pub jump: bool,
 }
 
-impl EntityController {
+impl CharacterController {
     pub fn new() -> Self {
         Self {
             move_forward: None,
@@ -20,20 +20,4 @@ impl EntityController {
 }
 
 #[derive(Debug, Default, Properties)]
-pub struct Player {
-    pub position: Vec3,
-    pub direction: Vec3,
-}
-
-impl Player {
-    pub fn new() -> Self {
-        Self {
-            position: Default::default(),
-            direction: Vec3::unit_z(),
-        }
-    }
-    pub fn with_position(mut self, position: Vec3) -> Self {
-        self.position = position;
-        self
-    }
-}
+pub struct CollisionShape;

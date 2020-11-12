@@ -1,4 +1,3 @@
-mod camera;
 mod client;
 mod input;
 
@@ -19,7 +18,6 @@ fn main() {
         })
         .add_plugins(bevy::DefaultPlugins)
         .add_plugin(input::InputPlugin)
-        .add_plugin(camera::CameraPlugin)
         .add_plugin(client::ClientPlugin)
         .run();
 }

@@ -1,10 +1,7 @@
-use crate::camera;
 use crate::client;
 use bevy::input::mouse::MouseMotion;
 use bevy::prelude::*;
 use std::ops::DerefMut;
-
-use camera::CameraController;
 
 pub struct InputPlugin;
 
@@ -22,9 +19,8 @@ struct State {
 
 fn keyboard_input_system(
     keyboard_input: Res<Input<KeyCode>>,
-    mut cameras: ResMut<camera::Cameras>,
     mut controllable_entities: ResMut<client::ControllableEntities>,
-    mut query: Query<&mut client::EntityController>,
+    mut query: Query<&mut client::CharacterController>,
 ) {
     if let Some(entity) = controllable_entities.get_selected() {
         let mut entity_controller = query.get_mut(entity).unwrap();
@@ -49,20 +45,14 @@ fn keyboard_input_system(
             },
         );
     }
-    if keyboard_input.just_pressed(KeyCode::C) {
-        cameras.toggle();
-    }
     if keyboard_input.just_pressed(KeyCode::P) {
         controllable_entities.toggle();
     }
 }
 
-fn mouse_motion_system(
-    mut state: Local<State>,
-    mouse_motion_events: Res<Events<MouseMotion>>,
-    mut query: Query<&mut camera::CameraController>,
-) {
+fn mouse_motion_system(mut state: Local<State>, mouse_motion_events: Res<Events<MouseMotion>>) {
+    let mut delta = Vec2::zero();
     for event in state.mouse_motion_event_reader.iter(&mouse_motion_events) {
-        println!("{:?}", event);
+        delta += event.delta;
     }
 }
