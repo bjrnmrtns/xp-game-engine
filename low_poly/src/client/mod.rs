@@ -1,27 +1,23 @@
 mod components;
-mod resources;
 
 pub use components::CharacterController;
-pub use resources::ControllableEntities;
 
 use bevy::prelude::*;
-use std::ops::{Deref, DerefMut};
+use std::ops::DerefMut;
 
 pub struct ClientPlugin;
 
 impl Plugin for ClientPlugin {
     fn build(&self, app: &mut AppBuilder) {
-        app.add_resource(ControllableEntities::new())
-            .add_startup_system(client_startup_system.system())
+        app.add_startup_system(client_startup_system.system())
             .add_system(handle_physics.system());
     }
 }
 
 fn client_startup_system(
-    mut commands: Commands,
+    commands: &mut Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    mut controllable_entities: ResMut<ControllableEntities>,
 ) {
     commands.spawn(PbrComponents {
         mesh: meshes.add(Mesh::from(shape::Plane { size: 10.0 })),
@@ -33,7 +29,7 @@ fn client_startup_system(
         ..Default::default()
     });
 
-    let player = commands
+    commands
         .spawn(PbrComponents {
             mesh: meshes.add(Mesh::from(shape::Icosphere {
                 radius: 2.0,
@@ -51,10 +47,7 @@ fn client_startup_system(
                 ..Default::default()
             });
         })
-        .with(CharacterController::new())
-        .current_entity();
-
-    controllable_entities.add(player.unwrap());
+        .with(CharacterController::new());
 }
 
 fn handle_physics(time: Res<Time>, mut query: Query<(&CharacterController, &mut Transform)>) {

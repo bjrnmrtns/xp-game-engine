@@ -7,8 +7,7 @@ pub struct InputPlugin;
 
 impl Plugin for InputPlugin {
     fn build(&self, app: &mut AppBuilder) {
-        app.add_system(mouse_motion_system.system())
-            .add_system(keyboard_input_system.system());
+        app.add_system(input_system.system());
     }
 }
 
@@ -17,13 +16,17 @@ struct State {
     mouse_motion_event_reader: EventReader<MouseMotion>,
 }
 
-fn keyboard_input_system(
+fn input_system(
+    mut state: Local<State>,
+    mouse_motion_events: Res<Events<MouseMotion>>,
     keyboard_input: Res<Input<KeyCode>>,
-    mut controllable_entities: ResMut<client::ControllableEntities>,
     mut query: Query<&mut client::CharacterController>,
 ) {
-    if let Some(entity) = controllable_entities.get_selected() {
-        let mut entity_controller = query.get_mut(entity).unwrap();
+    let mut delta = Vec2::zero();
+    for event in state.mouse_motion_event_reader.iter(&mouse_motion_events) {
+        delta += event.delta;
+    }
+    for mut entity_controller in query.iter_mut() {
         entity_controller.deref_mut().move_forward = Some(
             match (
                 keyboard_input.pressed(KeyCode::W),
@@ -44,15 +47,5 @@ fn keyboard_input_system(
                 _ => 0.0,
             },
         );
-    }
-    if keyboard_input.just_pressed(KeyCode::P) {
-        controllable_entities.toggle();
-    }
-}
-
-fn mouse_motion_system(mut state: Local<State>, mouse_motion_events: Res<Events<MouseMotion>>) {
-    let mut delta = Vec2::zero();
-    for event in state.mouse_motion_event_reader.iter(&mouse_motion_events) {
-        delta += event.delta;
     }
 }
