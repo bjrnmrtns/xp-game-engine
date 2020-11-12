@@ -27,6 +27,7 @@ fn input_system(
         delta += event.delta;
     }
     for mut entity_controller in query.iter_mut() {
+        entity_controller.deref_mut().rotate_y = -delta.x();
         entity_controller.deref_mut().move_forward = Some(
             match (
                 keyboard_input.pressed(KeyCode::W),

@@ -52,6 +52,7 @@ fn client_startup_system(
 
 fn handle_physics(time: Res<Time>, mut query: Query<(&CharacterController, &mut Transform)>) {
     for (character_controller, mut transform) in query.iter_mut() {
+        transform.rotate(Quat::from_rotation_y(character_controller.rotate_y / 100.0));
         if let Some(move_forward) = character_controller.move_forward {
             let movement = transform.forward() * move_forward * time.delta_seconds;
             transform.deref_mut().translation += movement;
