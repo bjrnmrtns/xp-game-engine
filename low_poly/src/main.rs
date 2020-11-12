@@ -1,5 +1,6 @@
 mod client;
 mod input;
+mod physics;
 
 use bevy::prelude::*;
 
@@ -19,6 +20,7 @@ fn main() {
         .add_plugins(bevy::DefaultPlugins)
         .add_plugin(input::InputPlugin)
         .add_plugin(client::ClientPlugin)
+        .add_plugin(physics::PhysicsPlugin)
         .run();
 }
 

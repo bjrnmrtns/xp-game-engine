@@ -23,7 +23,7 @@ fn client_startup_system(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     commands.spawn(PbrComponents {
-        mesh: meshes.add(Mesh::from(shape::Plane { size: 10.0 })),
+        mesh: meshes.add(Mesh::from(shape::Plane { size: 100.0 })),
         material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
         ..Default::default()
     });
