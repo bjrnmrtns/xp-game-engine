@@ -31,7 +31,7 @@ fn client_startup_system(
         .translation(0.0, -0.1, 0.0)
         .build();
     let rb_ground_handle = bodies.deref_mut().insert(rigid_body_ground);
-    let collider_ground = ColliderBuilder::cuboid(10.0, 0.1, 10.0).build();
+    let collider_ground = ColliderBuilder::cuboid(25.0, 0.1, 25.0).build();
     colliders.insert(collider_ground, rb_ground_handle, bodies.deref_mut());
 
     let rigid_body_player = RigidBodyBuilder::new_dynamic()
@@ -42,7 +42,7 @@ fn client_startup_system(
     colliders.insert(collider_player, rb_player_handle, bodies.deref_mut());
 
     commands.spawn(PbrComponents {
-        mesh: meshes.add(Mesh::from(shape::Plane { size: 100.0 })),
+        mesh: meshes.add(Mesh::from(shape::Plane { size: 50.0 })),
         material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
         ..Default::default()
     });
@@ -95,6 +95,7 @@ fn handle_physics(
 ) {
     for (character_controller, mut transform, rigid_body_handle) in query.iter_mut() {
         let mut rb = bodies.get_mut(*rigid_body_handle).unwrap();
+        rb.wake_up(true);
         let player_position = rb.position.translation.vector;
         transform.translation = Vec3::new(player_position.x, player_position.y, player_position.z);
         transform.rotate(Quat::from_rotation_y(character_controller.rotate_y / 100.0));
