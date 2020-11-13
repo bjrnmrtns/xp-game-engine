@@ -27,12 +27,35 @@ fn client_startup_system(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
+    let rigid_body_cube = RigidBodyBuilder::new_static()
+        .translation(-5.0, 2.0, -5.0)
+        .build();
+    let rb_cube_handle = bodies.deref_mut().insert(rigid_body_cube);
+    let collider_cube = ColliderBuilder::cuboid(4.0, 4.0, 4.0).build();
+    colliders.insert(collider_cube, rb_cube_handle, bodies.deref_mut());
+    commands.spawn(PbrComponents {
+        mesh: meshes.add(Mesh::from(shape::Cube { size: 4.0 })),
+        material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
+        transform: Transform::from_translation(Vec3::new(-5.0, 2.0, -5.0)),
+        ..Default::default()
+    });
+
     let rigid_body_ground = RigidBodyBuilder::new_static()
         .translation(0.0, -0.1, 0.0)
         .build();
     let rb_ground_handle = bodies.deref_mut().insert(rigid_body_ground);
     let collider_ground = ColliderBuilder::cuboid(25.0, 0.1, 25.0).build();
     colliders.insert(collider_ground, rb_ground_handle, bodies.deref_mut());
+    commands.spawn(PbrComponents {
+        mesh: meshes.add(Mesh::from(shape::Plane { size: 50.0 })),
+        material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
+        ..Default::default()
+    });
+
+    commands.spawn(LightComponents {
+        transform: Transform::from_translation(Vec3::new(4.0, 8.0, 4.0)),
+        ..Default::default()
+    });
 
     let rigid_body_player = RigidBodyBuilder::new_dynamic()
         .translation(0.0, 20.0, 0.0)
@@ -40,16 +63,6 @@ fn client_startup_system(
     let rb_player_handle = bodies.deref_mut().insert(rigid_body_player);
     let collider_player = ColliderBuilder::ball(2.0).build();
     colliders.insert(collider_player, rb_player_handle, bodies.deref_mut());
-
-    commands.spawn(PbrComponents {
-        mesh: meshes.add(Mesh::from(shape::Plane { size: 50.0 })),
-        material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
-        ..Default::default()
-    });
-    commands.spawn(LightComponents {
-        transform: Transform::from_translation(Vec3::new(4.0, 8.0, 4.0)),
-        ..Default::default()
-    });
 
     commands
         .spawn(PbrComponents {
