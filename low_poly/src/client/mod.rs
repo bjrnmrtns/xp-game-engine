@@ -40,6 +40,24 @@ fn client_startup_system(
         ..Default::default()
     });
 
+    let rigid_body_stepup_cube = RigidBodyBuilder::new_static()
+        .translation(5.0, 0.4, 5.0)
+        .build();
+    let rb_stepup_cube_handle = bodies.deref_mut().insert(rigid_body_stepup_cube);
+    let collider_stepup_cube = ColliderBuilder::cuboid(4.0, 0.8, 4.0).build();
+    colliders.insert(
+        collider_stepup_cube,
+        rb_stepup_cube_handle,
+        bodies.deref_mut(),
+    );
+    commands.spawn(PbrComponents {
+        mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
+        material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
+        transform: Transform::from_translation(Vec3::new(5.0, 0.4, 5.0))
+            .mul_transform(Transform::from_scale(Vec3::new(4.0, 0.8, 4.0))),
+        ..Default::default()
+    });
+
     let rigid_body_ground = RigidBodyBuilder::new_static()
         .translation(0.0, -0.1, 0.0)
         .build();
