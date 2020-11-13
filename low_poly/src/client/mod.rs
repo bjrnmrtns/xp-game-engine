@@ -7,8 +7,7 @@ pub use components::CharacterController;
 use bevy::prelude::*;
 use rapier3d::dynamics::{RigidBodyBuilder, RigidBodyHandle, RigidBodySet};
 use rapier3d::geometry::{ColliderBuilder, ColliderSet};
-use rapier3d::ncollide::na::{Isometry3, Vector3};
-use std::ops::{Deref, DerefMut};
+use rapier3d::ncollide::na::Isometry3;
 
 pub struct ClientPlugin;
 
@@ -30,9 +29,9 @@ fn client_startup_system(
     let rigid_body_cube = RigidBodyBuilder::new_static()
         .translation(-5.0, 2.0, -5.0)
         .build();
-    let rb_cube_handle = bodies.deref_mut().insert(rigid_body_cube);
+    let rb_cube_handle = bodies.insert(rigid_body_cube);
     let collider_cube = ColliderBuilder::cuboid(4.0, 4.0, 4.0).build();
-    colliders.insert(collider_cube, rb_cube_handle, bodies.deref_mut());
+    colliders.insert(collider_cube, rb_cube_handle, &mut bodies);
     commands.spawn(PbrComponents {
         mesh: meshes.add(Mesh::from(shape::Cube { size: 4.0 })),
         material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
@@ -43,13 +42,9 @@ fn client_startup_system(
     let rigid_body_stepup_cube = RigidBodyBuilder::new_static()
         .translation(5.0, 0.4, 5.0)
         .build();
-    let rb_stepup_cube_handle = bodies.deref_mut().insert(rigid_body_stepup_cube);
+    let rb_stepup_cube_handle = bodies.insert(rigid_body_stepup_cube);
     let collider_stepup_cube = ColliderBuilder::cuboid(4.0, 0.8, 4.0).build();
-    colliders.insert(
-        collider_stepup_cube,
-        rb_stepup_cube_handle,
-        bodies.deref_mut(),
-    );
+    colliders.insert(collider_stepup_cube, rb_stepup_cube_handle, &mut bodies);
     commands.spawn(PbrComponents {
         mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
         material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
@@ -61,9 +56,9 @@ fn client_startup_system(
     let rigid_body_ground = RigidBodyBuilder::new_static()
         .translation(0.0, -0.1, 0.0)
         .build();
-    let rb_ground_handle = bodies.deref_mut().insert(rigid_body_ground);
+    let rb_ground_handle = bodies.insert(rigid_body_ground);
     let collider_ground = ColliderBuilder::cuboid(25.0, 0.1, 25.0).build();
-    colliders.insert(collider_ground, rb_ground_handle, bodies.deref_mut());
+    colliders.insert(collider_ground, rb_ground_handle, &mut bodies);
     commands.spawn(PbrComponents {
         mesh: meshes.add(Mesh::from(shape::Plane { size: 50.0 })),
         material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
@@ -75,12 +70,12 @@ fn client_startup_system(
         ..Default::default()
     });
 
-    let rigid_body_player = RigidBodyBuilder::new_dynamic()
+    let rigid_body_player = RigidBodyBuilder::new_kinematic()
         .translation(0.0, 20.0, 0.0)
         .build();
-    let rb_player_handle = bodies.deref_mut().insert(rigid_body_player);
+    let rb_player_handle = bodies.insert(rigid_body_player);
     let collider_player = ColliderBuilder::ball(2.0).build();
-    colliders.insert(collider_player, rb_player_handle, bodies.deref_mut());
+    colliders.insert(collider_player, rb_player_handle, &mut bodies);
 
     commands
         .spawn(PbrComponents {
@@ -126,15 +121,19 @@ fn handle_physics(
 ) {
     for (character_controller, mut transform, rigid_body_handle) in query.iter_mut() {
         let mut rb = bodies.get_mut(*rigid_body_handle).unwrap();
-        rb.wake_up(true);
         let player_position = rb.position.translation.vector;
         transform.translation = Vec3::new(player_position.x, player_position.y, player_position.z);
         transform.rotate(Quat::from_rotation_y(character_controller.rotate_y / 100.0));
         if let Some(move_forward) = character_controller.move_forward {
             let movement = transform.forward() * move_forward * time.delta_seconds * 10.0;
-            rb.set_position(Isometry3::translation(
+            /*rb.set_next_kinematic_position(Isometry3::translation(
                 player_position.x + movement.x(),
-                player_position.y + movement.y(),
+                player_position.y + movement.y() - time.delta_seconds * 10.0,
+                player_position.z + movement.z(),
+            ));*/
+            rb.set_next_kinematic_position(Isometry3::translation(
+                player_position.x + movement.x(),
+                player_position.y + movement.y() - time.delta_seconds * 10.0,
                 player_position.z + movement.z(),
             ));
         }
