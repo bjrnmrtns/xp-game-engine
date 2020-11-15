@@ -38,7 +38,7 @@ fn physics_system(
     let expected_steps = (time.seconds_since_startup / integration_parameters.dt() as f64) as u64;
     for _ in physics_steps.done..expected_steps {
         pipeline.step(
-            &(Vector3::y() * -9.81),
+            &(Vector3::y() * -40.0),
             &integration_parameters,
             &mut broad_phase,
             &mut narrow_phase,

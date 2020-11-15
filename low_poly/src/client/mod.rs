@@ -74,7 +74,7 @@ fn client_startup_system(
         .translation(0.0, 20.0, 0.0)
         .build();
     let rb_player_handle = bodies.insert(rigid_body_player);
-    let collider_player = ColliderBuilder::ball(2.0).build();
+    let mut collider_player = ColliderBuilder::ball(2.0).friction(0.0).build();
     colliders.insert(collider_player, rb_player_handle, &mut bodies);
 
     commands
