@@ -41,16 +41,16 @@ fn client_startup_system(
     });
 
     let rigid_body_stepup_cube = RigidBodyBuilder::new_static()
-        .translation(5.0, 0.4, 5.0)
+        .translation(5.0, 0.2, 5.0)
         .build();
     let rb_stepup_cube_handle = bodies.insert(rigid_body_stepup_cube);
-    let collider_stepup_cube = ColliderBuilder::cuboid(4.0, 0.8, 4.0).build();
+    let collider_stepup_cube = ColliderBuilder::cuboid(4.0, 0.4, 4.0).build();
     colliders.insert(collider_stepup_cube, rb_stepup_cube_handle, &mut bodies);
     commands.spawn(PbrComponents {
         mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
         material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
-        transform: Transform::from_translation(Vec3::new(5.0, 0.4, 5.0))
-            .mul_transform(Transform::from_scale(Vec3::new(4.0, 0.8, 4.0))),
+        transform: Transform::from_translation(Vec3::new(5.0, 0.2, 5.0))
+            .mul_transform(Transform::from_scale(Vec3::new(4.0, 0.4, 4.0))),
         ..Default::default()
     });
     let rigid_body_ground = RigidBodyBuilder::new_static()
@@ -121,6 +121,10 @@ fn handle_physics(
 ) {
     for (character_controller, mut transform, rigid_body_handle) in query.iter_mut() {
         let mut rb = bodies.get_mut(*rigid_body_handle).unwrap();
+        // TODO: only need to be set once
+        rb.mass_properties.inv_principal_inertia_sqrt.x = 0.0;
+        rb.mass_properties.inv_principal_inertia_sqrt.y = 0.0;
+        rb.mass_properties.inv_principal_inertia_sqrt.z = 0.0;
         let translation = rb.position.translation;
         // translation of physics engine is leading
         transform.translation = Vec3::new(translation.x, translation.y, translation.z);
