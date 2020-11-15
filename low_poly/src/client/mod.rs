@@ -7,7 +7,8 @@ pub use components::CharacterController;
 use bevy::prelude::*;
 use rapier3d::dynamics::{RigidBodyBuilder, RigidBodyHandle, RigidBodySet};
 use rapier3d::geometry::{ColliderBuilder, ColliderSet};
-use rapier3d::ncollide::na::Isometry3;
+use rapier3d::na::{Vector3, Vector4};
+use rapier3d::ncollide::na::{Isometry3, Quaternion, UnitQuaternion};
 
 pub struct ClientPlugin;
 
@@ -52,7 +53,6 @@ fn client_startup_system(
             .mul_transform(Transform::from_scale(Vec3::new(4.0, 0.8, 4.0))),
         ..Default::default()
     });
-
     let rigid_body_ground = RigidBodyBuilder::new_static()
         .translation(0.0, -0.1, 0.0)
         .build();
@@ -70,7 +70,7 @@ fn client_startup_system(
         ..Default::default()
     });
 
-    let rigid_body_player = RigidBodyBuilder::new_kinematic()
+    let rigid_body_player = RigidBodyBuilder::new_dynamic()
         .translation(0.0, 20.0, 0.0)
         .build();
     let rb_player_handle = bodies.insert(rigid_body_player);
@@ -121,21 +121,24 @@ fn handle_physics(
 ) {
     for (character_controller, mut transform, rigid_body_handle) in query.iter_mut() {
         let mut rb = bodies.get_mut(*rigid_body_handle).unwrap();
-        let player_position = rb.position.translation.vector;
-        transform.translation = Vec3::new(player_position.x, player_position.y, player_position.z);
+        let translation = rb.position.translation;
+        // translation of physics engine is leading
+        transform.translation = Vec3::new(translation.x, translation.y, translation.z);
         transform.rotate(Quat::from_rotation_y(character_controller.rotate_y / 100.0));
+        // rotation of controller is leading
+        rb.position.rotation = UnitQuaternion::from_quaternion(Quaternion::from([
+            transform.rotation.x(),
+            transform.rotation.y(),
+            transform.rotation.z(),
+            transform.rotation.w(),
+        ]));
+
         if let Some(move_forward) = character_controller.move_forward {
-            let movement = transform.forward() * move_forward * time.delta_seconds * 10.0;
-            /*rb.set_next_kinematic_position(Isometry3::translation(
-                player_position.x + movement.x(),
-                player_position.y + movement.y() - time.delta_seconds * 10.0,
-                player_position.z + movement.z(),
-            ));*/
-            rb.set_next_kinematic_position(Isometry3::translation(
-                player_position.x + movement.x(),
-                player_position.y + movement.y() - time.delta_seconds * 10.0,
-                player_position.z + movement.z(),
-            ));
+            let movement = transform.forward().normalize() * move_forward * 10.0;
+            rb.wake_up(true);
+            rb.linvel = Vector3::new(movement.x(), rb.linvel.y, movement.z());
+        } else {
+            rb.linvel = Vector3::new(0.0, rb.linvel.y, 0.0);
         }
     }
 }
