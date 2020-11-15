@@ -52,5 +52,6 @@ fn input_system(
                 _ => 0.0,
             },
         );
+        character_controller.jump = keyboard_input.just_pressed(KeyCode::Space);
     }
 }
