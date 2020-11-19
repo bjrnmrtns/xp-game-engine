@@ -6,7 +6,6 @@ use bevy::prelude::*;
 
 fn main() {
     App::build()
-        .add_resource(Msaa { samples: 4 })
         .add_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)))
         .add_resource(WindowDescriptor {
             title: "low_poly".to_string(),

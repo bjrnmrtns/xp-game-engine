@@ -30,10 +30,10 @@ fn client_startup_system(
         .translation(0.0, -0.1, 0.0)
         .build();
     let rb_ground_handle = bodies.insert(rigid_body_ground);
-    let collider_ground = ColliderBuilder::cuboid(6.0, 0.2, 6.0).build();
+    let collider_ground = ColliderBuilder::cuboid(12.0, 0.2, 12.0).build();
     colliders.insert(collider_ground, rb_ground_handle, &mut bodies);
     commands.spawn(PbrComponents {
-        mesh: meshes.add(Mesh::from(shape::Plane { size: 12.0 })),
+        mesh: meshes.add(Mesh::from(shape::Plane { size: 24.0 })),
         material: materials.add(StandardMaterial {
             albedo_texture: Some(grid_texture_handle),
             shaded: false,
@@ -43,7 +43,7 @@ fn client_startup_system(
     });
 
     let rigid_body_cube = RigidBodyBuilder::new_static()
-        .translation(-5.0, 2.0, -5.0)
+        .translation(-8.0, 2.0, -8.0)
         .build();
     let rb_cube_handle = bodies.insert(rigid_body_cube);
     let collider_cube = ColliderBuilder::cuboid(2.0, 2.0, 2.0).build();
@@ -51,12 +51,12 @@ fn client_startup_system(
     commands.spawn(PbrComponents {
         mesh: meshes.add(Mesh::from(shape::Cube { size: 2.0 })),
         material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
-        transform: Transform::from_translation(Vec3::new(-5.0, 2.0, -5.0)),
+        transform: Transform::from_translation(Vec3::new(-8.0, 2.0, -8.0)),
         ..Default::default()
     });
 
     let rigid_body_stepup_cube = RigidBodyBuilder::new_static()
-        .translation(5.0, 0.2, 5.0)
+        .translation(8.0, 0.2, 8.0)
         .build();
     let rb_stepup_cube_handle = bodies.insert(rigid_body_stepup_cube);
     let collider_stepup_cube = ColliderBuilder::cuboid(2.0, 0.2, 2.0).build();
@@ -64,7 +64,7 @@ fn client_startup_system(
     commands.spawn(PbrComponents {
         mesh: meshes.add(Mesh::from(shape::Cube { size: 0.5 })),
         material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
-        transform: Transform::from_translation(Vec3::new(5.0, 0.2, 5.0))
+        transform: Transform::from_translation(Vec3::new(8.0, 0.2, 8.0))
             .mul_transform(Transform::from_scale(Vec3::new(4.0, 0.4, 4.0))),
         ..Default::default()
     });
