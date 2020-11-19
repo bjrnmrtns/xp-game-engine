@@ -19,11 +19,29 @@ impl Plugin for ClientPlugin {
 
 fn client_startup_system(
     commands: &mut Commands,
+    asset_server: Res<AssetServer>,
     mut bodies: ResMut<RigidBodySet>,
     mut colliders: ResMut<ColliderSet>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
+    let grid_texture_handle = asset_server.load("grid.png");
+    let rigid_body_ground = RigidBodyBuilder::new_static()
+        .translation(0.0, -0.1, 0.0)
+        .build();
+    let rb_ground_handle = bodies.insert(rigid_body_ground);
+    let collider_ground = ColliderBuilder::cuboid(50.0, 0.2, 50.0).build();
+    colliders.insert(collider_ground, rb_ground_handle, &mut bodies);
+    commands.spawn(PbrComponents {
+        mesh: meshes.add(Mesh::from(shape::Plane { size: 100.0 })),
+        material: materials.add(StandardMaterial {
+            albedo_texture: Some(grid_texture_handle),
+            shaded: false,
+            ..Default::default()
+        }),
+        ..Default::default()
+    });
+
     let rigid_body_cube = RigidBodyBuilder::new_static()
         .translation(-5.0, 2.0, -5.0)
         .build();
@@ -48,17 +66,6 @@ fn client_startup_system(
         material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
         transform: Transform::from_translation(Vec3::new(5.0, 0.2, 5.0))
             .mul_transform(Transform::from_scale(Vec3::new(4.0, 0.4, 4.0))),
-        ..Default::default()
-    });
-    let rigid_body_ground = RigidBodyBuilder::new_static()
-        .translation(0.0, -0.1, 0.0)
-        .build();
-    let rb_ground_handle = bodies.insert(rigid_body_ground);
-    let collider_ground = ColliderBuilder::cuboid(25.0, 0.1, 25.0).build();
-    colliders.insert(collider_ground, rb_ground_handle, &mut bodies);
-    commands.spawn(PbrComponents {
-        mesh: meshes.add(Mesh::from(shape::Plane { size: 50.0 })),
-        material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
         ..Default::default()
     });
 
