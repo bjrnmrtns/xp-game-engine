@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-#[derive(Debug, Default, Properties)]
+#[derive(Debug, Default)]
 pub struct CharacterController {
     pub move_forward: Option<f32>,
     pub strafe_right: Option<f32>,
@@ -19,7 +19,7 @@ impl CharacterController {
     }
 }
 
-#[derive(Debug, Default, Properties)]
+#[derive(Debug, Default)]
 pub struct CameraController {
     pub rotate_x: f32,
 }
@@ -36,5 +36,5 @@ pub struct CameraNodeThirdPerson {
     pub global_transform: GlobalTransform,
 }
 
-#[derive(Debug, Default, Properties)]
+#[derive(Debug, Default)]
 pub struct CollisionShape;

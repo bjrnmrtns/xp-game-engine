@@ -62,7 +62,8 @@ fn physics_system(
             rb.linvel = Vector3::new(0.0, rb.linvel.y + jump_speed, 0.0);
         }
     }
-    let expected_steps = (time.seconds_since_startup / integration_parameters.dt() as f64) as u64;
+    let expected_steps =
+        (time.time_since_startup().as_secs_f64() / integration_parameters.dt() as f64) as u64;
     for _ in physics_steps.done..expected_steps {
         pipeline.step(
             &(Vector3::y() * -40.0),

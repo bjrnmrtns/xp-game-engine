@@ -49,11 +49,13 @@ fn client_startup_system(
     let collider_cube = ColliderBuilder::cuboid(2.0, 2.0, 2.0).build();
     colliders.insert(collider_cube, rb_cube_handle, &mut bodies);
     commands.spawn(PbrBundle {
-        mesh: meshes.add(Mesh::from(shape::Cube { size: 2.0 })),
+        mesh: meshes.add(Mesh::from(shape::Cube { size: 4.0 })),
         material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
         transform: Transform::from_translation(Vec3::new(-8.0, 2.0, -8.0)),
         ..Default::default()
     });
+
+    let one_cube = meshes.add(Mesh::from(shape::Cube { size: 1.0 }));
 
     let rigid_body_stepup_cube = RigidBodyBuilder::new_static()
         .translation(8.0, 0.2, 8.0)
@@ -62,7 +64,7 @@ fn client_startup_system(
     let collider_stepup_cube = ColliderBuilder::cuboid(2.0, 0.2, 2.0).build();
     colliders.insert(collider_stepup_cube, rb_stepup_cube_handle, &mut bodies);
     commands.spawn(PbrBundle {
-        mesh: meshes.add(Mesh::from(shape::Cube { size: 0.5 })),
+        mesh: one_cube.clone(),
         material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
         transform: Transform::from_translation(Vec3::new(8.0, 0.2, 8.0))
             .mul_transform(Transform::from_scale(Vec3::new(4.0, 0.4, 4.0))),
@@ -78,13 +80,12 @@ fn client_startup_system(
         .translation(0.0, 20.0, 0.0)
         .build();
     let rb_player_handle = bodies.insert(rigid_body_player);
-    let collider_player = ColliderBuilder::ball(2.0).friction(0.0).build();
+    let collider_player = ColliderBuilder::ball(1.0).friction(0.0).build();
     colliders.insert(collider_player, rb_player_handle, &mut bodies);
-
     commands
         .spawn(PbrBundle {
             mesh: meshes.add(Mesh::from(shape::Icosphere {
-                radius: 2.0,
+                radius: 1.0,
                 subdivisions: 3,
             })),
             material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
