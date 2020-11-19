@@ -28,10 +28,10 @@ fn input_system(
         delta += event.delta;
     }
     for mut camera_controller in query_cameras.iter_mut() {
-        camera_controller.deref_mut().rotate_x = delta.y();
+        camera_controller.deref_mut().rotate_x = delta.y;
     }
     for mut character_controller in query_characters.iter_mut() {
-        character_controller.deref_mut().rotate_y = -delta.x();
+        character_controller.deref_mut().rotate_y = -delta.x;
         character_controller.deref_mut().move_forward = Some(
             match (
                 keyboard_input.pressed(KeyCode::W),

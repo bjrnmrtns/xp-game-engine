@@ -32,7 +32,7 @@ fn client_startup_system(
     let rb_ground_handle = bodies.insert(rigid_body_ground);
     let collider_ground = ColliderBuilder::cuboid(12.0, 0.2, 12.0).build();
     colliders.insert(collider_ground, rb_ground_handle, &mut bodies);
-    commands.spawn(PbrComponents {
+    commands.spawn(PbrBundle {
         mesh: meshes.add(Mesh::from(shape::Plane { size: 24.0 })),
         material: materials.add(StandardMaterial {
             albedo_texture: Some(grid_texture_handle),
@@ -48,7 +48,7 @@ fn client_startup_system(
     let rb_cube_handle = bodies.insert(rigid_body_cube);
     let collider_cube = ColliderBuilder::cuboid(2.0, 2.0, 2.0).build();
     colliders.insert(collider_cube, rb_cube_handle, &mut bodies);
-    commands.spawn(PbrComponents {
+    commands.spawn(PbrBundle {
         mesh: meshes.add(Mesh::from(shape::Cube { size: 2.0 })),
         material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
         transform: Transform::from_translation(Vec3::new(-8.0, 2.0, -8.0)),
@@ -61,7 +61,7 @@ fn client_startup_system(
     let rb_stepup_cube_handle = bodies.insert(rigid_body_stepup_cube);
     let collider_stepup_cube = ColliderBuilder::cuboid(2.0, 0.2, 2.0).build();
     colliders.insert(collider_stepup_cube, rb_stepup_cube_handle, &mut bodies);
-    commands.spawn(PbrComponents {
+    commands.spawn(PbrBundle {
         mesh: meshes.add(Mesh::from(shape::Cube { size: 0.5 })),
         material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
         transform: Transform::from_translation(Vec3::new(8.0, 0.2, 8.0))
@@ -69,7 +69,7 @@ fn client_startup_system(
         ..Default::default()
     });
 
-    commands.spawn(LightComponents {
+    commands.spawn(LightBundle {
         transform: Transform::from_translation(Vec3::new(4.0, 8.0, 4.0)),
         ..Default::default()
     });
@@ -82,7 +82,7 @@ fn client_startup_system(
     colliders.insert(collider_player, rb_player_handle, &mut bodies);
 
     commands
-        .spawn(PbrComponents {
+        .spawn(PbrBundle {
             mesh: meshes.add(Mesh::from(shape::Icosphere {
                 radius: 2.0,
                 subdivisions: 3,
@@ -102,7 +102,7 @@ fn client_startup_system(
                     transform.rotation =
                         Transform::from_rotation(Quat::from_rotation_y(std::f32::consts::PI))
                             .rotation;
-                    parent.spawn(Camera3dComponents {
+                    parent.spawn(Camera3dBundle {
                         transform,
                         ..Default::default()
                     });

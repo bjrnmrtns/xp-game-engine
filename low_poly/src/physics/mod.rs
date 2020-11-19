@@ -45,10 +45,10 @@ fn physics_system(
         transform.rotate(Quat::from_rotation_y(character_controller.rotate_y / 100.0));
         // rotation of controller is leading
         rb.position.rotation = UnitQuaternion::from_quaternion(Quaternion::from([
-            transform.rotation.x(),
-            transform.rotation.y(),
-            transform.rotation.z(),
-            transform.rotation.w(),
+            transform.rotation.x,
+            transform.rotation.y,
+            transform.rotation.z,
+            transform.rotation.w,
         ]));
         rb.mass_properties.inv_principal_inertia_sqrt = Vector3::new(0.0, 0.0, 0.0);
 
@@ -57,7 +57,7 @@ fn physics_system(
         if let Some(move_forward) = character_controller.move_forward {
             let movement = transform.forward().normalize() * move_forward * 10.0;
             rb.wake_up(true);
-            rb.linvel = Vector3::new(movement.x(), rb.linvel.y + jump_speed, movement.z());
+            rb.linvel = Vector3::new(movement.x, rb.linvel.y + jump_speed, movement.z);
         } else {
             rb.linvel = Vector3::new(0.0, rb.linvel.y + jump_speed, 0.0);
         }
