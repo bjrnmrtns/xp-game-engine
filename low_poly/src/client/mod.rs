@@ -6,7 +6,6 @@ pub use components::CameraNodeThirdPerson;
 pub use components::CharacterController;
 
 use crate::client::resources::WorldResource;
-use crate::world_loader::World;
 use bevy::prelude::*;
 use rapier3d::dynamics::{RigidBodyBuilder, RigidBodySet};
 use rapier3d::geometry::{ColliderBuilder, ColliderSet};
@@ -15,23 +14,23 @@ pub struct ClientPlugin;
 
 impl Plugin for ClientPlugin {
     fn build(&self, app: &mut AppBuilder) {
-        app.add_startup_system(client_startup_system.system())
-            .add_resource(WorldResource::default())
+        app.add_resource(WorldResource::default())
+            .add_startup_system(client_startup_system.system())
             .add_system(handle_player_camera.system())
-            .add_system(print_world_assets.system());
+            .add_system(create_world.system());
     }
 }
 
 fn client_startup_system(
     commands: &mut Commands,
-    mut world: ResMut<WorldResource>,
+    mut world_resource: ResMut<WorldResource>,
     asset_server: Res<AssetServer>,
     mut bodies: ResMut<RigidBodySet>,
     mut colliders: ResMut<ColliderSet>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    world.handle = asset_server.load("world.world");
+    world_resource.handle = asset_server.load("world.world");
     let grid_texture_handle = asset_server.load("grid.png");
     let rigid_body_ground = RigidBodyBuilder::new_static()
         .translation(0.0, -0.1, 0.0)
@@ -120,8 +119,43 @@ fn client_startup_system(
         .with(CharacterController::new());
 }
 
-fn print_world_assets(world: Res<WorldResource>, world_assets: Res<Assets<World>>) {
-    println!("{:?}", world_assets.get(&world.handle));
+fn create_world(
+    mut world_resource: ResMut<WorldResource>,
+    world_assets: Res<Assets<crate::world_loader::World>>,
+    commands: &mut Commands,
+    mut bodies: ResMut<RigidBodySet>,
+    mut colliders: ResMut<ColliderSet>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
+    if !world_resource.loaded {
+        if let Some(world) = world_assets.get(&world_resource.handle) {
+            for (x, y, z) in &world.objects {
+                let cube_size = 1.0;
+                let rigid_body_cube = RigidBodyBuilder::new_static()
+                    .translation(
+                        *x as f32 + cube_size / 2.0,
+                        *y as f32 + cube_size / 2.0,
+                        *z as f32 + cube_size / 2.0,
+                    )
+                    .build();
+                let cube_handle = bodies.insert(rigid_body_cube);
+                let collider_cube = ColliderBuilder::cuboid(0.5, 0.5, 0.5).build();
+                colliders.insert(collider_cube, cube_handle, &mut bodies);
+                commands.spawn(PbrBundle {
+                    mesh: meshes.add(Mesh::from(shape::Cube { size: cube_size })),
+                    material: materials.add(Color::rgb(0.3, 0.3, 0.3).into()),
+                    transform: Transform::from_translation(Vec3::new(
+                        *x as f32 + cube_size / 2.0,
+                        *y as f32 + cube_size / 2.0,
+                        *z as f32 + cube_size / 2.0,
+                    )),
+                    ..Default::default()
+                });
+            }
+            world_resource.loaded = true;
+        }
+    }
 }
 
 fn handle_player_camera(mut query: Query<(&CameraController, &mut Transform)>) {

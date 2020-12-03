@@ -4,4 +4,5 @@ use bevy::prelude::*;
 #[derive(Default)]
 pub struct WorldResource {
     pub handle: Handle<World>,
+    pub loaded: bool,
 }

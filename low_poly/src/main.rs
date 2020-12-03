@@ -18,10 +18,10 @@ fn main() {
             ..Default::default()
         })
         .add_plugins(bevy::DefaultPlugins)
+        .add_plugin(world_loader::WorldPlugin)
         .add_plugin(input::InputPlugin)
         .add_plugin(client::ClientPlugin)
         .add_plugin(physics::PhysicsPlugin)
-        .add_plugin(world_loader::WorldPlugin)
         .run();
 }
 
