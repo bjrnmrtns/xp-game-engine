@@ -1,7 +1,7 @@
-use crate::world_loader::WorldAsset;
+use crate::world_loader::World;
 use bevy::prelude::*;
 
 #[derive(Default)]
 pub struct WorldResource {
-    pub handle: Handle<WorldAsset>,
+    pub handle: Handle<World>,
 }

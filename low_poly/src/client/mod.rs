@@ -6,7 +6,7 @@ pub use components::CameraNodeThirdPerson;
 pub use components::CharacterController;
 
 use crate::client::resources::WorldResource;
-use crate::world_loader::WorldAsset;
+use crate::world_loader::World;
 use bevy::prelude::*;
 use rapier3d::dynamics::{RigidBodyBuilder, RigidBodySet};
 use rapier3d::geometry::{ColliderBuilder, ColliderSet};
@@ -120,7 +120,7 @@ fn client_startup_system(
         .with(CharacterController::new());
 }
 
-fn print_world_assets(world: Res<WorldResource>, world_assets: Res<Assets<WorldAsset>>) {
+fn print_world_assets(world: Res<WorldResource>, world_assets: Res<Assets<World>>) {
     println!("{:?}", world_assets.get(&world.handle));
 }
 

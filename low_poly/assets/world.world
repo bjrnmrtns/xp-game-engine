@@ -1,1 +1,1 @@
-WorldAsset(objects: 42)
+World(objects: [(1, 1, 1), (3, 3, 3)])
