@@ -1,9 +1,12 @@
 mod components;
+mod resources;
 
 pub use components::CameraController;
 pub use components::CameraNodeThirdPerson;
 pub use components::CharacterController;
 
+use crate::client::resources::WorldResource;
+use crate::world_loader::WorldAsset;
 use bevy::prelude::*;
 use rapier3d::dynamics::{RigidBodyBuilder, RigidBodySet};
 use rapier3d::geometry::{ColliderBuilder, ColliderSet};
@@ -13,18 +16,22 @@ pub struct ClientPlugin;
 impl Plugin for ClientPlugin {
     fn build(&self, app: &mut AppBuilder) {
         app.add_startup_system(client_startup_system.system())
-            .add_system(handle_player_camera.system());
+            .add_resource(WorldResource::default())
+            .add_system(handle_player_camera.system())
+            .add_system(print_world_assets.system());
     }
 }
 
 fn client_startup_system(
     commands: &mut Commands,
+    mut world: ResMut<WorldResource>,
     asset_server: Res<AssetServer>,
     mut bodies: ResMut<RigidBodySet>,
     mut colliders: ResMut<ColliderSet>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
+    world.handle = asset_server.load("world.world");
     let grid_texture_handle = asset_server.load("grid.png");
     let rigid_body_ground = RigidBodyBuilder::new_static()
         .translation(0.0, -0.1, 0.0)
@@ -111,6 +118,10 @@ fn client_startup_system(
                 .with(CameraController::new());
         })
         .with(CharacterController::new());
+}
+
+fn print_world_assets(world: Res<WorldResource>, world_assets: Res<Assets<WorldAsset>>) {
+    println!("{:?}", world_assets.get(&world.handle));
 }
 
 fn handle_player_camera(mut query: Query<(&CameraController, &mut Transform)>) {
