@@ -31,10 +31,7 @@ impl CameraController {
 }
 
 #[derive(Bundle)]
-pub struct CameraNodeThirdPerson {
+pub struct CameraPlayerOrbit {
     pub transform: Transform,
     pub global_transform: GlobalTransform,
 }
-
-#[derive(Debug, Default)]
-pub struct CollisionShape;

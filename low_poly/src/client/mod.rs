@@ -2,7 +2,7 @@ mod components;
 mod resources;
 
 pub use components::CameraController;
-pub use components::CameraNodeThirdPerson;
+pub use components::CameraPlayerOrbit;
 pub use components::CharacterController;
 
 use crate::client::resources::WorldResource;
@@ -121,12 +121,12 @@ fn create_world(
                 .translation(0.0, 20.0, 0.0)
                 .build();
             let rb_player_handle = bodies.insert(rigid_body_player);
-            let collider_player = ColliderBuilder::ball(1.0).friction(0.0).build();
+            let collider_player = ColliderBuilder::ball(0.5).friction(0.0).build();
             colliders.insert(collider_player, rb_player_handle, &mut bodies);
             commands
                 .spawn(PbrBundle {
                     mesh: meshes.add(Mesh::from(shape::Icosphere {
-                        radius: 1.0,
+                        radius: 0.5,
                         subdivisions: 3,
                     })),
                     material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
@@ -135,19 +135,25 @@ fn create_world(
                 .with(rb_player_handle)
                 .with_children(|parent| {
                     parent
-                        .spawn(CameraNodeThirdPerson {
+                        .spawn(CameraPlayerOrbit {
                             transform: Transform::identity(),
                             global_transform: GlobalTransform::identity(),
                         })
                         .with_children(|parent| {
-                            let mut transform =
-                                Transform::from_translation(Vec3::new(-1.0, 1.0, -8.0));
-                            transform.rotation = Transform::from_rotation(Quat::from_rotation_y(
-                                std::f32::consts::PI,
-                            ))
+                            let mut third_person_camera_transform =
+                                Transform::from_translation(Vec3::new(-1.0, 2.0, -8.0));
+                            third_person_camera_transform.rotation = Transform::from_rotation(
+                                Quat::from_rotation_y(std::f32::consts::PI),
+                            )
                             .rotation;
                             parent.spawn(Camera3dBundle {
-                                transform,
+                                transform: third_person_camera_transform,
+                                ..Default::default()
+                            });
+                            parent.spawn(PbrBundle {
+                                mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
+                                material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
+                                transform: Transform::from_translation(Vec3::new(0.0, 0.0, 4.0)),
                                 ..Default::default()
                             });
                         })
