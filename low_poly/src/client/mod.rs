@@ -182,38 +182,43 @@ fn update_world(
     mut colliders: ResMut<ColliderSet>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    mut query: Query<(&CharacterController, &mut Transform, &RigidBodyHandle)>,
 ) {
-    let cube_size = 1.0;
-    let one_cube = meshes.add(Mesh::from(shape::Cube { size: cube_size }));
-    let new_grid_cell = (4, 4, 4);
-    match world_grid.grid.get(&new_grid_cell) {
-        None => {
-            let rigid_body_cube = RigidBodyBuilder::new_static()
-                .translation(
-                    new_grid_cell.0 as f32 + cube_size / 2.0,
-                    new_grid_cell.1 as f32 + cube_size / 2.0,
-                    new_grid_cell.2 as f32 + cube_size / 2.0,
-                )
-                .build();
-            let cube_handle = bodies.insert(rigid_body_cube);
-            let collider_cube = ColliderBuilder::cuboid(0.5, 0.5, 0.5).build();
-            colliders.insert(collider_cube, cube_handle, &mut bodies);
-            let entity = commands
-                .spawn(PbrBundle {
-                    mesh: one_cube,
-                    material: materials.add(Color::rgb(0.3, 0.3, 0.3).into()),
-                    transform: Transform::from_translation(Vec3::new(
-                        new_grid_cell.0 as f32 + cube_size / 2.0,
-                        new_grid_cell.1 as f32 + cube_size / 2.0,
-                        new_grid_cell.2 as f32 + cube_size / 2.0,
-                    )),
-                    ..Default::default()
-                })
-                .current_entity()
-                .unwrap();
-            world_grid.grid.insert(new_grid_cell, entity);
+    for (character_controller, mut transform, rigid_body_handle) in query.iter_mut() {
+        if character_controller.place_object {
+            let cube_size = 1.0;
+            let one_cube = meshes.add(Mesh::from(shape::Cube { size: cube_size }));
+            let new_grid_cell = (4, 4, 4);
+            match world_grid.grid.get(&new_grid_cell) {
+                None => {
+                    let rigid_body_cube = RigidBodyBuilder::new_static()
+                        .translation(
+                            new_grid_cell.0 as f32 + cube_size / 2.0,
+                            new_grid_cell.1 as f32 + cube_size / 2.0,
+                            new_grid_cell.2 as f32 + cube_size / 2.0,
+                        )
+                        .build();
+                    let cube_handle = bodies.insert(rigid_body_cube);
+                    let collider_cube = ColliderBuilder::cuboid(0.5, 0.5, 0.5).build();
+                    colliders.insert(collider_cube, cube_handle, &mut bodies);
+                    let entity = commands
+                        .spawn(PbrBundle {
+                            mesh: one_cube,
+                            material: materials.add(Color::rgb(0.3, 0.3, 0.3).into()),
+                            transform: Transform::from_translation(Vec3::new(
+                                new_grid_cell.0 as f32 + cube_size / 2.0,
+                                new_grid_cell.1 as f32 + cube_size / 2.0,
+                                new_grid_cell.2 as f32 + cube_size / 2.0,
+                            )),
+                            ..Default::default()
+                        })
+                        .current_entity()
+                        .unwrap();
+                    world_grid.grid.insert(new_grid_cell, entity);
+                }
+                Some(entity) => (),
+            }
         }
-        Some(entity) => (),
     }
 }
 

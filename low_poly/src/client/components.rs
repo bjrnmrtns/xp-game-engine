@@ -6,6 +6,7 @@ pub struct CharacterController {
     pub strafe_right: Option<f32>,
     pub rotate_y: f32,
     pub jump: bool,
+    pub place_object: bool,
 }
 
 impl CharacterController {
@@ -15,6 +16,7 @@ impl CharacterController {
             strafe_right: None,
             rotate_y: 0.0,
             jump: false,
+            place_object: false,
         }
     }
 }

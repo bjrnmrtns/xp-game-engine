@@ -53,5 +53,6 @@ fn input_system(
             },
         );
         character_controller.jump = keyboard_input.just_pressed(KeyCode::Space);
+        character_controller.place_object = keyboard_input.just_pressed(KeyCode::B);
     }
 }
