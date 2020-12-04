@@ -5,32 +5,30 @@ pub use components::CameraController;
 pub use components::CameraPlayerOrbit;
 pub use components::CharacterController;
 
-use crate::client::resources::WorldResource;
+use crate::client::resources::{WorldAssetHandle, WorldGrid};
 use bevy::prelude::*;
 use rapier3d::dynamics::{RigidBodyBuilder, RigidBodySet};
 use rapier3d::geometry::{ColliderBuilder, ColliderSet};
 
 pub struct ClientPlugin;
-
 impl Plugin for ClientPlugin {
     fn build(&self, app: &mut AppBuilder) {
-        app.add_resource(WorldResource::default())
-            .add_startup_system(client_startup_system.system())
+        app.add_resource(WorldGrid::default())
+            .add_resource(WorldAssetHandle::default())
+            .add_startup_system(load_world.system())
+            .add_system(create_world.system())
             .add_system(handle_player_camera.system())
-            .add_system(create_world.system());
+            .add_system(update_world.system());
     }
 }
 
-fn client_startup_system(
-    mut world_resource: ResMut<WorldResource>,
-    asset_server: Res<AssetServer>,
-) {
+fn load_world(mut world_resource: ResMut<WorldAssetHandle>, asset_server: Res<AssetServer>) {
     world_resource.handle = asset_server.load("world.world");
 }
 
 fn create_world(
-    mut world_resource: ResMut<WorldResource>,
-    world_assets: Res<Assets<crate::world_loader::World>>,
+    mut world_resource: ResMut<WorldAssetHandle>,
+    world_assets: Res<Assets<crate::world_loader::WorldAsset>>,
     commands: &mut Commands,
     asset_server: Res<AssetServer>,
     mut bodies: ResMut<RigidBodySet>,
@@ -161,6 +159,48 @@ fn create_world(
                 })
                 .with(CharacterController::new());
         }
+    }
+}
+
+fn update_world(
+    mut world_grid: ResMut<WorldGrid>,
+    commands: &mut Commands,
+    mut bodies: ResMut<RigidBodySet>,
+    mut colliders: ResMut<ColliderSet>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
+    let cube_size = 1.0;
+    let one_cube = meshes.add(Mesh::from(shape::Cube { size: cube_size }));
+    let new_grid_cell = (4, 4, 4);
+    match world_grid.grid.get(&new_grid_cell) {
+        None => {
+            let rigid_body_cube = RigidBodyBuilder::new_static()
+                .translation(
+                    new_grid_cell.0 as f32 + cube_size / 2.0,
+                    new_grid_cell.1 as f32 + cube_size / 2.0,
+                    new_grid_cell.2 as f32 + cube_size / 2.0,
+                )
+                .build();
+            let cube_handle = bodies.insert(rigid_body_cube);
+            let collider_cube = ColliderBuilder::cuboid(0.5, 0.5, 0.5).build();
+            colliders.insert(collider_cube, cube_handle, &mut bodies);
+            let entity = commands
+                .spawn(PbrBundle {
+                    mesh: one_cube,
+                    material: materials.add(Color::rgb(0.3, 0.3, 0.3).into()),
+                    transform: Transform::from_translation(Vec3::new(
+                        new_grid_cell.0 as f32 + cube_size / 2.0,
+                        new_grid_cell.1 as f32 + cube_size / 2.0,
+                        new_grid_cell.2 as f32 + cube_size / 2.0,
+                    )),
+                    ..Default::default()
+                })
+                .current_entity()
+                .unwrap();
+            world_grid.grid.insert(new_grid_cell, entity);
+        }
+        Some(entity) => (),
     }
 }
 

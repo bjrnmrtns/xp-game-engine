@@ -1,4 +1,4 @@
-use crate::world_loader::world_asset::World;
+use crate::world_loader::world_asset::WorldAsset;
 use bevy::{
     asset::{AssetLoader, LoadContext, LoadedAsset},
     utils::BoxedFuture,
@@ -14,7 +14,7 @@ impl AssetLoader for WorldAssetLoader {
         load_context: &'a mut LoadContext,
     ) -> BoxedFuture<'a, Result<(), anyhow::Error>> {
         Box::pin(async move {
-            let world_asset = ron::de::from_bytes::<World>(bytes)?;
+            let world_asset = ron::de::from_bytes::<WorldAsset>(bytes)?;
             load_context.set_default_asset(LoadedAsset::new(world_asset));
             Ok(())
         })
