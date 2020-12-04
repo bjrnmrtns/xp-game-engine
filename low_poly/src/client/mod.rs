@@ -5,15 +5,28 @@ pub use components::CameraController;
 pub use components::CameraPlayerOrbit;
 pub use components::CharacterController;
 
-use crate::client::resources::{WorldAssetHandle, WorldGrid};
+use crate::client::resources::{PhysicsSteps, WorldAssetHandle, WorldGrid};
 use bevy::prelude::*;
-use rapier3d::dynamics::{RigidBodyBuilder, RigidBodySet};
-use rapier3d::geometry::{ColliderBuilder, ColliderSet};
+use rapier3d::dynamics::{
+    IntegrationParameters, JointSet, RigidBodyBuilder, RigidBodyHandle, RigidBodySet,
+};
+use rapier3d::geometry::{BroadPhase, ColliderBuilder, ColliderSet, NarrowPhase};
+use rapier3d::ncollide::na::{Quaternion, UnitQuaternion, Vector3};
+use rapier3d::pipeline::PhysicsPipeline;
 
 pub struct ClientPlugin;
 impl Plugin for ClientPlugin {
     fn build(&self, app: &mut AppBuilder) {
-        app.add_resource(WorldGrid::default())
+        app.add_resource(IntegrationParameters::default())
+            .add_resource(PhysicsPipeline::new())
+            .add_resource(BroadPhase::new())
+            .add_resource(NarrowPhase::new())
+            .add_resource(RigidBodySet::new())
+            .add_resource(ColliderSet::new())
+            .add_resource(JointSet::new())
+            .add_resource(PhysicsSteps::new())
+            .add_system(physics_system.system())
+            .add_resource(WorldGrid::default())
             .add_resource(WorldAssetHandle::default())
             .add_startup_system(load_world.system())
             .add_system(create_world.system())
@@ -208,4 +221,60 @@ fn handle_player_camera(mut query: Query<(&CameraController, &mut Transform)>) {
     for (camera_controller, mut camera_orbit) in query.iter_mut() {
         camera_orbit.rotate(Quat::from_rotation_x(camera_controller.rotate_x / 100.0));
     }
+}
+
+fn physics_system(
+    time: Res<Time>,
+    integration_parameters: Res<IntegrationParameters>,
+    mut physics_steps: ResMut<PhysicsSteps>,
+    mut pipeline: ResMut<PhysicsPipeline>,
+    mut broad_phase: ResMut<BroadPhase>,
+    mut narrow_phase: ResMut<NarrowPhase>,
+    mut bodies: ResMut<RigidBodySet>,
+    mut colliders: ResMut<ColliderSet>,
+    mut joints: ResMut<JointSet>,
+    mut query: Query<(&CharacterController, &mut Transform, &RigidBodyHandle)>,
+) {
+    for (character_controller, mut transform, rigid_body_handle) in query.iter_mut() {
+        let mut rb = bodies.get_mut(*rigid_body_handle).unwrap();
+        let translation = rb.position.translation;
+        // translation of physics engine is leading
+        transform.translation = Vec3::new(translation.x, translation.y, translation.z);
+        transform.rotate(Quat::from_rotation_y(character_controller.rotate_y / 100.0));
+        // rotation of controller is leading
+        rb.position.rotation = UnitQuaternion::from_quaternion(Quaternion::from([
+            transform.rotation.x,
+            transform.rotation.y,
+            transform.rotation.z,
+            transform.rotation.w,
+        ]));
+        rb.mass_properties.inv_principal_inertia_sqrt = Vector3::new(0.0, 0.0, 0.0);
+
+        let jump_speed = if character_controller.jump { 10.0 } else { 0.0 };
+
+        if let Some(move_forward) = character_controller.move_forward {
+            let movement = transform.forward().normalize() * move_forward * 10.0;
+            rb.wake_up(true);
+            rb.linvel = Vector3::new(movement.x, rb.linvel.y + jump_speed, movement.z);
+        } else {
+            rb.linvel = Vector3::new(0.0, rb.linvel.y + jump_speed, 0.0);
+        }
+    }
+    let expected_steps =
+        (time.time_since_startup().as_secs_f64() / integration_parameters.dt() as f64) as u64;
+    for _ in physics_steps.done..expected_steps {
+        pipeline.step(
+            &(Vector3::y() * -40.0),
+            &integration_parameters,
+            &mut broad_phase,
+            &mut narrow_phase,
+            &mut bodies,
+            &mut colliders,
+            &mut joints,
+            None,
+            None,
+            &(),
+        );
+    }
+    physics_steps.done = expected_steps;
 }

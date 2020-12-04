@@ -12,3 +12,13 @@ pub struct WorldAssetHandle {
 pub struct WorldGrid {
     pub grid: HashMap<(i32, i32, i32), Entity>,
 }
+
+pub struct PhysicsSteps {
+    pub done: u64,
+}
+
+impl PhysicsSteps {
+    pub fn new() -> Self {
+        Self { done: 0 }
+    }
+}

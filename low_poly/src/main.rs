@@ -1,6 +1,5 @@
 mod client;
 mod input;
-mod physics;
 mod world_loader;
 
 use bevy::prelude::*;
@@ -21,7 +20,6 @@ fn main() {
         .add_plugin(world_loader::WorldPlugin)
         .add_plugin(input::InputPlugin)
         .add_plugin(client::ClientPlugin)
-        .add_plugin(physics::PhysicsPlugin)
         .run();
 }
 
