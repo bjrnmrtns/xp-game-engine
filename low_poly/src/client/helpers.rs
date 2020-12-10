@@ -1,4 +1,5 @@
 use crate::client::resources::{MeshMap, WorldAssetHandle, WorldGrid};
+use crate::client::{CameraController, CameraPlayerOrbit, CharacterController};
 use bevy::prelude::*;
 use rapier3d::dynamics::{RigidBodyBuilder, RigidBodySet};
 use rapier3d::geometry::{BroadPhase, ColliderBuilder, ColliderSet, NarrowPhase};
@@ -58,6 +59,56 @@ pub fn create_cube(
             )),
             ..Default::default()
         })
+        .current_entity()
+        .unwrap()
+}
+
+pub fn create_player(
+    commands: &mut Commands,
+    mut bodies: &mut ResMut<RigidBodySet>,
+    colliders: &mut ResMut<ColliderSet>,
+    mesh_map: &MeshMap,
+    materials: &mut ResMut<Assets<StandardMaterial>>,
+) -> Entity {
+    let rigid_body_player = RigidBodyBuilder::new_dynamic()
+        .translation(0.0, 20.0, 0.0)
+        .build();
+    let rb_player_handle = bodies.insert(rigid_body_player);
+    let collider_player = ColliderBuilder::ball(0.5).friction(0.0).build();
+    colliders.insert(collider_player, rb_player_handle, &mut bodies);
+    commands
+        .spawn(PbrBundle {
+            mesh: mesh_map.hanldes.get("player").unwrap().clone(),
+            material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
+            ..Default::default()
+        })
+        .with(rb_player_handle)
+        .with_children(|parent| {
+            parent
+                .spawn(CameraPlayerOrbit {
+                    transform: Transform::identity(),
+                    global_transform: GlobalTransform::identity(),
+                })
+                .with_children(|parent| {
+                    let mut third_person_camera_transform =
+                        Transform::from_translation(Vec3::new(-1.0, 2.0, -8.0));
+                    third_person_camera_transform.rotation =
+                        Transform::from_rotation(Quat::from_rotation_y(std::f32::consts::PI))
+                            .rotation;
+                    parent.spawn(Camera3dBundle {
+                        transform: third_person_camera_transform,
+                        ..Default::default()
+                    });
+                    parent.spawn(PbrBundle {
+                        mesh: mesh_map.hanldes.get("one_cube").unwrap().clone(),
+                        material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
+                        transform: Transform::from_translation(Vec3::new(0.0, 0.0, 4.0)),
+                        ..Default::default()
+                    });
+                })
+                .with(CameraController::new());
+        })
+        .with(CharacterController::new())
         .current_entity()
         .unwrap()
 }

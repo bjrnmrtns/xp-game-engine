@@ -6,7 +6,7 @@ pub use components::CameraController;
 pub use components::CameraPlayerOrbit;
 pub use components::CharacterController;
 
-use crate::client::helpers::{create_cube, create_world_ground_plane};
+use crate::client::helpers::{create_cube, create_player, create_world_ground_plane};
 use crate::client::resources::{MeshMap, PhysicsSteps, WorldAssetHandle, WorldGrid};
 use bevy::prelude::*;
 use rapier3d::dynamics::{
@@ -60,11 +60,19 @@ fn create_world(
     mut bodies: ResMut<RigidBodySet>,
     mut colliders: ResMut<ColliderSet>,
     mut meshes: ResMut<Assets<Mesh>>,
+    mut mesh_map: ResMut<MeshMap>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     if !world_resource.loaded {
         world_resource.loaded = true;
     }
+    mesh_map.hanldes.insert(
+        "player".to_string(),
+        meshes.add(Mesh::from(shape::Icosphere {
+            radius: 0.5,
+            subdivisions: 3,
+        })),
+    );
     create_world_ground_plane(
         commands,
         &asset_server,
@@ -108,48 +116,13 @@ fn create_world(
         ..Default::default()
     });
 
-    let rigid_body_player = RigidBodyBuilder::new_dynamic()
-        .translation(0.0, 20.0, 0.0)
-        .build();
-    let rb_player_handle = bodies.insert(rigid_body_player);
-    let collider_player = ColliderBuilder::ball(0.5).friction(0.0).build();
-    colliders.insert(collider_player, rb_player_handle, &mut bodies);
-    commands
-        .spawn(PbrBundle {
-            mesh: meshes.add(Mesh::from(shape::Icosphere {
-                radius: 0.5,
-                subdivisions: 3,
-            })),
-            material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
-            ..Default::default()
-        })
-        .with(rb_player_handle)
-        .with_children(|parent| {
-            parent
-                .spawn(CameraPlayerOrbit {
-                    transform: Transform::identity(),
-                    global_transform: GlobalTransform::identity(),
-                })
-                .with_children(|parent| {
-                    let mut third_person_camera_transform =
-                        Transform::from_translation(Vec3::new(-1.0, 2.0, -8.0));
-                    third_person_camera_transform.rotation =
-                        Transform::from_rotation(Quat::from_rotation_y(std::f32::consts::PI))
-                            .rotation;
-                    parent.spawn(Camera3dBundle {
-                        transform: third_person_camera_transform,
-                        ..Default::default()
-                    });
-                    parent.spawn(PbrBundle {
-                        mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
-                        material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
-                        transform: Transform::from_translation(Vec3::new(0.0, 0.0, 4.0)),
-                        ..Default::default()
-                    });
-                })
-                .with(CameraController::new());
-        })
-        .with(CharacterController::new());
+    create_player(
+        commands,
+        &mut bodies,
+        &mut colliders,
+        &mesh_map,
+        &mut materials,
+    );
 }
 
 fn update_world(
