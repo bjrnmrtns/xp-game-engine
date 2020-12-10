@@ -14,12 +14,12 @@ pub fn create_world_ground_plane(
     materials: &mut ResMut<Assets<StandardMaterial>>,
 ) {
     let grid_texture_handle = asset_server.load("grid.png");
-    let rigid_body_ground = RigidBodyBuilder::new_static()
+    let rigid_body = RigidBodyBuilder::new_static()
         .translation(0.0, -0.6, 0.0)
         .build();
-    let rb_ground_handle = bodies.insert(rigid_body_ground);
-    let collider_ground = ColliderBuilder::cuboid(12.0, 0.2, 12.0).build();
-    colliders.insert(collider_ground, rb_ground_handle, &mut bodies);
+    let rigid_body_handle = bodies.insert(rigid_body);
+    let collider = ColliderBuilder::cuboid(12.0, 0.2, 12.0).build();
+    colliders.insert(collider, rigid_body_handle, &mut bodies);
     commands.spawn(PbrBundle {
         mesh: mesh_map.hanldes.get("ground_plane").unwrap().clone(),
         material: materials.add(StandardMaterial {
@@ -40,16 +40,16 @@ pub fn create_cube(
     materials: &mut ResMut<Assets<StandardMaterial>>,
     new_grid_cell: (i32, i32, i32),
 ) -> Entity {
-    let rigid_body_cube = RigidBodyBuilder::new_static()
+    let rigid_body = RigidBodyBuilder::new_static()
         .translation(
             new_grid_cell.0 as f32,
             new_grid_cell.1 as f32,
             new_grid_cell.2 as f32,
         )
         .build();
-    let cube_handle = bodies.insert(rigid_body_cube);
-    let collider_cube = ColliderBuilder::cuboid(0.5, 0.5, 0.5).build();
-    colliders.insert(collider_cube, cube_handle, &mut bodies);
+    let rigid_body_handle = bodies.insert(rigid_body);
+    let collider = ColliderBuilder::cuboid(0.5, 0.5, 0.5).build();
+    let collider_handle = colliders.insert(collider, rigid_body_handle, &mut bodies);
     commands
         .spawn(PbrBundle {
             mesh: mesh_map.hanldes.get("one_cube").unwrap().clone(),
@@ -61,6 +61,8 @@ pub fn create_cube(
             )),
             ..Default::default()
         })
+        .with(rigid_body_handle)
+        .with(collider_handle)
         .current_entity()
         .unwrap()
 }

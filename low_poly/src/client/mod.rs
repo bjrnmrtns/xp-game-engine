@@ -12,7 +12,7 @@ use crate::client::helpers::{create_cube, create_player, create_world_ground_pla
 use crate::client::resources::{MeshMap, PhysicsSteps, WorldGrid};
 use bevy::prelude::*;
 use rapier3d::dynamics::{IntegrationParameters, JointSet, RigidBodyHandle, RigidBodySet};
-use rapier3d::geometry::{BroadPhase, ColliderSet, NarrowPhase};
+use rapier3d::geometry::{BroadPhase, ColliderHandle, ColliderSet, NarrowPhase};
 use rapier3d::ncollide::na::{Isometry3, Vector3};
 use rapier3d::pipeline::PhysicsPipeline;
 
@@ -116,10 +116,12 @@ fn update_world(
     commands: &mut Commands,
     mut bodies: ResMut<RigidBodySet>,
     mut colliders: ResMut<ColliderSet>,
+    mut joints: ResMut<JointSet>,
     mesh_map: Res<MeshMap>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut character_controllers: Query<&CharacterController>,
     mut tool_centers: Query<(&ToolCenter, &GlobalTransform)>,
+    world_build: Query<(&RigidBodyHandle, &ColliderHandle)>,
 ) {
     let mut grid_cell = None;
     for (_, global_transform) in tool_centers.iter_mut() {
@@ -144,7 +146,14 @@ fn update_world(
                         );
                         world_grid.grid.insert(grid_cell, entity);
                     }
-                    Some(_entity) => (),
+                    Some(entity) => {
+                        let (rigid_body_handle, collider_handle) =
+                            world_build.get(*entity).unwrap();
+                        bodies.remove(*rigid_body_handle, &mut colliders, &mut joints);
+                        colliders.remove(*collider_handle, &mut bodies, false);
+                        commands.remove::<PbrBundle>(*entity);
+                        world_grid.grid.remove(&grid_cell);
+                    }
                 }
             }
         }
