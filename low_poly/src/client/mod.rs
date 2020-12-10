@@ -196,14 +196,20 @@ fn physics_system(
 
         let jump_speed = if character_controller.jump { 10.0 } else { 0.0 };
 
-        if let Some(move_forward) = character_controller.move_forward {
-            let movement = transform.forward().normalize() * move_forward * 10.0;
-            rb.set_linvel(
-                Vector3::new(movement.x, rb.linvel().y + jump_speed, movement.z),
-                true,
-            );
-        } else {
-            rb.set_linvel(Vector3::new(0.0, rb.linvel().y + jump_speed, 0.0), true);
+        match (
+            character_controller.move_forward,
+            character_controller.strafe_right,
+        ) {
+            (Some(move_forward), Some(strafe_right)) => {
+                let movement_f = transform.forward() * move_forward;
+                let movement_r = transform.forward().cross(Vec3::unit_y()) * strafe_right;
+                let movement = (movement_f + movement_r) * 10.0;
+                rb.set_linvel(
+                    Vector3::new(movement.x, rb.linvel().y + jump_speed, movement.z),
+                    true,
+                );
+            }
+            (_, _) => (),
         }
     }
     let expected_steps =
