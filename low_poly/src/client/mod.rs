@@ -80,22 +80,6 @@ fn create_world(
         &mesh_map,
         &mut materials,
     );
-    create_cube(
-        commands,
-        &mut bodies,
-        &mut colliders,
-        &mesh_map,
-        &mut materials,
-        (1, 0, 1),
-    );
-    create_cube(
-        commands,
-        &mut bodies,
-        &mut colliders,
-        &mesh_map,
-        &mut materials,
-        (4, 0, 4),
-    );
 
     commands.spawn(LightBundle {
         transform: Transform::from_translation(Vec3::new(4.0, 8.0, 4.0)),
