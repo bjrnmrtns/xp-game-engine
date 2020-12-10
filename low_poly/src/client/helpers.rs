@@ -15,7 +15,7 @@ pub fn create_world_ground_plane(
 ) {
     let grid_texture_handle = asset_server.load("grid.png");
     let rigid_body_ground = RigidBodyBuilder::new_static()
-        .translation(0.0, -0.1, 0.0)
+        .translation(0.0, -0.6, 0.0)
         .build();
     let rb_ground_handle = bodies.insert(rigid_body_ground);
     let collider_ground = ColliderBuilder::cuboid(12.0, 0.2, 12.0).build();
@@ -27,6 +27,7 @@ pub fn create_world_ground_plane(
             shaded: false,
             ..Default::default()
         }),
+        transform: Transform::from_translation(Vec3::new(0.0, -0.5, 0.0)),
         ..Default::default()
     });
 }
@@ -41,9 +42,9 @@ pub fn create_cube(
 ) -> Entity {
     let rigid_body_cube = RigidBodyBuilder::new_static()
         .translation(
-            new_grid_cell.0 as f32 + 0.5,
-            new_grid_cell.1 as f32 + 0.5,
-            new_grid_cell.2 as f32 + 0.5,
+            new_grid_cell.0 as f32,
+            new_grid_cell.1 as f32,
+            new_grid_cell.2 as f32,
         )
         .build();
     let cube_handle = bodies.insert(rigid_body_cube);
@@ -54,9 +55,9 @@ pub fn create_cube(
             mesh: mesh_map.hanldes.get("one_cube").unwrap().clone(),
             material: materials.add(Color::rgb(0.3, 0.3, 0.3).into()),
             transform: Transform::from_translation(Vec3::new(
-                new_grid_cell.0 as f32 + 0.5,
-                new_grid_cell.1 as f32 + 0.5,
-                new_grid_cell.2 as f32 + 0.5,
+                new_grid_cell.0 as f32,
+                new_grid_cell.1 as f32,
+                new_grid_cell.2 as f32,
             )),
             ..Default::default()
         })
@@ -89,7 +90,7 @@ pub fn create_player(
         .with_children(|parent| {
             parent
                 .spawn(PbrBundle {
-                    mesh: mesh_map.hanldes.get("one_cube").unwrap().clone(),
+                    mesh: mesh_map.hanldes.get("tool").unwrap().clone(),
                     material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
                     transform: Transform::from_translation(Vec3::new(0.0, 0.0, 4.0)),
                     ..Default::default()

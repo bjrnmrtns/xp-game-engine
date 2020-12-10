@@ -52,6 +52,14 @@ fn load_world_assets(mut meshes: ResMut<Assets<Mesh>>, mut mesh_map: ResMut<Mesh
         "ground_plane".to_string(),
         meshes.add(Mesh::from(shape::Plane { size: 24.0 })),
     );
+
+    mesh_map.hanldes.insert(
+        "tool".to_string(),
+        meshes.add(Mesh::from(shape::Icosphere {
+            radius: 0.1,
+            subdivisions: 3,
+        })),
+    );
 }
 
 fn create_world(
@@ -109,14 +117,14 @@ fn update_world(
     mesh_map: Res<MeshMap>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut character_controllers: Query<&CharacterController>,
-    tool_centers: Query<(&ToolCenter, &GlobalTransform)>,
+    mut tool_centers: Query<(&ToolCenter, &GlobalTransform)>,
 ) {
     let mut grid_cell = None;
-    for (_, transform) in tool_centers.iter() {
+    for (_, global_transform) in tool_centers.iter_mut() {
         grid_cell = Some((
-            transform.translation.x as i32,
-            transform.translation.y as i32,
-            transform.translation.z as i32,
+            global_transform.translation.x.round() as i32,
+            global_transform.translation.y.round() as i32,
+            global_transform.translation.z.round() as i32,
         ));
     }
     for character_controller in character_controllers.iter_mut() {
