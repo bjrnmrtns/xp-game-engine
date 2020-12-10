@@ -68,33 +68,22 @@ fn create_world(
         &mut meshes,
         &mut materials,
     );
-
-    let rigid_body_cube = RigidBodyBuilder::new_static()
-        .translation(-8.0, 2.0, -8.0)
-        .build();
-    let rb_cube_handle = bodies.insert(rigid_body_cube);
-    let collider_cube = ColliderBuilder::cuboid(2.0, 2.0, 2.0).build();
-    colliders.insert(collider_cube, rb_cube_handle, &mut bodies);
-    commands.spawn(PbrBundle {
-        mesh: meshes.add(Mesh::from(shape::Cube { size: 4.0 })),
-        material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
-        transform: Transform::from_translation(Vec3::new(-8.0, 2.0, -8.0)),
-        ..Default::default()
-    });
-
-    let rigid_body_stepup_cube = RigidBodyBuilder::new_static()
-        .translation(8.0, 0.2, 8.0)
-        .build();
-    let rb_stepup_cube_handle = bodies.insert(rigid_body_stepup_cube);
-    let collider_stepup_cube = ColliderBuilder::cuboid(2.0, 0.2, 2.0).build();
-    colliders.insert(collider_stepup_cube, rb_stepup_cube_handle, &mut bodies);
-    commands.spawn(PbrBundle {
-        mesh: mesh_map.hanldes.get("one_cube").unwrap().clone(),
-        material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
-        transform: Transform::from_translation(Vec3::new(8.0, 0.2, 8.0))
-            .mul_transform(Transform::from_scale(Vec3::new(4.0, 0.4, 4.0))),
-        ..Default::default()
-    });
+    create_cube(
+        commands,
+        &mut bodies,
+        &mut colliders,
+        &mesh_map,
+        &mut materials,
+        (1, 0, 1),
+    );
+    create_cube(
+        commands,
+        &mut bodies,
+        &mut colliders,
+        &mesh_map,
+        &mut materials,
+        (4, 0, 4),
+    );
 
     commands.spawn(LightBundle {
         transform: Transform::from_translation(Vec3::new(4.0, 8.0, 4.0)),
