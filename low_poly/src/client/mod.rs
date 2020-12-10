@@ -7,14 +7,13 @@ pub use components::CameraPlayerOrbit;
 pub use components::CharacterController;
 
 use crate::client::helpers::{create_cube, create_player, create_world_ground_plane};
-use crate::client::resources::{MeshMap, PhysicsSteps, WorldAssetHandle, WorldGrid};
+use crate::client::resources::{MeshMap, PhysicsSteps, WorldGrid};
 use bevy::prelude::*;
 use rapier3d::dynamics::{
-    IntegrationParameters, JointSet, MassProperties, RigidBodyBuilder, RigidBodyHandle,
-    RigidBodySet,
+    IntegrationParameters, JointSet, RigidBodyBuilder, RigidBodyHandle, RigidBodySet,
 };
 use rapier3d::geometry::{BroadPhase, ColliderBuilder, ColliderSet, NarrowPhase};
-use rapier3d::ncollide::na::{Isometry3, Quaternion, UnitQuaternion, Vector3};
+use rapier3d::ncollide::na::{Isometry3, Vector3};
 use rapier3d::pipeline::PhysicsPipeline;
 
 pub struct ClientPlugin;
@@ -31,7 +30,6 @@ impl Plugin for ClientPlugin {
             .add_resource(MeshMap::default())
             .add_system(physics_system.system())
             .add_resource(WorldGrid::default())
-            .add_resource(WorldAssetHandle::default())
             .add_startup_system(load_world_assets.system())
             .add_startup_system(create_world.system())
             .add_system(handle_player_camera.system())
@@ -39,33 +37,11 @@ impl Plugin for ClientPlugin {
     }
 }
 
-fn load_world_assets(
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut mesh_map: ResMut<MeshMap>,
-    mut world_resource: ResMut<WorldAssetHandle>,
-    asset_server: Res<AssetServer>,
-) {
-    world_resource.handle = asset_server.load("world.world");
+fn load_world_assets(mut meshes: ResMut<Assets<Mesh>>, mut mesh_map: ResMut<MeshMap>) {
     mesh_map.hanldes.insert(
         "one_cube".to_string(),
         meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
     );
-}
-
-fn create_world(
-    mut world_resource: ResMut<WorldAssetHandle>,
-    _world_assets: Res<Assets<crate::world_loader::WorldAsset>>,
-    commands: &mut Commands,
-    asset_server: Res<AssetServer>,
-    mut bodies: ResMut<RigidBodySet>,
-    mut colliders: ResMut<ColliderSet>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut mesh_map: ResMut<MeshMap>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-) {
-    if !world_resource.loaded {
-        world_resource.loaded = true;
-    }
     mesh_map.hanldes.insert(
         "player".to_string(),
         meshes.add(Mesh::from(shape::Icosphere {
@@ -73,6 +49,17 @@ fn create_world(
             subdivisions: 3,
         })),
     );
+}
+
+fn create_world(
+    commands: &mut Commands,
+    asset_server: Res<AssetServer>,
+    mut bodies: ResMut<RigidBodySet>,
+    mut colliders: ResMut<ColliderSet>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mesh_map: Res<MeshMap>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
     create_world_ground_plane(
         commands,
         &asset_server,
@@ -95,8 +82,6 @@ fn create_world(
         ..Default::default()
     });
 
-    let one_cube = meshes.add(Mesh::from(shape::Cube { size: 1.0 }));
-
     let rigid_body_stepup_cube = RigidBodyBuilder::new_static()
         .translation(8.0, 0.2, 8.0)
         .build();
@@ -104,7 +89,7 @@ fn create_world(
     let collider_stepup_cube = ColliderBuilder::cuboid(2.0, 0.2, 2.0).build();
     colliders.insert(collider_stepup_cube, rb_stepup_cube_handle, &mut bodies);
     commands.spawn(PbrBundle {
-        mesh: one_cube.clone(),
+        mesh: mesh_map.hanldes.get("one_cube").unwrap().clone(),
         material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
         transform: Transform::from_translation(Vec3::new(8.0, 0.2, 8.0))
             .mul_transform(Transform::from_scale(Vec3::new(4.0, 0.4, 4.0))),
@@ -132,9 +117,9 @@ fn update_world(
     mut colliders: ResMut<ColliderSet>,
     mesh_map: Res<MeshMap>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    mut query: Query<(&CharacterController, &mut Transform, &RigidBodyHandle)>,
+    mut query: Query<&CharacterController>,
 ) {
-    for (character_controller, mut transform, rigid_body_handle) in query.iter_mut() {
+    for character_controller in query.iter_mut() {
         if character_controller.place_object {
             let new_grid_cell = (4, 4, 4);
             match world_grid.grid.get(&new_grid_cell) {
@@ -174,7 +159,7 @@ fn physics_system(
     mut query: Query<(&CharacterController, &mut Transform, &RigidBodyHandle)>,
 ) {
     for (character_controller, mut transform, rigid_body_handle) in query.iter_mut() {
-        let mut rb = bodies.get_mut(*rigid_body_handle).unwrap();
+        let rb = bodies.get_mut(*rigid_body_handle).unwrap();
         let translation = rb.position().translation;
         // translation of physics engine is leading
         transform.translation = Vec3::new(translation.x, translation.y, translation.z);

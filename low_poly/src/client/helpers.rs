@@ -1,8 +1,8 @@
-use crate::client::resources::{MeshMap, WorldAssetHandle, WorldGrid};
+use crate::client::resources::MeshMap;
 use crate::client::{CameraController, CameraPlayerOrbit, CharacterController};
 use bevy::prelude::*;
 use rapier3d::dynamics::{RigidBodyBuilder, RigidBodySet};
-use rapier3d::geometry::{BroadPhase, ColliderBuilder, ColliderSet, NarrowPhase};
+use rapier3d::geometry::{ColliderBuilder, ColliderSet};
 
 pub fn create_world_ground_plane(
     commands: &mut Commands,
