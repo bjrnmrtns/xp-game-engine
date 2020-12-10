@@ -33,7 +33,6 @@ impl CameraController {
 }
 
 #[derive(Bundle)]
-pub struct CameraPlayerOrbit {
-    pub transform: Transform,
-    pub global_transform: GlobalTransform,
-}
+pub struct CameraPivot;
+
+pub struct ToolCenter;

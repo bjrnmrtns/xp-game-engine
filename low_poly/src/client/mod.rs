@@ -3,16 +3,15 @@ mod helpers;
 mod resources;
 
 pub use components::CameraController;
-pub use components::CameraPlayerOrbit;
+pub use components::CameraPivot;
 pub use components::CharacterController;
 
+use crate::client::components::ToolCenter;
 use crate::client::helpers::{create_cube, create_player, create_world_ground_plane};
 use crate::client::resources::{MeshMap, PhysicsSteps, WorldGrid};
 use bevy::prelude::*;
-use rapier3d::dynamics::{
-    IntegrationParameters, JointSet, RigidBodyBuilder, RigidBodyHandle, RigidBodySet,
-};
-use rapier3d::geometry::{BroadPhase, ColliderBuilder, ColliderSet, NarrowPhase};
+use rapier3d::dynamics::{IntegrationParameters, JointSet, RigidBodyHandle, RigidBodySet};
+use rapier3d::geometry::{BroadPhase, ColliderSet, NarrowPhase};
 use rapier3d::ncollide::na::{Isometry3, Vector3};
 use rapier3d::pipeline::PhysicsPipeline;
 
@@ -49,6 +48,10 @@ fn load_world_assets(mut meshes: ResMut<Assets<Mesh>>, mut mesh_map: ResMut<Mesh
             subdivisions: 3,
         })),
     );
+    mesh_map.hanldes.insert(
+        "ground_plane".to_string(),
+        meshes.add(Mesh::from(shape::Plane { size: 24.0 })),
+    );
 }
 
 fn create_world(
@@ -56,7 +59,6 @@ fn create_world(
     asset_server: Res<AssetServer>,
     mut bodies: ResMut<RigidBodySet>,
     mut colliders: ResMut<ColliderSet>,
-    mut meshes: ResMut<Assets<Mesh>>,
     mesh_map: Res<MeshMap>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
@@ -65,7 +67,7 @@ fn create_world(
         &asset_server,
         &mut bodies,
         &mut colliders,
-        &mut meshes,
+        &mesh_map,
         &mut materials,
     );
     create_cube(
@@ -106,24 +108,34 @@ fn update_world(
     mut colliders: ResMut<ColliderSet>,
     mesh_map: Res<MeshMap>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    mut query: Query<&CharacterController>,
+    mut character_controllers: Query<&CharacterController>,
+    tool_centers: Query<(&ToolCenter, &GlobalTransform)>,
 ) {
-    for character_controller in query.iter_mut() {
+    let mut grid_cell = None;
+    for (_, transform) in tool_centers.iter() {
+        grid_cell = Some((
+            transform.translation.x as i32,
+            transform.translation.y as i32,
+            transform.translation.z as i32,
+        ));
+    }
+    for character_controller in character_controllers.iter_mut() {
         if character_controller.place_object {
-            let new_grid_cell = (4, 4, 4);
-            match world_grid.grid.get(&new_grid_cell) {
-                None => {
-                    let entity = create_cube(
-                        commands,
-                        &mut bodies,
-                        &mut colliders,
-                        &mesh_map,
-                        &mut materials,
-                        new_grid_cell,
-                    );
-                    world_grid.grid.insert(new_grid_cell, entity);
+            if let Some(grid_cell) = grid_cell {
+                match world_grid.grid.get(&grid_cell) {
+                    None => {
+                        let entity = create_cube(
+                            commands,
+                            &mut bodies,
+                            &mut colliders,
+                            &mesh_map,
+                            &mut materials,
+                            grid_cell,
+                        );
+                        world_grid.grid.insert(grid_cell, entity);
+                    }
+                    Some(_entity) => (),
                 }
-                Some(_entity) => (),
             }
         }
     }
