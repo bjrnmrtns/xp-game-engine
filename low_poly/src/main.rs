@@ -11,7 +11,7 @@ fn main() {
             width: 1200,
             height: 800,
             vsync: true,
-            mode: bevy::window::WindowMode::Windowed,
+            mode: bevy::window::WindowMode::Fullscreen { use_size: false },
             resizable: true,
             ..Default::default()
         })

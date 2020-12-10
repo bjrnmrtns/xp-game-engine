@@ -1,5 +1,6 @@
 use crate::client;
 use bevy::input::mouse::{MouseButtonInput, MouseMotion};
+use bevy::input::system::exit_on_esc_system;
 use bevy::input::ElementState;
 use bevy::prelude::*;
 use std::ops::DerefMut;
@@ -8,7 +9,8 @@ pub struct InputPlugin;
 
 impl Plugin for InputPlugin {
     fn build(&self, app: &mut AppBuilder) {
-        app.add_system(input_system.system());
+        app.add_system(input_system.system())
+            .add_system(exit_on_esc_system.system());
     }
 }
 
