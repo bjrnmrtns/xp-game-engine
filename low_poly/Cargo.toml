@@ -6,7 +6,7 @@ edition = "2018"
 
 [dependencies]
 bevy = { git = 'https://github.com/bevyengine/bevy' }
-rapier3d = "0.3"
+rapier3d = "0.4"
 anyhow = "1.0"
 ron = "0.6"
 serde = "1.0"

@@ -1,17 +1,20 @@
 mod components;
+mod helpers;
 mod resources;
 
 pub use components::CameraController;
 pub use components::CameraPlayerOrbit;
 pub use components::CharacterController;
 
-use crate::client::resources::{PhysicsSteps, WorldAssetHandle, WorldGrid};
+use crate::client::helpers::{create_cube, create_world_ground_plane};
+use crate::client::resources::{MeshMap, PhysicsSteps, WorldAssetHandle, WorldGrid};
 use bevy::prelude::*;
 use rapier3d::dynamics::{
-    IntegrationParameters, JointSet, RigidBodyBuilder, RigidBodyHandle, RigidBodySet,
+    IntegrationParameters, JointSet, MassProperties, RigidBodyBuilder, RigidBodyHandle,
+    RigidBodySet,
 };
 use rapier3d::geometry::{BroadPhase, ColliderBuilder, ColliderSet, NarrowPhase};
-use rapier3d::ncollide::na::{Quaternion, UnitQuaternion, Vector3};
+use rapier3d::ncollide::na::{Isometry3, Quaternion, UnitQuaternion, Vector3};
 use rapier3d::pipeline::PhysicsPipeline;
 
 pub struct ClientPlugin;
@@ -25,23 +28,33 @@ impl Plugin for ClientPlugin {
             .add_resource(ColliderSet::new())
             .add_resource(JointSet::new())
             .add_resource(PhysicsSteps::new())
+            .add_resource(MeshMap::default())
             .add_system(physics_system.system())
             .add_resource(WorldGrid::default())
             .add_resource(WorldAssetHandle::default())
-            .add_startup_system(load_world.system())
+            .add_startup_system(load_world_assets.system())
             .add_startup_system(create_world.system())
             .add_system(handle_player_camera.system())
             .add_system(update_world.system());
     }
 }
 
-fn load_world(mut world_resource: ResMut<WorldAssetHandle>, asset_server: Res<AssetServer>) {
+fn load_world_assets(
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut mesh_map: ResMut<MeshMap>,
+    mut world_resource: ResMut<WorldAssetHandle>,
+    asset_server: Res<AssetServer>,
+) {
     world_resource.handle = asset_server.load("world.world");
+    mesh_map.hanldes.insert(
+        "one_cube".to_string(),
+        meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
+    );
 }
 
 fn create_world(
     mut world_resource: ResMut<WorldAssetHandle>,
-    world_assets: Res<Assets<crate::world_loader::WorldAsset>>,
+    _world_assets: Res<Assets<crate::world_loader::WorldAsset>>,
     commands: &mut Commands,
     asset_server: Res<AssetServer>,
     mut bodies: ResMut<RigidBodySet>,
@@ -52,22 +65,14 @@ fn create_world(
     if !world_resource.loaded {
         world_resource.loaded = true;
     }
-    let grid_texture_handle = asset_server.load("grid.png");
-    let rigid_body_ground = RigidBodyBuilder::new_static()
-        .translation(0.0, -0.1, 0.0)
-        .build();
-    let rb_ground_handle = bodies.insert(rigid_body_ground);
-    let collider_ground = ColliderBuilder::cuboid(12.0, 0.2, 12.0).build();
-    colliders.insert(collider_ground, rb_ground_handle, &mut bodies);
-    commands.spawn(PbrBundle {
-        mesh: meshes.add(Mesh::from(shape::Plane { size: 24.0 })),
-        material: materials.add(StandardMaterial {
-            albedo_texture: Some(grid_texture_handle),
-            shaded: false,
-            ..Default::default()
-        }),
-        ..Default::default()
-    });
+    create_world_ground_plane(
+        commands,
+        &asset_server,
+        &mut bodies,
+        &mut colliders,
+        &mut meshes,
+        &mut materials,
+    );
 
     let rigid_body_cube = RigidBodyBuilder::new_static()
         .translation(-8.0, 2.0, -8.0)
@@ -152,43 +157,26 @@ fn update_world(
     commands: &mut Commands,
     mut bodies: ResMut<RigidBodySet>,
     mut colliders: ResMut<ColliderSet>,
-    mut meshes: ResMut<Assets<Mesh>>,
+    mesh_map: Res<MeshMap>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut query: Query<(&CharacterController, &mut Transform, &RigidBodyHandle)>,
 ) {
     for (character_controller, mut transform, rigid_body_handle) in query.iter_mut() {
         if character_controller.place_object {
-            let cube_size = 1.0;
-            let one_cube = meshes.add(Mesh::from(shape::Cube { size: cube_size }));
             let new_grid_cell = (4, 4, 4);
             match world_grid.grid.get(&new_grid_cell) {
                 None => {
-                    let rigid_body_cube = RigidBodyBuilder::new_static()
-                        .translation(
-                            new_grid_cell.0 as f32 + cube_size / 2.0,
-                            new_grid_cell.1 as f32 + cube_size / 2.0,
-                            new_grid_cell.2 as f32 + cube_size / 2.0,
-                        )
-                        .build();
-                    let cube_handle = bodies.insert(rigid_body_cube);
-                    let collider_cube = ColliderBuilder::cuboid(0.5, 0.5, 0.5).build();
-                    colliders.insert(collider_cube, cube_handle, &mut bodies);
-                    let entity = commands
-                        .spawn(PbrBundle {
-                            mesh: one_cube,
-                            material: materials.add(Color::rgb(0.3, 0.3, 0.3).into()),
-                            transform: Transform::from_translation(Vec3::new(
-                                new_grid_cell.0 as f32 + cube_size / 2.0,
-                                new_grid_cell.1 as f32 + cube_size / 2.0,
-                                new_grid_cell.2 as f32 + cube_size / 2.0,
-                            )),
-                            ..Default::default()
-                        })
-                        .current_entity()
-                        .unwrap();
+                    let entity = create_cube(
+                        commands,
+                        &mut bodies,
+                        &mut colliders,
+                        &mesh_map,
+                        &mut materials,
+                        new_grid_cell,
+                    );
                     world_grid.grid.insert(new_grid_cell, entity);
                 }
-                Some(entity) => (),
+                Some(_entity) => (),
             }
         }
     }
@@ -214,27 +202,41 @@ fn physics_system(
 ) {
     for (character_controller, mut transform, rigid_body_handle) in query.iter_mut() {
         let mut rb = bodies.get_mut(*rigid_body_handle).unwrap();
-        let translation = rb.position.translation;
+        let translation = rb.position().translation;
         // translation of physics engine is leading
         transform.translation = Vec3::new(translation.x, translation.y, translation.z);
         transform.rotate(Quat::from_rotation_y(character_controller.rotate_y / 100.0));
         // rotation of controller is leading
-        rb.position.rotation = UnitQuaternion::from_quaternion(Quaternion::from([
-            transform.rotation.x,
-            transform.rotation.y,
-            transform.rotation.z,
-            transform.rotation.w,
-        ]));
-        rb.mass_properties.inv_principal_inertia_sqrt = Vector3::new(0.0, 0.0, 0.0);
+        rb.set_position(
+            Isometry3::new(
+                Vector3::new(
+                    transform.translation.x,
+                    transform.translation.y,
+                    transform.translation.z,
+                ),
+                /*Quaternion::from([
+                    transform.rotation.x,
+                    transform.rotation.y,
+                    transform.rotation.z,
+                    transform.rotation.w,
+                ])
+                .vector()
+                .normalize()*/
+                Vector3::new(0.0, 0.0, 0.0),
+            ),
+            true,
+        );
 
         let jump_speed = if character_controller.jump { 10.0 } else { 0.0 };
 
         if let Some(move_forward) = character_controller.move_forward {
             let movement = transform.forward().normalize() * move_forward * 10.0;
-            rb.wake_up(true);
-            rb.linvel = Vector3::new(movement.x, rb.linvel.y + jump_speed, movement.z);
+            rb.set_linvel(
+                Vector3::new(movement.x, rb.linvel().y + jump_speed, movement.z),
+                true,
+            );
         } else {
-            rb.linvel = Vector3::new(0.0, rb.linvel.y + jump_speed, 0.0);
+            rb.set_linvel(Vector3::new(0.0, rb.linvel().y + jump_speed, 0.0), true);
         }
     }
     let expected_steps =

@@ -17,12 +17,8 @@ fn main() {
             ..Default::default()
         })
         .add_plugins(bevy::DefaultPlugins)
-        .add_plugin(world_loader::WorldPlugin)
         .add_plugin(input::InputPlugin)
         .add_plugin(client::ClientPlugin)
+        .add_plugin(world_loader::WorldPlugin)
         .run();
 }
-
-//TODO: fixed run time_step? .add_plugin(bevy::app::ScheduleRunnerPlugin::run_loop(
-//Duration::from_secs_f64(1.0 / 60.0),
-//))

@@ -22,3 +22,8 @@ impl PhysicsSteps {
         Self { done: 0 }
     }
 }
+
+#[derive(Default)]
+pub struct MeshMap {
+    pub hanldes: HashMap<String, Handle<Mesh>>,
+}
