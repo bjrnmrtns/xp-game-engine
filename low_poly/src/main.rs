@@ -14,7 +14,7 @@ fn main() {
             mode: bevy::window::WindowMode::Fullscreen { use_size: false },
             resizable: true,
             cursor_visible: false,
-            cursor_locked: true,
+            cursor_locked: true, // so it will appear at the same location after the program exists
             ..Default::default()
         })
         .add_plugins(bevy::DefaultPlugins)
