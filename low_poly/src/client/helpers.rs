@@ -88,7 +88,7 @@ pub fn create_player(
         })
         .with(rigid_body_handle)
         .with(collider_handle)
-        .with(CharacterController::new())
+        .with(CharacterController::default())
         .with_children(|parent| {
             parent
                 .spawn(PbrBundle {
@@ -111,7 +111,7 @@ pub fn create_player(
                         ..Default::default()
                     });
                 })
-                .with(CameraController::new());
+                .with(CameraController::default());
         })
         .current_entity()
         .unwrap()

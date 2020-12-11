@@ -1,4 +1,5 @@
 use crate::client;
+use crate::client::Action;
 use bevy::input::mouse::{MouseButtonInput, MouseMotion};
 use bevy::input::system::exit_on_esc_system;
 use bevy::input::ElementState;
@@ -63,12 +64,18 @@ fn input_system(
                 MouseButtonInput {
                     button: MouseButton::Left,
                     state: ElementState::Pressed,
-                } => character_controller.place_object = true,
+                } => character_controller.action_enabled = true,
                 MouseButtonInput {
                     button: MouseButton::Left,
                     state: ElementState::Released,
-                } => character_controller.place_object = false,
+                } => character_controller.action_enabled = false,
                 _ => (),
+            }
+        }
+        if keyboard_input.just_pressed(KeyCode::B) {
+            match character_controller.action {
+                Action::Add => character_controller.action = Action::Remove,
+                Action::Remove => character_controller.action = Action::Add,
             }
         }
     }

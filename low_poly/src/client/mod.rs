@@ -2,6 +2,7 @@ mod components;
 mod helpers;
 mod resources;
 
+pub use components::Action;
 pub use components::CameraController;
 pub use components::CameraPivot;
 pub use components::CharacterController;
@@ -114,27 +115,31 @@ fn update_world(
         ));
     }
     for character_controller in character_controllers.iter_mut() {
-        if character_controller.place_object {
+        if character_controller.action_enabled {
             if let Some(grid_cell) = grid_cell {
                 match world_grid.grid.get(&grid_cell) {
                     None => {
-                        let entity = create_cube(
-                            commands,
-                            &mut bodies,
-                            &mut colliders,
-                            &mesh_map,
-                            &mut materials,
-                            grid_cell,
-                        );
-                        world_grid.grid.insert(grid_cell, entity);
+                        if character_controller.action == Action::Add {
+                            let entity = create_cube(
+                                commands,
+                                &mut bodies,
+                                &mut colliders,
+                                &mesh_map,
+                                &mut materials,
+                                grid_cell,
+                            );
+                            world_grid.grid.insert(grid_cell, entity);
+                        }
                     }
                     Some(entity) => {
-                        let (rigid_body_handle, collider_handle) =
-                            world_build.get(*entity).unwrap();
-                        bodies.remove(*rigid_body_handle, &mut colliders, &mut joints);
-                        colliders.remove(*collider_handle, &mut bodies, false);
-                        commands.remove::<PbrBundle>(*entity);
-                        world_grid.grid.remove(&grid_cell);
+                        if character_controller.action == Action::Remove {
+                            let (rigid_body_handle, collider_handle) =
+                                world_build.get(*entity).unwrap();
+                            bodies.remove(*rigid_body_handle, &mut colliders, &mut joints);
+                            colliders.remove(*collider_handle, &mut bodies, false);
+                            commands.remove::<PbrBundle>(*entity);
+                            world_grid.grid.remove(&grid_cell);
+                        }
                     }
                 }
             }
