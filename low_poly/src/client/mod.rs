@@ -11,6 +11,7 @@ use crate::client::components::ToolCenter;
 use crate::client::helpers::{create_cube, create_player, create_world_ground_plane};
 use crate::client::resources::{MeshMap, PhysicsSteps, WorldGrid};
 use bevy::prelude::*;
+use bevy::render::mesh::VertexAttributeValues;
 use rapier3d::dynamics::{IntegrationParameters, JointSet, RigidBodyHandle, RigidBodySet};
 use rapier3d::geometry::{BroadPhase, ColliderHandle, ColliderSet, NarrowPhase};
 use rapier3d::ncollide::na::{Isometry3, Vector3};
@@ -33,33 +34,42 @@ impl Plugin for ClientPlugin {
             .add_startup_system(load_world_assets.system())
             .add_startup_system(create_world.system())
             .add_system(handle_player_camera.system())
-            .add_system(update_world.system());
+            .add_system(update_world.system())
+            .add_system(fix_gltf_texcoord.system());
     }
 }
 
-fn load_world_assets(mut meshes: ResMut<Assets<Mesh>>, mut mesh_map: ResMut<MeshMap>) {
-    mesh_map.hanldes.insert(
+fn load_world_assets(
+    asset_server: Res<AssetServer>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut mesh_map: ResMut<MeshMap>,
+) {
+    mesh_map.handles.insert(
         "one_cube".to_string(),
         meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
     );
-    mesh_map.hanldes.insert(
+    mesh_map.handles.insert(
         "player".to_string(),
         meshes.add(Mesh::from(shape::Icosphere {
             radius: 0.5,
             subdivisions: 3,
         })),
     );
-    mesh_map.hanldes.insert(
+    mesh_map.handles.insert(
         "ground_plane".to_string(),
         meshes.add(Mesh::from(shape::Plane { size: 24.0 })),
     );
 
-    mesh_map.hanldes.insert(
+    mesh_map.handles.insert(
         "tool".to_string(),
         meshes.add(Mesh::from(shape::Icosphere {
             radius: 0.1,
             subdivisions: 3,
         })),
+    );
+    mesh_map.handles.insert(
+        "tree".to_string(),
+        asset_server.load("tree.gltf#Mesh0/Primitive0"),
     );
 }
 
@@ -92,6 +102,27 @@ fn create_world(
         &mesh_map,
         &mut materials,
     );
+}
+
+fn fix_gltf_texcoord(
+    commands: &mut Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mesh_map: Res<MeshMap>,
+) {
+    if let Some(handle) = mesh_map.handles.get("tree") {
+        if let Some(mesh) = meshes.get_mut(handle.clone()) {
+            if let None = mesh.attribute(Mesh::ATTRIBUTE_UV_0) {
+                let uv =
+                    vec![[0.0f32, 0.0f32]; mesh.attribute(Mesh::ATTRIBUTE_POSITION).unwrap().len()];
+                let vs = VertexAttributeValues::Float2(uv);
+                mesh.set_attribute(Mesh::ATTRIBUTE_UV_0, vs);
+                commands.spawn(PbrBundle {
+                    mesh: handle.clone(),
+                    ..Default::default()
+                });
+            }
+        }
+    }
 }
 
 fn update_world(

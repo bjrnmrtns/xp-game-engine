@@ -18,5 +18,5 @@ impl PhysicsSteps {
 
 #[derive(Default)]
 pub struct MeshMap {
-    pub hanldes: HashMap<String, Handle<Mesh>>,
+    pub handles: HashMap<String, Handle<Mesh>>,
 }

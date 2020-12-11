@@ -11,10 +11,11 @@ fn main() {
             width: 1200,
             height: 800,
             vsync: true,
-            mode: bevy::window::WindowMode::Fullscreen { use_size: false },
+            //mode: bevy::window::WindowMode::Fullscreen { use_size: false },
+            mode: bevy::window::WindowMode::Windowed,
             resizable: true,
-            cursor_visible: false,
-            cursor_locked: true, // so it will appear at the same location after the program exists
+            //cursor_visible: false,
+            //cursor_locked: true, // so it will appear at the same location after the program exists
             ..Default::default()
         })
         .add_plugins(bevy::DefaultPlugins)
