@@ -5,7 +5,6 @@ mod resources;
 pub use components::CameraController;
 pub use components::CameraPivot;
 pub use components::CharacterController;
-pub use resources::BuildEvent;
 
 use crate::client::components::ToolCenter;
 use crate::client::helpers::{create_cube, create_player, create_world_ground_plane};
@@ -19,8 +18,7 @@ use rapier3d::pipeline::PhysicsPipeline;
 pub struct ClientPlugin;
 impl Plugin for ClientPlugin {
     fn build(&self, app: &mut AppBuilder) {
-        app.add_event::<BuildEvent>()
-            .add_resource(IntegrationParameters::default())
+        app.add_resource(IntegrationParameters::default())
             .add_resource(PhysicsPipeline::new())
             .add_resource(BroadPhase::new())
             .add_resource(NarrowPhase::new())

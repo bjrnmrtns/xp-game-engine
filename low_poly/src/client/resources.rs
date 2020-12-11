@@ -20,7 +20,3 @@ impl PhysicsSteps {
 pub struct MeshMap {
     pub hanldes: HashMap<String, Handle<Mesh>>,
 }
-
-pub struct BuildEvent {
-    pub location: (i32, i32, i32),
-}
