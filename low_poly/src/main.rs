@@ -13,6 +13,8 @@ fn main() {
             vsync: true,
             mode: bevy::window::WindowMode::Fullscreen { use_size: false },
             resizable: true,
+            cursor_visible: false,
+            cursor_locked: true,
             ..Default::default()
         })
         .add_plugins(bevy::DefaultPlugins)
