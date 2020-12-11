@@ -2,6 +2,7 @@ use crate::client::components::ToolCenter;
 use crate::client::resources::MeshMap;
 use crate::client::{CameraController, CameraPivot, CharacterController};
 use bevy::prelude::*;
+use bevy::render::renderer::RenderResource;
 use rapier3d::dynamics::{RigidBodyBuilder, RigidBodySet};
 use rapier3d::geometry::{ColliderBuilder, ColliderSet};
 
