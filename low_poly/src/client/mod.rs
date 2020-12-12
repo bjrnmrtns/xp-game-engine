@@ -107,6 +107,7 @@ fn create_world(
 fn fix_gltf_texcoord(
     commands: &mut Commands,
     mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
     mesh_map: Res<MeshMap>,
 ) {
     if let Some(handle) = mesh_map.handles.get("tree") {
@@ -118,6 +119,7 @@ fn fix_gltf_texcoord(
                 mesh.set_attribute(Mesh::ATTRIBUTE_UV_0, vs);
                 commands.spawn(PbrBundle {
                     mesh: handle.clone(),
+                    material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
                     ..Default::default()
                 });
             }
