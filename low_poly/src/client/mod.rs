@@ -35,11 +35,12 @@ impl Plugin for ClientPlugin {
             .add_startup_system(create_world.system())
             .add_system(handle_player_camera.system())
             .add_system(update_world.system())
-            .add_system(fix_gltf_texcoord.system());
+            .add_system(fixup_meshes_without_uv_coords.system());
     }
 }
 
 fn load_world_assets(
+    commands: &mut Commands,
     asset_server: Res<AssetServer>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut mesh_map: ResMut<MeshMap>,
@@ -67,10 +68,29 @@ fn load_world_assets(
             subdivisions: 3,
         })),
     );
-    mesh_map.handles.insert(
+    let scene_handle: Handle<Scene> = asset_server.load("tree.gltf");
+    commands
+        // mesh
+        .spawn_scene(scene_handle);
+    /*mesh_map.handles.insert(
         "tree".to_string(),
         asset_server.load("tree.gltf#Mesh0/Primitive0"),
-    );
+    );*/
+}
+
+fn fixup_meshes_without_uv_coords(mut meshes: ResMut<Assets<Mesh>>) {
+    let handle_ids = meshes
+        .iter()
+        .map(|(handle_id, _)| handle_id)
+        .collect::<Vec<_>>();
+    for handle_id in handle_ids {
+        let mesh = meshes.get_mut(handle_id).unwrap();
+        if let None = mesh.attribute(Mesh::ATTRIBUTE_UV_0) {
+            let uvs =
+                vec![[0.0f32, 0.0f32]; mesh.attribute(Mesh::ATTRIBUTE_POSITION).unwrap().len()];
+            mesh.set_attribute(Mesh::ATTRIBUTE_UV_0, VertexAttributeValues::Float2(uvs));
+        }
+    }
 }
 
 fn create_world(
@@ -102,29 +122,6 @@ fn create_world(
         &mesh_map,
         &mut materials,
     );
-}
-
-fn fix_gltf_texcoord(
-    commands: &mut Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-    mesh_map: Res<MeshMap>,
-) {
-    if let Some(handle) = mesh_map.handles.get("tree") {
-        if let Some(mesh) = meshes.get_mut(handle.clone()) {
-            if let None = mesh.attribute(Mesh::ATTRIBUTE_UV_0) {
-                let uv =
-                    vec![[0.0f32, 0.0f32]; mesh.attribute(Mesh::ATTRIBUTE_POSITION).unwrap().len()];
-                let vs = VertexAttributeValues::Float2(uv);
-                mesh.set_attribute(Mesh::ATTRIBUTE_UV_0, vs);
-                commands.spawn(PbrBundle {
-                    mesh: handle.clone(),
-                    material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
-                    ..Default::default()
-                });
-            }
-        }
-    }
 }
 
 fn update_world(
