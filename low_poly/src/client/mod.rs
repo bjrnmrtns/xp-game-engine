@@ -35,7 +35,7 @@ impl Plugin for ClientPlugin {
             .add_startup_system(create_world.system())
             .add_system(handle_player_camera.system())
             .add_system(update_world.system())
-            .add_system(fixup_meshes_without_uv_coords.system());
+            .add_system(mesh_asset_add_uv.system());
     }
 }
 
@@ -78,17 +78,24 @@ fn load_world_assets(
     );*/
 }
 
-fn fixup_meshes_without_uv_coords(mut meshes: ResMut<Assets<Mesh>>) {
-    let handle_ids = meshes
-        .iter()
-        .map(|(handle_id, _)| handle_id)
-        .collect::<Vec<_>>();
-    for handle_id in handle_ids {
-        let mesh = meshes.get_mut(handle_id).unwrap();
-        if let None = mesh.attribute(Mesh::ATTRIBUTE_UV_0) {
-            let uvs =
-                vec![[0.0f32, 0.0f32]; mesh.attribute(Mesh::ATTRIBUTE_POSITION).unwrap().len()];
-            mesh.set_attribute(Mesh::ATTRIBUTE_UV_0, VertexAttributeValues::Float2(uvs));
+#[derive(Default)]
+struct State {
+    mesh_event_reader: EventReader<AssetEvent<Mesh>>,
+}
+
+fn mesh_asset_add_uv(
+    mut state: Local<State>,
+    mesh_events: Res<Events<AssetEvent<Mesh>>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+) {
+    for event in state.mesh_event_reader.iter(&mesh_events) {
+        if let AssetEvent::Created { handle } = event {
+            let mesh = meshes.get_mut(handle).unwrap();
+            if let None = mesh.attribute(Mesh::ATTRIBUTE_UV_0) {
+                let uvs =
+                    vec![[0.0f32, 0.0f32]; mesh.attribute(Mesh::ATTRIBUTE_POSITION).unwrap().len()];
+                mesh.set_attribute(Mesh::ATTRIBUTE_UV_0, VertexAttributeValues::Float2(uvs));
+            }
         }
     }
 }
