@@ -69,13 +69,21 @@ fn load_world_assets(
         })),
     );
     let scene_handle = asset_server.load("tree.gltf");
-    commands
-        .spawn(VegetationEntity)
-        .with(Transform::from_translation(Vec3::new(10.0, 0.0, 10.0)))
-        .with(GlobalTransform::default())
-        .with_children(|parent| {
-            parent.spawn_scene(scene_handle);
-        });
+    for x in 0..10 {
+        for z in 0..10 {
+            commands
+                .spawn(VegetationEntity)
+                .with(Transform::from_translation(Vec3::new(
+                    x as f32 * 10.0,
+                    0.0,
+                    z as f32 * 10.0,
+                )))
+                .with(GlobalTransform::default())
+                .with_children(|parent| {
+                    parent.spawn_scene(scene_handle.clone());
+                });
+        }
+    }
 }
 
 #[derive(Default)]
