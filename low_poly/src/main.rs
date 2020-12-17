@@ -8,8 +8,8 @@ fn main() {
         .add_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)))
         .add_resource(WindowDescriptor {
             title: "low_poly".to_string(),
-            width: 1200,
-            height: 800,
+            width: 1200.0,
+            height: 800.0,
             vsync: true,
             //mode: bevy::window::WindowMode::Fullscreen { use_size: false },
             mode: bevy::window::WindowMode::Windowed,

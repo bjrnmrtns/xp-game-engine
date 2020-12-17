@@ -7,7 +7,7 @@ pub use components::CameraController;
 pub use components::CameraPivot;
 pub use components::CharacterController;
 
-use crate::client::components::ToolCenter;
+use crate::client::components::{ToolCenter, VegetationEntity};
 use crate::client::helpers::{create_cube, create_player, create_world_ground_plane};
 use crate::client::resources::{MeshMap, PhysicsSteps, WorldGrid};
 use bevy::prelude::*;
@@ -35,7 +35,7 @@ impl Plugin for ClientPlugin {
             .add_startup_system(create_world.system())
             .add_system(handle_player_camera.system())
             .add_system(update_world.system())
-            .add_system(mesh_asset_add_uv.system());
+            .add_system(mesh_asset_add_uv_coord.system());
     }
 }
 
@@ -68,14 +68,14 @@ fn load_world_assets(
             subdivisions: 3,
         })),
     );
-    let scene_handle: Handle<Scene> = asset_server.load("tree.gltf");
+    let scene_handle = asset_server.load("tree.gltf");
     commands
-        // mesh
-        .spawn_scene(scene_handle);
-    /*mesh_map.handles.insert(
-        "tree".to_string(),
-        asset_server.load("tree.gltf#Mesh0/Primitive0"),
-    );*/
+        .spawn(VegetationEntity)
+        .with(Transform::from_translation(Vec3::new(10.0, 0.0, 10.0)))
+        .with(GlobalTransform::default())
+        .with_children(|parent| {
+            parent.spawn_scene(scene_handle);
+        });
 }
 
 #[derive(Default)]
@@ -83,7 +83,7 @@ struct State {
     mesh_event_reader: EventReader<AssetEvent<Mesh>>,
 }
 
-fn mesh_asset_add_uv(
+fn mesh_asset_add_uv_coord(
     mut state: Local<State>,
     mesh_events: Res<Events<AssetEvent<Mesh>>>,
     mut meshes: ResMut<Assets<Mesh>>,

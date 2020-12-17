@@ -31,3 +31,6 @@ pub struct CameraController {
 pub struct CameraPivot;
 
 pub struct ToolCenter;
+
+#[derive(Bundle)]
+pub struct VegetationEntity;
