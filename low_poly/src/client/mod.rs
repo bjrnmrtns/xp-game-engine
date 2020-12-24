@@ -2,20 +2,22 @@ mod components;
 mod helpers;
 mod resources;
 
-pub use components::Action;
-pub use components::CameraController;
-pub use components::CameraPivot;
-pub use components::CharacterController;
+pub use components::{Action, CameraController, CameraPivot, CharacterController};
 
-use crate::client::components::{ToolCenter, VegetationEntity};
-use crate::client::helpers::{create_cube, create_player, create_world_ground_plane};
-use crate::client::resources::{MeshMap, PhysicsSteps, WorldGrid};
-use bevy::prelude::*;
-use bevy::render::mesh::VertexAttributeValues;
-use rapier3d::dynamics::{IntegrationParameters, JointSet, RigidBodyHandle, RigidBodySet};
-use rapier3d::geometry::{BroadPhase, ColliderHandle, ColliderSet, NarrowPhase};
-use rapier3d::ncollide::na::{Isometry3, Vector3};
-use rapier3d::pipeline::PhysicsPipeline;
+use crate::client::{
+    components::{ToolCenter, VegetationEntity},
+    helpers::{create_cube, create_player, create_world_ground_plane},
+    resources::{MeshMap, PhysicsSteps, WorldGrid},
+};
+use bevy::{prelude::*, render::mesh::VertexAttributeValues};
+use noise::{Fbm, MultiFractal, NoiseFn};
+use rand::prelude::Distribution;
+use rapier3d::{
+    dynamics::{IntegrationParameters, JointSet, RigidBodyHandle, RigidBodySet},
+    geometry::{BroadPhase, ColliderHandle, ColliderSet, NarrowPhase},
+    ncollide::na::{Isometry3, Vector3},
+    pipeline::PhysicsPipeline,
+};
 
 pub struct ClientPlugin;
 impl Plugin for ClientPlugin {
@@ -68,20 +70,37 @@ fn load_world_assets(
             subdivisions: 3,
         })),
     );
+    let range = rand::distributions::Uniform::new(-1.0, 1.0);
+    let mut rng = rand::thread_rng();
     let scene_handle = asset_server.load("tree.gltf");
-    for x in 0..10 {
-        for z in 0..10 {
-            commands
-                .spawn(VegetationEntity)
-                .with(Transform::from_translation(Vec3::new(
-                    x as f32 * 10.0,
-                    0.0,
-                    z as f32 * 10.0,
-                )))
-                .with(GlobalTransform::default())
-                .with_children(|parent| {
-                    parent.spawn_scene(scene_handle.clone());
-                });
+    let trees = Fbm::new()
+        .set_octaves(6)
+        .set_frequency(0.001)
+        .set_lacunarity(2.09)
+        .set_persistence(1.0);
+    for x in -50..50 {
+        for z in -50..50 {
+            let x_offset = range.sample(&mut rng);
+            let z_offset = range.sample(&mut rng);
+            let rotation = range.sample(&mut rng);
+            if trees.get([x as f64, z as f64]) > 0.4 {
+                commands
+                    .spawn(VegetationEntity)
+                    .with(
+                        Transform::from_translation(Vec3::new(
+                            x as f32 * 5.0 + x_offset,
+                            0.0,
+                            z as f32 * 5.0 + z_offset,
+                        ))
+                        .mul_transform(Transform::from_rotation(
+                            Quat::from_rotation_y(std::f32::consts::PI * rotation),
+                        )),
+                    )
+                    .with(GlobalTransform::default())
+                    .with_children(|parent| {
+                        parent.spawn_scene(scene_handle.clone());
+                    });
+            }
         }
     }
 }

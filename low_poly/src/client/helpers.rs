@@ -1,9 +1,11 @@
-use crate::client::components::ToolCenter;
-use crate::client::resources::MeshMap;
-use crate::client::{CameraController, CameraPivot, CharacterController};
+use crate::client::{
+    components::ToolCenter, resources::MeshMap, CameraController, CameraPivot, CharacterController,
+};
 use bevy::prelude::*;
-use rapier3d::dynamics::{RigidBodyBuilder, RigidBodySet};
-use rapier3d::geometry::{ColliderBuilder, ColliderSet};
+use rapier3d::{
+    dynamics::{RigidBodyBuilder, RigidBodySet},
+    geometry::{ColliderBuilder, ColliderSet},
+};
 
 pub fn create_world_ground_plane(
     commands: &mut Commands,
@@ -18,7 +20,7 @@ pub fn create_world_ground_plane(
         .translation(0.0, -0.6, 0.0)
         .build();
     let rigid_body_handle = bodies.insert(rigid_body);
-    let collider = ColliderBuilder::cuboid(12.0, 0.2, 12.0).build();
+    let collider = ColliderBuilder::cuboid(120.0, 0.2, 120.0).build();
     colliders.insert(collider, rigid_body_handle, &mut bodies);
     commands.spawn(PbrBundle {
         mesh: mesh_map.handles.get("ground_plane").unwrap().clone(),
