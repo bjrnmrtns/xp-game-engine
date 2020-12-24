@@ -78,8 +78,8 @@ fn load_world_assets(
         .set_frequency(0.001)
         .set_lacunarity(2.09)
         .set_persistence(1.0);
-    for x in -50..50 {
-        for z in -50..50 {
+    for x in -30..30 {
+        for z in -30..30 {
             let x_offset = range.sample(&mut rng);
             let z_offset = range.sample(&mut rng);
             let rotation = range.sample(&mut rng);
@@ -145,7 +145,7 @@ fn create_world(
     );
 
     commands.spawn(LightBundle {
-        transform: Transform::from_translation(Vec3::new(4.0, 8.0, 4.0)),
+        transform: Transform::from_translation(Vec3::new(0.0, 80.0, 0.0)),
         ..Default::default()
     });
 
