@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "rts",
     "low_poly",
     "game",
     "xp_ui",

@@ -1,0 +1,11 @@
+[package]
+name = "rts"
+version = "0.1.0"
+authors = ["Bjorn Martens <bjorn@expeditious.nl>"]
+edition = "2018"
+
+[dependencies]
+bevy = "0.4"
+anyhow = "1.0"
+ron = "0.6"
+serde = "1.0"
