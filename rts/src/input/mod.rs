@@ -23,6 +23,23 @@ struct State {
     mouse_motion_event_reader: EventReader<MouseMotion>,
     mouse_button_event_reader: EventReader<MouseButtonInput>,
 }
+// TODO rts movement / camera :
+// 1. detect if mouse is top/left/right/bottom/topleft/bottomright/topricht/bottomleft or outside of window
+// 2. depending on 1. move cameratarget up/down/right/left/topleft etc
+// 3. connect camera via child to cameratarget so it will move as well
+
+// TODO leftclick/rightclick select
+// 1. depending on cursor spawn cube on left click
+// 2. depending on cursor despawn cube on richt click (if there is a cube
+
+// TODO drag select
+// 1. leftclick and than drag creates a rectangle on release selection is calculated
+
+// TODO target selection
+// PRE: unit is selected
+// 1. richt click somewhere and unit gets assigned that location as point to move to
+
+// TODO: unit gets point to move to and moves to it
 
 fn input_system(
     mut state: Local<State>,
@@ -33,7 +50,8 @@ fn input_system(
 ) {
     let mut delta = Vec2::zero();
     for event in state.mouse_motion_event_reader.iter(&mouse_motion_events) {
-        delta += event.delta;
+
+        //        delta += event.delta;
     }
     for mut controller in controllers.iter_mut() {
         controller.deref_mut().move_forward = Some(
