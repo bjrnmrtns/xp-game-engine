@@ -1,6 +1,7 @@
 // DONE 0: rts movement / camera
 
 // TODO 1: leftclick/rightclick select
+// 0. go from screen coordinate to world coordinate and place object (continuesly) at cursur position
 // 1. depending on cursor spawn cube on left click
 // 2. depending on cursor despawn cube on richt click (if there is a cube
 
