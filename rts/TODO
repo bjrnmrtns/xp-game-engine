@@ -1,15 +1,14 @@
-// TODO rts movement / camera :
-// 4. detect border for movement based on resolution
+// DONE 0: rts movement / camera
 
-// TODO leftclick/rightclick select
+// TODO 1: leftclick/rightclick select
 // 1. depending on cursor spawn cube on left click
 // 2. depending on cursor despawn cube on richt click (if there is a cube
 
-// TODO drag select
+// TODO 2: drag select
 // 1. leftclick and than drag creates a rectangle on release selection is calculated
 
-// TODO target selection
+// TODO 3: target selection
 // PRE: unit is selected
 // 1. richt click somewhere and unit gets assigned that location as point to move to
 
-// TODO: unit gets point to move to and moves to it
+// TODO 4: unit gets point to move to and moves to it

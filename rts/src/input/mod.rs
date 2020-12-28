@@ -28,8 +28,12 @@ fn input_system(
     mut state: Local<State>,
     mouse_button_events: Res<Events<MouseButtonInput>>,
     cursor_moved_events: Res<Events<CursorMoved>>,
+    windows: Res<Windows>,
     mut controllers: Query<&mut client::Controller>,
 ) {
+    let window = windows.get_primary().unwrap();
+    let (width, height) = (window.width(), window.height());
+    let (border_margin_width, border_margin_height) = (width / 10.0, height / 10.0);
     let mut current_position: Option<Vec2> = None;
     for event in state.cursor_moved_event_reader.iter(&cursor_moved_events) {
         current_position = Some(event.position);
@@ -37,16 +41,16 @@ fn input_system(
 
     for mut controller in controllers.iter_mut() {
         if let Some(current_position) = current_position {
-            let x = if current_position.x > 1100.0 {
+            let x = if current_position.x > width - border_margin_width {
                 1.0
-            } else if current_position.x < 100.0 {
+            } else if current_position.x < border_margin_width {
                 -1.0
             } else {
                 0.0
             };
-            let y = if current_position.y > 700.0 {
+            let y = if current_position.y > height - border_margin_height {
                 1.0
-            } else if current_position.y < 100.0 {
+            } else if current_position.y < border_margin_height {
                 -1.0
             } else {
                 0.0

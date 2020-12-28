@@ -11,8 +11,8 @@ fn main() {
             width: 1200.0,
             height: 800.0,
             vsync: true,
-            //            mode: bevy::window::WindowMode::Fullscreen { use_size: false },
-            mode: bevy::window::WindowMode::Windowed,
+            mode: bevy::window::WindowMode::Fullscreen { use_size: false },
+            //mode: bevy::window::WindowMode::Windowed,
             cursor_visible: true,
             cursor_locked: false,
             ..Default::default()
