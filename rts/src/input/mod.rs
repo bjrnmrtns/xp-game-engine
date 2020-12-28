@@ -23,21 +23,6 @@ struct State {
     mouse_button_event_reader: EventReader<MouseButtonInput>,
     cursor_moved_event_reader: EventReader<CursorMoved>,
 }
-// TODO rts movement / camera :
-// 4. detect border for movement based on resolution
-
-// TODO leftclick/rightclick select
-// 1. depending on cursor spawn cube on left click
-// 2. depending on cursor despawn cube on richt click (if there is a cube
-
-// TODO drag select
-// 1. leftclick and than drag creates a rectangle on release selection is calculated
-
-// TODO target selection
-// PRE: unit is selected
-// 1. richt click somewhere and unit gets assigned that location as point to move to
-
-// TODO: unit gets point to move to and moves to it
 
 fn input_system(
     mut state: Local<State>,
