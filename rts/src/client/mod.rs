@@ -52,5 +52,10 @@ fn create_world(
 }
 
 fn handle_player_camera(mut query: Query<(&Controller, &mut Transform)>) {
-    for (_controller, _center) in query.iter_mut() {}
+    for (controller, mut center) in query.iter_mut() {
+        if let Some(move_position) = controller.move_position {
+            center.translation.x += move_position.x;
+            center.translation.z -= move_position.y;
+        }
+    }
 }

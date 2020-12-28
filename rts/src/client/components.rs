@@ -14,10 +14,7 @@ impl Default for Action {
 
 #[derive(Debug, Default)]
 pub struct Controller {
-    pub move_forward: Option<f32>,
-    pub strafe_right: Option<f32>,
-    pub action_enabled: bool,
-    pub action: Action,
+    pub move_position: Option<Vec2>,
 }
 
 #[derive(Bundle)]
