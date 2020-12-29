@@ -17,7 +17,6 @@ impl Plugin for InputPlugin {
 #[derive(Default)]
 struct State {
     mouse_button_event_reader: EventReader<MouseButtonInput>,
-    cursor_moved_event_reader: EventReader<CursorMoved>,
 }
 
 fn calculate_world_position_from_screen_position_at_world_height(
@@ -42,7 +41,6 @@ fn calculate_world_position_from_screen_position_at_world_height(
 fn input_system(
     mut state: Local<State>,
     mouse_button_events: Res<Events<MouseButtonInput>>,
-    cursor_moved_events: Res<Events<CursorMoved>>,
     windows: Res<Windows>,
     mut controllers: Query<(&mut client::CameraController, &mut client::PlayerController)>,
     camera: Query<(&GlobalTransform, &Camera)>,
@@ -50,14 +48,10 @@ fn input_system(
     let window = windows.get_primary().unwrap();
     let (width, height) = (window.width(), window.height());
     let (border_margin_width, border_margin_height) = (width / 10.0, height / 10.0);
-    let mut current_position: Option<Vec2> = None;
-    for event in state.cursor_moved_event_reader.iter(&cursor_moved_events) {
-        current_position = Some(event.position);
-    }
 
     let mut place_object: Option<Vec3> = None;
     for (view, camera) in camera.iter() {
-        if let Some(current_position) = current_position {
+        if let Some(current_position) = window.cursor_position() {
             let screen_size = Vec2::from([window.width() as f32, window.height() as f32]);
             let world_position = calculate_world_position_from_screen_position_at_world_height(
                 camera.projection_matrix,
@@ -71,7 +65,7 @@ fn input_system(
     }
 
     for (mut camera_controller, mut player_controller) in controllers.iter_mut() {
-        if let Some(current_position) = current_position {
+        if let Some(current_position) = window.cursor_position() {
             let x = if current_position.x > width - border_margin_width {
                 1.0
             } else if current_position.x < border_margin_width {
