@@ -1,7 +1,7 @@
 mod components;
 mod resources;
 
-pub use components::{Action, Controller};
+pub use components::{CameraController, PlayerController};
 
 use crate::client::{components::CameraCenter, resources::WorldGrid};
 use bevy::prelude::*;
@@ -11,7 +11,8 @@ impl Plugin for ClientPlugin {
     fn build(&self, app: &mut AppBuilder) {
         app.add_resource(WorldGrid::default())
             .add_startup_system(create_world.system())
-            .add_system(handle_player_camera.system());
+            .add_system(handle_camera.system())
+            .add_system(handle_player.system());
     }
 }
 
@@ -24,7 +25,6 @@ fn create_world(
         mesh: meshes.add(Mesh::from(shape::Plane { size: 100.0 })),
         material: materials.add(StandardMaterial {
             albedo: Color::rgb(0.0, 1.0, 0.0),
-            shaded: false,
             ..Default::default()
         }),
         transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
@@ -40,7 +40,8 @@ fn create_world(
         .spawn(CameraCenter)
         .with(GlobalTransform::identity())
         .with(Transform::identity())
-        .with(Controller::default())
+        .with(CameraController::default())
+        .with(PlayerController::default())
         .with_children(|parent| {
             parent.spawn(Camera3dBundle {
                 transform: Transform::from_translation(Vec3::new(0.0, 200.0, 0.0)).mul_transform(
@@ -51,11 +52,32 @@ fn create_world(
         });
 }
 
-fn handle_player_camera(mut query: Query<(&Controller, &mut Transform)>) {
+fn handle_camera(mut query: Query<(&CameraController, &mut Transform)>) {
     for (controller, mut center) in query.iter_mut() {
         if let Some(move_position) = controller.move_position {
             center.translation.x += move_position.x;
             center.translation.z -= move_position.y;
+        }
+    }
+}
+
+fn handle_player(
+    query: Query<&PlayerController>,
+    commands: &mut Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
+    for controller in query.iter() {
+        if let Some(place_object) = controller.place_object {
+            commands.spawn(PbrBundle {
+                mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
+                material: materials.add(StandardMaterial {
+                    albedo: Color::rgb(1.0, 0.0, 0.0),
+                    ..Default::default()
+                }),
+                transform: Transform::from_translation(place_object),
+                ..Default::default()
+            });
         }
     }
 }

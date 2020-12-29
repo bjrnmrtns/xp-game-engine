@@ -1,20 +1,13 @@
 use bevy::prelude::*;
 
-#[derive(Debug, Eq, PartialEq)]
-pub enum Action {
-    Add,
-    Remove,
-}
-
-impl Default for Action {
-    fn default() -> Self {
-        Self::Add
-    }
+#[derive(Debug, Default)]
+pub struct CameraController {
+    pub move_position: Option<Vec2>,
 }
 
 #[derive(Debug, Default)]
-pub struct Controller {
-    pub move_position: Option<Vec2>,
+pub struct PlayerController {
+    pub place_object: Option<Vec3>,
 }
 
 #[derive(Bundle)]
