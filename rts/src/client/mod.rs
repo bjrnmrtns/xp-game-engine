@@ -44,7 +44,7 @@ fn create_world(
         .with(PlayerController::default())
         .with_children(|parent| {
             parent.spawn(Camera3dBundle {
-                transform: Transform::from_translation(Vec3::new(0.0, 200.0, 0.0)).mul_transform(
+                transform: Transform::from_translation(Vec3::new(0.0, 20.0, 20.0)).mul_transform(
                     Transform::from_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
                 ),
                 ..Default::default()
