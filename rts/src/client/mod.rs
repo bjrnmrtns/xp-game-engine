@@ -2,7 +2,7 @@ mod components;
 
 pub use components::{CameraController, PlayerController, SelectionRender};
 
-use crate::{client::components::CameraCenter, input::Selection};
+use crate::client::components::CameraCenter;
 use bevy::prelude::*;
 
 pub struct ClientPlugin;
@@ -76,20 +76,20 @@ fn handle_camera(mut query: Query<(&CameraController, &mut Transform)>) {
 }
 
 fn handle_player(
-    query: Query<&PlayerController>,
+    mut query: Query<&PlayerController>,
     commands: &mut Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    for controller in query.iter() {
-        if let Some(place_object) = controller.select {
+    for controller in query.iter_mut() {
+        if let Some((begin, end)) = controller.rectangle_select {
             commands.spawn(PbrBundle {
                 mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
                 material: materials.add(StandardMaterial {
                     albedo: Color::rgb(1.0, 0.0, 0.0),
                     ..Default::default()
                 }),
-                transform: Transform::from_translation(place_object),
+                transform: Transform::from_translation(begin),
                 ..Default::default()
             });
         }

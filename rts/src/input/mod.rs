@@ -97,7 +97,13 @@ fn input_system(
                 MouseButtonInput {
                     button: MouseButton::Left,
                     state: ElementState::Released,
-                } => selection.begin = None,
+                } => {
+                    if let Some(begin) = selection.begin {
+                        player_controller.rectangle_select =
+                            Some((begin, selection.current_3d_mouse.unwrap()));
+                    }
+                    selection.begin = None;
+                }
                 _ => (),
             }
         }

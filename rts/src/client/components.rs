@@ -7,7 +7,6 @@ pub struct CameraController {
 
 #[derive(Debug, Default)]
 pub struct PlayerController {
-    pub select: Option<Vec3>,
     pub rectangle_select: Option<(Vec3, Vec3)>,
 }
 

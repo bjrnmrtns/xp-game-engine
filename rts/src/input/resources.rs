@@ -4,5 +4,4 @@ use bevy::prelude::*;
 pub struct Selection {
     pub begin: Option<Vec3>,
     pub current_3d_mouse: Option<Vec3>,
-    pub end: Option<Vec3>,
 }

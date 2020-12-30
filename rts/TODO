@@ -1,11 +1,8 @@
 // DONE 0: rts movement / camera
+// DONE 2: drag select
 
 // TODO 1: leftclick/rightclick select
-// 1. depending on cursor spawn cube on left click
 // 2. depending on cursor despawn cube on richt click (if there is a cube
-
-// TODO 2: drag select
-// 1. leftclick and than drag creates a rectangle on release selection is calculated
 
 // TODO 3: target selection
 // PRE: unit is selected
