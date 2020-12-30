@@ -1,3 +1,7 @@
+mod resources;
+
+pub use crate::input::resources::Selection;
+
 use crate::client;
 use bevy::{
     input::{mouse::MouseButtonInput, system::exit_on_esc_system, ElementState},
@@ -9,7 +13,8 @@ pub struct InputPlugin;
 
 impl Plugin for InputPlugin {
     fn build(&self, app: &mut AppBuilder) {
-        app.add_system(input_system.system())
+        app.add_resource(Selection::default())
+            .add_system(input_system.system())
             .add_system(exit_on_esc_system.system());
     }
 }
@@ -41,6 +46,7 @@ fn calculate_world_position_from_screen_position_at_world_height(
 fn input_system(
     mut state: Local<State>,
     mouse_button_events: Res<Events<MouseButtonInput>>,
+    mut selection: ResMut<Selection>,
     windows: Res<Windows>,
     mut controllers: Query<(&mut client::CameraController, &mut client::PlayerController)>,
     camera: Query<(&GlobalTransform, &Camera)>,
@@ -49,7 +55,6 @@ fn input_system(
     let (width, height) = (window.width(), window.height());
     let (border_margin_width, border_margin_height) = (width / 10.0, height / 10.0);
 
-    let mut place_object: Option<Vec3> = None;
     for (view, camera) in camera.iter() {
         if let Some(current_position) = window.cursor_position() {
             let screen_size = Vec2::from([window.width() as f32, window.height() as f32]);
@@ -58,9 +63,9 @@ fn input_system(
                 view.compute_matrix(),
                 screen_size,
                 current_position,
-                0.0,
+                0.5,
             );
-            place_object = Some(world_position);
+            selection.current_3d_mouse = Some(world_position);
         }
     }
 
@@ -87,11 +92,11 @@ fn input_system(
                 MouseButtonInput {
                     button: MouseButton::Left,
                     state: ElementState::Pressed,
-                } => player_controller.place_object = place_object,
+                } => selection.begin = selection.current_3d_mouse,
                 MouseButtonInput {
                     button: MouseButton::Left,
                     state: ElementState::Released,
-                } => (),
+                } => selection.begin = None,
                 _ => (),
             }
         }

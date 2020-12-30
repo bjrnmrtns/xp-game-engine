@@ -7,8 +7,12 @@ pub struct CameraController {
 
 #[derive(Debug, Default)]
 pub struct PlayerController {
-    pub place_object: Option<Vec3>,
+    pub select: Option<Vec3>,
+    pub rectangle_select: Option<(Vec3, Vec3)>,
 }
 
 #[derive(Bundle)]
 pub struct CameraCenter;
+
+#[derive(Default, Debug)]
+pub struct SelectionRender;
