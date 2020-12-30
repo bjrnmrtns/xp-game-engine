@@ -1,11 +1,8 @@
 mod components;
 
-pub use components::{CameraController, PlayerController};
+pub use components::{CameraController, PlayerController, SelectionRender};
 
-use crate::{
-    client::components::{CameraCenter, SelectionRender},
-    input::Selection,
-};
+use crate::{client::components::CameraCenter, input::Selection};
 use bevy::prelude::*;
 
 pub struct ClientPlugin;
@@ -13,8 +10,7 @@ impl Plugin for ClientPlugin {
     fn build(&self, app: &mut AppBuilder) {
         app.add_startup_system(create_world.system())
             .add_system(handle_camera.system())
-            .add_system(handle_player.system())
-            .add_system(handle_selection_rendering.system());
+            .add_system(handle_player.system());
     }
 }
 
@@ -75,40 +71,6 @@ fn handle_camera(mut query: Query<(&CameraController, &mut Transform)>) {
         if let Some(move_position) = controller.move_position {
             center.translation.x += move_position.x;
             center.translation.z -= move_position.y;
-        }
-    }
-}
-
-fn calculate_rectangle(point0: Vec3, point1: Vec3) -> (Vec2, Vec2) {
-    let (top_left, bottom_right) = if point0.x < point1.x && point0.z < point1.z {
-        (Vec2::new(point0.x, point0.z), Vec2::new(point1.x, point1.z))
-    } else if point0.x < point1.x && point0.z > point1.z {
-        (Vec2::new(point0.x, point1.z), Vec2::new(point1.x, point0.z))
-    } else if point0.x > point1.x && point0.z < point1.z {
-        (Vec2::new(point1.x, point0.z), Vec2::new(point0.x, point1.z))
-    } else {
-        (Vec2::new(point1.x, point1.z), Vec2::new(point0.x, point0.z))
-    };
-
-    let midpoint = (top_left + bottom_right) / 2.0;
-    let scale = bottom_right - top_left;
-    (midpoint, scale)
-}
-
-fn handle_selection_rendering(
-    selection: Res<Selection>,
-    mut query: Query<(&SelectionRender, &mut Visible, &mut Transform)>,
-) {
-    for (_, mut visible, mut transform) in query.iter_mut() {
-        if let (Some(selection_begin), Some(selection_current)) =
-            (selection.begin, selection.current_3d_mouse)
-        {
-            let (midpoint, scale) = calculate_rectangle(selection_begin, selection_current);
-            transform.translation = Vec3::new(midpoint.x, 0.5, midpoint.y);
-            transform.scale = Vec3::new(scale.x, 1.0, scale.y);
-            visible.is_visible = true;
-        } else {
-            visible.is_visible = false;
         }
     }
 }

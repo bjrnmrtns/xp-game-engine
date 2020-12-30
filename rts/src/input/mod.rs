@@ -2,7 +2,7 @@ mod resources;
 
 pub use crate::input::resources::Selection;
 
-use crate::client;
+use crate::{client, client::SelectionRender};
 use bevy::{
     input::{mouse::MouseButtonInput, system::exit_on_esc_system, ElementState},
     prelude::*,
@@ -15,7 +15,8 @@ impl Plugin for InputPlugin {
     fn build(&self, app: &mut AppBuilder) {
         app.add_resource(Selection::default())
             .add_system(input_system.system())
-            .add_system(exit_on_esc_system.system());
+            .add_system(exit_on_esc_system.system())
+            .add_system(handle_selection_rendering.system());
     }
 }
 
@@ -99,6 +100,40 @@ fn input_system(
                 } => selection.begin = None,
                 _ => (),
             }
+        }
+    }
+}
+
+fn calculate_rectangle(point0: Vec3, point1: Vec3) -> (Vec2, Vec2) {
+    let (top_left, bottom_right) = if point0.x < point1.x && point0.z < point1.z {
+        (Vec2::new(point0.x, point0.z), Vec2::new(point1.x, point1.z))
+    } else if point0.x < point1.x && point0.z > point1.z {
+        (Vec2::new(point0.x, point1.z), Vec2::new(point1.x, point0.z))
+    } else if point0.x > point1.x && point0.z < point1.z {
+        (Vec2::new(point1.x, point0.z), Vec2::new(point0.x, point1.z))
+    } else {
+        (Vec2::new(point1.x, point1.z), Vec2::new(point0.x, point0.z))
+    };
+
+    let midpoint = (top_left + bottom_right) / 2.0;
+    let scale = bottom_right - top_left;
+    (midpoint, scale)
+}
+
+fn handle_selection_rendering(
+    selection: Res<Selection>,
+    mut query: Query<(&SelectionRender, &mut Visible, &mut Transform)>,
+) {
+    for (_, mut visible, mut transform) in query.iter_mut() {
+        if let (Some(selection_begin), Some(selection_current)) =
+            (selection.begin, selection.current_3d_mouse)
+        {
+            let (midpoint, scale) = calculate_rectangle(selection_begin, selection_current);
+            transform.translation = Vec3::new(midpoint.x, 0.5, midpoint.y);
+            transform.scale = Vec3::new(scale.x, 1.0, scale.y);
+            visible.is_visible = true;
+        } else {
+            visible.is_visible = false;
         }
     }
 }

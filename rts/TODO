@@ -6,7 +6,6 @@
 
 // TODO 2: drag select
 // 1. leftclick and than drag creates a rectangle on release selection is calculated
-// 2. render selection rectangle given two 3d world coordinates
 
 // TODO 3: target selection
 // PRE: unit is selected
