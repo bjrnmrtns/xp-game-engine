@@ -15,3 +15,6 @@ pub struct CameraCenter;
 
 #[derive(Default, Debug)]
 pub struct SelectionRender;
+
+#[derive(Bundle)]
+pub struct Unit;

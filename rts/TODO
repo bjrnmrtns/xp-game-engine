@@ -9,6 +9,7 @@
 // 1. richt click somewhere and unit gets assigned that location as point to move to
 
 // TODO 4: unit gets point to move to and moves to it
+// TODO 4.1: investigate flowfields and move unit according flowfield
+
 
 // TODO 5: add one unit at start of map to be selected
-

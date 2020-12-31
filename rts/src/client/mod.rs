@@ -2,7 +2,7 @@ mod components;
 
 pub use components::{CameraController, PlayerController, SelectionRender};
 
-use crate::client::components::CameraCenter;
+use crate::client::components::{CameraCenter, Unit};
 use bevy::prelude::*;
 
 pub struct ClientPlugin;
@@ -46,9 +46,21 @@ fn create_world(
         .with(SelectionRender);
 
     commands.spawn(LightBundle {
-        transform: Transform::from_translation(Vec3::new(0.0, 20.0, 0.0)),
+        transform: Transform::from_translation(Vec3::new(0.0, 120.0, 0.0)),
         ..Default::default()
     });
+
+    commands
+        .spawn(PbrBundle {
+            mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
+            material: materials.add(StandardMaterial {
+                albedo: Color::rgb(1.0, 0.0, 1.0),
+                ..Default::default()
+            }),
+            transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
+            ..Default::default()
+        })
+        .with(Unit);
 
     commands
         .spawn(CameraCenter)
