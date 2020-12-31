@@ -76,12 +76,12 @@ fn handle_camera(mut query: Query<(&CameraController, &mut Transform)>) {
 }
 
 fn handle_player(
-    mut query: Query<&PlayerController>,
+    mut query: Query<&mut PlayerController>,
     commands: &mut Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    for controller in query.iter_mut() {
+    for mut controller in query.iter_mut() {
         if let Some((begin, end)) = controller.rectangle_select {
             commands.spawn(PbrBundle {
                 mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
@@ -89,9 +89,11 @@ fn handle_player(
                     albedo: Color::rgb(1.0, 0.0, 0.0),
                     ..Default::default()
                 }),
-                transform: Transform::from_translation(begin),
+                transform: Transform::from_translation(end),
                 ..Default::default()
             });
+            println!("{:?}, {:?}", begin, end);
+            controller.rectangle_select = None;
         }
     }
 }
