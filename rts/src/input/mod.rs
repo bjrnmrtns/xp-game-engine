@@ -4,7 +4,11 @@ pub use crate::input::resources::Selection;
 
 use crate::{client, client::SelectionRender};
 use bevy::{
-    input::{mouse::MouseButtonInput, system::exit_on_esc_system, ElementState},
+    input::{
+        mouse::{MouseButtonInput, MouseWheel},
+        system::exit_on_esc_system,
+        ElementState,
+    },
     prelude::*,
     render::camera::Camera,
 };
@@ -23,6 +27,7 @@ impl Plugin for InputPlugin {
 #[derive(Default)]
 struct State {
     mouse_button_event_reader: EventReader<MouseButtonInput>,
+    mouse_wheel_event_reader: EventReader<MouseWheel>,
 }
 
 fn calculate_world_position_from_screen_position_at_world_height(
@@ -47,6 +52,7 @@ fn calculate_world_position_from_screen_position_at_world_height(
 fn input_system(
     mut state: Local<State>,
     mouse_button_events: Res<Events<MouseButtonInput>>,
+    mouse_wheel_events: Res<Events<MouseWheel>>,
     mut selection: ResMut<Selection>,
     windows: Res<Windows>,
     mut controllers: Query<(&mut client::CameraController, &mut client::PlayerController)>,
@@ -103,6 +109,19 @@ fn input_system(
                             Some((begin, selection.current_3d_mouse.unwrap()));
                     }
                     selection.begin = None;
+                }
+                _ => (),
+            }
+        }
+
+        for event in state.mouse_wheel_event_reader.iter(&mouse_wheel_events) {
+            match event {
+                MouseWheel { x, y, .. } => {
+                    if *y > 0.0 {
+                        camera_controller.zoom += 1;
+                    } else if *y < 0.0 {
+                        camera_controller.zoom -= 1;
+                    }
                 }
                 _ => (),
             }

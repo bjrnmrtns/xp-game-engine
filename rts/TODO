@@ -8,5 +8,6 @@
 
 // TODO 4: selected unit gets point to move to and moves to it
 // TODO 4.1: investigate flowfields and move unit according flowfield
+// TODO 6: zoom out in using scroll mouse
 
 
