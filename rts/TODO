@@ -11,8 +11,8 @@ DONE 4: selected unit gets point to move to and moves to it
 [x] make physics loop to slowly move to position and stop when close enough to location
 
 TODO 7: make player controller commands enum, so they can be different and optional
-[] make command enum
-[] investigate if events are better for sending commands
-
+[x] make command enum
+[x] investigate if events are better for sending commands + currently sending events from input to client
+[] (Refactoring) make move/rectangle select/select/draw rectangle all work via events
 
 

@@ -1,6 +1,6 @@
 mod resources;
 
-pub use crate::input::resources::Selection;
+pub use crate::input::resources::{CommandEvent, Selection};
 
 use crate::{
     client,
@@ -21,7 +21,8 @@ pub struct InputPlugin;
 
 impl Plugin for InputPlugin {
     fn build(&self, app: &mut AppBuilder) {
-        app.add_resource(Selection::default())
+        app.add_event::<resources::CommandEvent>()
+            .add_resource(Selection::default())
             .add_system(input_system.system())
             .add_system(exit_on_esc_system.system())
             .add_system(handle_selection_rendering.system());
@@ -66,6 +67,7 @@ fn input_system(
     )>,
     mut zoom_controllers: Query<&mut client::CameraZoomController>,
     camera: Query<(&GlobalTransform, &Camera)>,
+    mut command_events: ResMut<Events<resources::CommandEvent>>,
 ) {
     let window = windows.get_primary().unwrap();
     let (width, height) = (window.width(), window.height());
@@ -123,6 +125,10 @@ fn input_system(
                     button: MouseButton::Right,
                     state: ElementState::Pressed,
                 } => {
+                    command_events.send(resources::CommandEvent::Move(Vec2::new(
+                        selection.current_3d_mouse.unwrap().x,
+                        selection.current_3d_mouse.unwrap().z,
+                    )));
                     player_controller.command2 = Command2::Move(Some(Vec2::new(
                         selection.current_3d_mouse.unwrap().x,
                         selection.current_3d_mouse.unwrap().z,
