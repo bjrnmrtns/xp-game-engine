@@ -55,12 +55,16 @@ fn input_system(
     mouse_wheel_events: Res<Events<MouseWheel>>,
     mut selection: ResMut<Selection>,
     windows: Res<Windows>,
-    mut controllers: Query<(&mut client::CameraController, &mut client::PlayerController)>,
+    mut controllers: Query<(
+        &mut client::CameraCenterController,
+        &mut client::PlayerController,
+    )>,
+    mut zoom_controllers: Query<&mut client::CameraZoomController>,
     camera: Query<(&GlobalTransform, &Camera)>,
 ) {
     let window = windows.get_primary().unwrap();
     let (width, height) = (window.width(), window.height());
-    let (border_margin_width, border_margin_height) = (width / 10.0, height / 10.0);
+    let (border_margin_width, border_margin_height) = (width / 20.0, height / 20.0);
 
     for (view, camera) in camera.iter() {
         if let Some(current_position) = window.cursor_position() {
@@ -76,7 +80,7 @@ fn input_system(
         }
     }
 
-    for (mut camera_controller, mut player_controller) in controllers.iter_mut() {
+    for (mut camera_center_controller, mut player_controller) in controllers.iter_mut() {
         if let Some(current_position) = window.cursor_position() {
             let x = if current_position.x > width - border_margin_width {
                 1.0
@@ -92,7 +96,7 @@ fn input_system(
             } else {
                 0.0
             };
-            camera_controller.move_position = Some(Vec2::new(x, y));
+            camera_center_controller.move_position = Some(Vec2::new(x, y));
         }
         for event in state.mouse_button_event_reader.iter(&mouse_button_events) {
             match event {
@@ -113,15 +117,12 @@ fn input_system(
                 _ => (),
             }
         }
-
+    }
+    for mut camera_zoom_controller in zoom_controllers.iter_mut() {
         for event in state.mouse_wheel_event_reader.iter(&mouse_wheel_events) {
             match event {
                 MouseWheel { x, y, .. } => {
-                    if *y > 0.0 {
-                        camera_controller.zoom += 1;
-                    } else if *y < 0.0 {
-                        camera_controller.zoom -= 1;
-                    }
+                    camera_zoom_controller.zoom = Some(*y);
                 }
                 _ => (),
             }

@@ -2,12 +2,12 @@
 // DONE 2: drag select
 // DONE 1: leftclick/rightclick select
 // DONE 5: add one unit at start of map to be selected
+// DONW 6: zoom out in using scroll mouse
 
 // TODO 3: unit selection
 1. Rectangle and click select target
 
 // TODO 4: selected unit gets point to move to and moves to it
 // TODO 4.1: investigate flowfields and move unit according flowfield
-// TODO 6: zoom out in using scroll mouse
 
 

@@ -1,9 +1,13 @@
 use bevy::prelude::*;
 
 #[derive(Debug, Default)]
-pub struct CameraController {
+pub struct CameraCenterController {
     pub move_position: Option<Vec2>,
-    pub zoom: i32,
+}
+
+#[derive(Debug, Default)]
+pub struct CameraZoomController {
+    pub zoom: Option<f32>,
 }
 
 #[derive(Debug, Default)]

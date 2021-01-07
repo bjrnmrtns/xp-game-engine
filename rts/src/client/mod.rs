@@ -1,6 +1,8 @@
 mod components;
 
-pub use components::{CameraController, PlayerController, SelectionRender};
+pub use components::{
+    CameraCenterController, CameraZoomController, PlayerController, SelectionRender,
+};
 
 use crate::client::components::{CameraCenter, Unit};
 use bevy::prelude::*;
@@ -66,23 +68,35 @@ fn create_world(
         .spawn(CameraCenter)
         .with(GlobalTransform::identity())
         .with(Transform::identity())
-        .with(CameraController::default())
+        .with(CameraCenterController::default())
         .with(PlayerController::default())
         .with_children(|parent| {
-            parent.spawn(Camera3dBundle {
-                transform: Transform::from_translation(Vec3::new(0.0, 20.0, 0.0)).mul_transform(
-                    Transform::from_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
-                ),
-                ..Default::default()
-            });
+            parent
+                .spawn(Camera3dBundle {
+                    transform: Transform::from_translation(Vec3::new(0.0, 20.0, 0.0))
+                        .mul_transform(Transform::from_rotation(Quat::from_rotation_x(
+                            -std::f32::consts::FRAC_PI_2,
+                        ))),
+                    ..Default::default()
+                })
+                .with(CameraZoomController::default());
         });
 }
 
-fn handle_camera(mut query: Query<(&CameraController, &mut Transform)>) {
-    for (controller, mut center) in query.iter_mut() {
+fn handle_camera(
+    mut query_center: Query<(&CameraCenterController, &mut Transform)>,
+    mut query_zoom: Query<(&mut CameraZoomController, &mut Transform)>,
+) {
+    for (controller, mut center) in query_center.iter_mut() {
         if let Some(move_position) = controller.move_position {
-            center.translation.x += move_position.x;
-            center.translation.z -= move_position.y;
+            center.translation.x += move_position.x * 0.5;
+            center.translation.z -= move_position.y * 0.5;
+        }
+    }
+    for (mut controller, mut center) in query_zoom.iter_mut() {
+        if let Some(zoom) = controller.zoom {
+            center.translation.y += zoom;
+            controller.zoom = None;
         }
     }
 }
