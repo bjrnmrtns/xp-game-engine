@@ -1,4 +1,5 @@
 mod components;
+mod resources;
 
 pub use components::{
     CameraCenterController, CameraZoomController, Command1, Command2, PlayerController,
@@ -6,7 +7,10 @@ pub use components::{
 };
 
 use crate::{
-    client::components::{CameraCenter, Unit},
+    client::{
+        components::{CameraCenter, Unit},
+        resources::PhysicsState,
+    },
     helpers,
 };
 use bevy::prelude::*;
@@ -14,9 +18,11 @@ use bevy::prelude::*;
 pub struct ClientPlugin;
 impl Plugin for ClientPlugin {
     fn build(&self, app: &mut AppBuilder) {
-        app.add_startup_system(create_world.system())
+        app.add_resource(PhysicsState::default())
+            .add_startup_system(create_world.system())
             .add_system(handle_camera.system())
-            .add_system(handle_player.system());
+            .add_system(handle_player.system())
+            .add_system(handle_physics.system());
     }
 }
 
@@ -151,7 +157,6 @@ fn handle_player(
         }
         match &controller.command2 {
             Command2::Move(Some(target)) => {
-                let mut i = 0;
                 for (_, _, mut unit) in query_units.iter_mut() {
                     if unit.selected {
                         unit.target_position = Some(target.clone());
@@ -161,4 +166,32 @@ fn handle_player(
             _ => {}
         }
     }
+}
+
+fn handle_physics(
+    time: Res<Time>,
+    mut physics_state: ResMut<PhysicsState>,
+    mut query_units: Query<(&mut Transform, &mut Unit)>,
+) {
+    let steps_per_second = 60.0;
+    let step_time = 1.0 / steps_per_second;
+    let speed = 3.0; // m/s
+    let expected_steps = (time.time_since_startup().as_secs_f64() * steps_per_second) as u64;
+    for _ in physics_state.steps_done..expected_steps {
+        for (mut transform, mut unit) in query_units.iter_mut() {
+            if let Some(target) = unit.target_position {
+                println!("{}", target);
+                let current = Vec2::new(transform.translation.x, transform.translation.z);
+                let direction = target - current;
+                if direction.length() > 3.0 {
+                    let movement = direction.normalize() * (step_time * speed * 3.0) as f32;
+                    transform.translation.x += movement.x;
+                    transform.translation.z += movement.y;
+                } else {
+                    unit.target_position = None;
+                }
+            }
+        }
+    }
+    physics_state.steps_done = expected_steps;
 }

@@ -5,12 +5,11 @@ DONE 5: add one unit at start of map to be selected
 DONE 6: zoom out in using scroll mouse
 DONE 3: unit selection
 [x] Rectangle and click select target
-
-TODO 4: selected unit gets point to move to and moves to it
+DONE 4: selected unit gets point to move to and moves to it
 [x] Right click must give action to move to
 [x] Assign selected units a position to move to if action move is given
-[] make physics loop to slowly move to position
-TODO 4.1: investigate flowfields and move unit according flowfield
+[x] make physics loop to slowly move to position and stop when close enough to location
+
 TODO 7: make player controller commands enum, so they can be different and optional
 [] make command enum
 [] investigate if events are better for sending commands
