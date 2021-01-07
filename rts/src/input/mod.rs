@@ -2,7 +2,10 @@ mod resources;
 
 pub use crate::input::resources::Selection;
 
-use crate::{client, client::SelectionRender};
+use crate::{
+    client,
+    client::{CommandMode, SelectionRender},
+};
 use bevy::{
     input::{
         mouse::{MouseButtonInput, MouseWheel},
@@ -53,6 +56,7 @@ fn input_system(
     mut state: Local<State>,
     mouse_button_events: Res<Events<MouseButtonInput>>,
     mouse_wheel_events: Res<Events<MouseWheel>>,
+    keyboard_input: Res<Input<KeyCode>>,
     mut selection: ResMut<Selection>,
     windows: Res<Windows>,
     mut controllers: Query<(
@@ -115,6 +119,13 @@ fn input_system(
                     selection.begin = None;
                 }
                 _ => (),
+            }
+        }
+
+        if keyboard_input.just_pressed(KeyCode::B) {
+            match &player_controller.command_mode {
+                CommandMode::Create => player_controller.command_mode = CommandMode::Command,
+                CommandMode::Command => player_controller.command_mode = CommandMode::Create,
             }
         }
     }

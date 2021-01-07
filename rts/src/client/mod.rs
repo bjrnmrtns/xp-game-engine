@@ -1,7 +1,7 @@
 mod components;
 
 pub use components::{
-    CameraCenterController, CameraZoomController, PlayerController, SelectionRender,
+    CameraCenterController, CameraZoomController, CommandMode, PlayerController, SelectionRender,
 };
 
 use crate::client::components::{CameraCenter, Unit};
@@ -95,7 +95,7 @@ fn handle_camera(
     }
     for (mut controller, mut center) in query_zoom.iter_mut() {
         if let Some(zoom) = controller.zoom {
-            center.translation.y += zoom;
+            center.translation.y -= zoom;
             controller.zoom = None;
         }
     }
@@ -109,17 +109,23 @@ fn handle_player(
 ) {
     for mut controller in query.iter_mut() {
         if let Some((begin, end)) = controller.rectangle_select {
-            commands.spawn(PbrBundle {
-                mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
-                material: materials.add(StandardMaterial {
-                    albedo: Color::rgb(1.0, 0.0, 0.0),
-                    ..Default::default()
-                }),
-                transform: Transform::from_translation(end),
-                ..Default::default()
-            });
-            println!("{:?}, {:?}", begin, end);
-            controller.rectangle_select = None;
+            match &controller.command_mode {
+                CommandMode::Create => {
+                    commands
+                        .spawn(PbrBundle {
+                            mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
+                            material: materials.add(StandardMaterial {
+                                albedo: Color::rgb(1.0, 0.0, 0.0),
+                                ..Default::default()
+                            }),
+                            transform: Transform::from_translation(end),
+                            ..Default::default()
+                        })
+                        .with(Unit);
+                    controller.rectangle_select = None;
+                }
+                CommandMode::Command => {}
+            }
         }
     }
 }
