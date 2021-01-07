@@ -11,21 +11,33 @@ pub struct CameraZoomController {
 }
 
 #[derive(Debug)]
-pub enum CommandMode {
+pub enum Command1 {
     Create,
-    Command,
+    Select,
 }
 
-impl Default for CommandMode {
+#[derive(Debug)]
+pub enum Command2 {
+    Move(Option<Vec2>),
+}
+
+impl Default for Command2 {
     fn default() -> Self {
-        CommandMode::Create
+        Command2::Move(None)
+    }
+}
+
+impl Default for Command1 {
+    fn default() -> Self {
+        Command1::Create
     }
 }
 
 #[derive(Debug, Default)]
 pub struct PlayerController {
     pub rectangle_select: Option<(Vec3, Vec3)>,
-    pub command_mode: CommandMode,
+    pub command1: Command1,
+    pub command2: Command2,
 }
 
 #[derive(Bundle)]
@@ -36,5 +48,6 @@ pub struct SelectionRender;
 
 #[derive(Bundle, Default)]
 pub struct Unit {
-    pub(crate) selected: bool,
+    pub selected: bool,
+    pub target_position: Option<Vec2>,
 }

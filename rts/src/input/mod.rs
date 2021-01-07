@@ -4,7 +4,7 @@ pub use crate::input::resources::Selection;
 
 use crate::{
     client,
-    client::{CommandMode, SelectionRender},
+    client::{Command1, Command2, SelectionRender},
     helpers,
 };
 use bevy::{
@@ -119,24 +119,32 @@ fn input_system(
                     }
                     selection.begin = None;
                 }
+                MouseButtonInput {
+                    button: MouseButton::Right,
+                    state: ElementState::Pressed,
+                } => {
+                    player_controller.command2 = Command2::Move(Some(Vec2::new(
+                        selection.current_3d_mouse.unwrap().x,
+                        selection.current_3d_mouse.unwrap().z,
+                    )))
+                }
                 _ => (),
             }
         }
 
         if keyboard_input.just_pressed(KeyCode::B) {
-            match &player_controller.command_mode {
-                CommandMode::Create => player_controller.command_mode = CommandMode::Command,
-                CommandMode::Command => player_controller.command_mode = CommandMode::Create,
+            match &player_controller.command1 {
+                Command1::Create => player_controller.command1 = Command1::Select,
+                Command1::Select => player_controller.command1 = Command1::Create,
             }
         }
     }
     for mut camera_zoom_controller in zoom_controllers.iter_mut() {
         for event in state.mouse_wheel_event_reader.iter(&mouse_wheel_events) {
             match event {
-                MouseWheel { x, y, .. } => {
+                MouseWheel { y, .. } => {
                     camera_zoom_controller.zoom = Some(*y);
                 }
-                _ => (),
             }
         }
     }

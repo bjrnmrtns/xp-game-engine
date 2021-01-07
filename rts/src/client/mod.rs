@@ -1,7 +1,8 @@
 mod components;
 
 pub use components::{
-    CameraCenterController, CameraZoomController, CommandMode, PlayerController, SelectionRender,
+    CameraCenterController, CameraZoomController, Command1, Command2, PlayerController,
+    SelectionRender,
 };
 
 use crate::{
@@ -113,8 +114,8 @@ fn handle_player(
 ) {
     for mut controller in query.iter_mut() {
         if let Some((begin, end)) = controller.rectangle_select {
-            match &controller.command_mode {
-                CommandMode::Create => {
+            match &controller.command1 {
+                Command1::Create => {
                     commands
                         .spawn(PbrBundle {
                             mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
@@ -128,7 +129,7 @@ fn handle_player(
                         .with(Unit::default());
                     controller.rectangle_select = None;
                 }
-                CommandMode::Command => {
+                Command1::Select => {
                     for (transform, mut material, mut unit) in query_units.iter_mut() {
                         let position = Vec2::new(transform.translation.x, transform.translation.z);
                         let (top_left, bottom_right) = helpers::calculate_low_high(begin, end);
@@ -147,6 +148,17 @@ fn handle_player(
                     }
                 }
             }
+        }
+        match &controller.command2 {
+            Command2::Move(Some(target)) => {
+                let mut i = 0;
+                for (_, _, mut unit) in query_units.iter_mut() {
+                    if unit.selected {
+                        unit.target_position = Some(target.clone());
+                    }
+                }
+            }
+            _ => {}
         }
     }
 }
