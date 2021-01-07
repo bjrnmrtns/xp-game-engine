@@ -5,6 +5,7 @@ pub use crate::input::resources::Selection;
 use crate::{
     client,
     client::{CommandMode, SelectionRender},
+    helpers,
 };
 use bevy::{
     input::{
@@ -141,22 +142,6 @@ fn input_system(
     }
 }
 
-fn calculate_rectangle(point0: Vec3, point1: Vec3) -> (Vec2, Vec2) {
-    let (top_left, bottom_right) = if point0.x < point1.x && point0.z < point1.z {
-        (Vec2::new(point0.x, point0.z), Vec2::new(point1.x, point1.z))
-    } else if point0.x < point1.x && point0.z > point1.z {
-        (Vec2::new(point0.x, point1.z), Vec2::new(point1.x, point0.z))
-    } else if point0.x > point1.x && point0.z < point1.z {
-        (Vec2::new(point1.x, point0.z), Vec2::new(point0.x, point1.z))
-    } else {
-        (Vec2::new(point1.x, point1.z), Vec2::new(point0.x, point0.z))
-    };
-
-    let midpoint = (top_left + bottom_right) / 2.0;
-    let scale = bottom_right - top_left;
-    (midpoint, scale)
-}
-
 fn handle_selection_rendering(
     selection: Res<Selection>,
     mut query: Query<(&SelectionRender, &mut Visible, &mut Transform)>,
@@ -165,7 +150,8 @@ fn handle_selection_rendering(
         if let (Some(selection_begin), Some(selection_current)) =
             (selection.begin, selection.current_3d_mouse)
         {
-            let (midpoint, scale) = calculate_rectangle(selection_begin, selection_current);
+            let (midpoint, scale) =
+                helpers::calculate_midpoint_scale(selection_begin, selection_current);
             transform.translation = Vec3::new(midpoint.x, 0.5, midpoint.y);
             transform.scale = Vec3::new(scale.x, 1.0, scale.y);
             visible.is_visible = true;

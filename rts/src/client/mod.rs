@@ -4,7 +4,10 @@ pub use components::{
     CameraCenterController, CameraZoomController, CommandMode, PlayerController, SelectionRender,
 };
 
-use crate::client::components::{CameraCenter, Unit};
+use crate::{
+    client::components::{CameraCenter, Unit},
+    helpers,
+};
 use bevy::prelude::*;
 
 pub struct ClientPlugin;
@@ -62,7 +65,7 @@ fn create_world(
             transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
             ..Default::default()
         })
-        .with(Unit);
+        .with(Unit::default());
 
     commands
         .spawn(CameraCenter)
@@ -103,6 +106,7 @@ fn handle_camera(
 
 fn handle_player(
     mut query: Query<&mut PlayerController>,
+    mut query_units: Query<(&GlobalTransform, &mut Handle<StandardMaterial>, &mut Unit)>,
     commands: &mut Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
@@ -121,10 +125,27 @@ fn handle_player(
                             transform: Transform::from_translation(end),
                             ..Default::default()
                         })
-                        .with(Unit);
+                        .with(Unit::default());
                     controller.rectangle_select = None;
                 }
-                CommandMode::Command => {}
+                CommandMode::Command => {
+                    for (transform, mut material, mut unit) in query_units.iter_mut() {
+                        let position = Vec2::new(transform.translation.x, transform.translation.z);
+                        let (top_left, bottom_right) = helpers::calculate_low_high(begin, end);
+                        unit.selected = helpers::is_selected(top_left, bottom_right, position);
+                        if unit.selected {
+                            *material = materials.add(StandardMaterial {
+                                albedo: Color::rgb(0.0, 1.0, 0.5),
+                                ..Default::default()
+                            });
+                        } else {
+                            *material = materials.add(StandardMaterial {
+                                albedo: Color::rgb(0.0, 0.5, 1.0),
+                                ..Default::default()
+                            });
+                        }
+                    }
+                }
             }
         }
     }

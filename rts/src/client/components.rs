@@ -34,5 +34,7 @@ pub struct CameraCenter;
 #[derive(Default, Debug)]
 pub struct SelectionRender;
 
-#[derive(Bundle)]
-pub struct Unit;
+#[derive(Bundle, Default)]
+pub struct Unit {
+    pub(crate) selected: bool,
+}
