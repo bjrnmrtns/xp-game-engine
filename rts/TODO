@@ -15,5 +15,6 @@ DONE 7: make player controller commands enum, so they can be different and optio
 [x] (Refactoring) make move/rectangle select/select/draw rectangle all work via events
 
 TODO 8: let camera control also work via events instead of state via resource
-[] refactor zoom
-
+[x] refactor zoom
+[] let moving center also work via events
+[] put center entity and potentially others in GameInfo resource

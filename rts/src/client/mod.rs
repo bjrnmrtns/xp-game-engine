@@ -11,7 +11,7 @@ use crate::{
         resources::PhysicsState,
     },
     helpers,
-    input::CommandEvent,
+    input::{CameraViewEvent, CommandEvent},
 };
 use bevy::prelude::*;
 
@@ -95,9 +95,17 @@ fn create_world(
         });
 }
 
+#[derive(Default)]
+pub struct EventStates {
+    pub command_event_reader: EventReader<CommandEvent>,
+    pub camera_view_event_reader: EventReader<CameraViewEvent>,
+}
+
 fn handle_camera(
     mut query_center: Query<(&CameraCenterController, &mut Transform)>,
     mut query_zoom: Query<(&mut CameraZoomController, &mut Transform)>,
+    mut event_states: Local<EventStates>,
+    camera_view_events: Res<Events<CameraViewEvent>>,
 ) {
     for (controller, mut center) in query_center.iter_mut() {
         if let Some(move_position) = controller.move_position {
@@ -105,17 +113,19 @@ fn handle_camera(
             center.translation.z -= move_position.y * 0.5;
         }
     }
-    for (mut controller, mut center) in query_zoom.iter_mut() {
-        if let Some(zoom) = controller.zoom {
-            center.translation.y -= zoom;
-            controller.zoom = None;
+    for camera_view_event in event_states
+        .camera_view_event_reader
+        .iter(&camera_view_events)
+    {
+        match camera_view_event {
+            CameraViewEvent::Zoom(zoom) => {
+                for (mut controller, mut center) in query_zoom.iter_mut() {
+                    center.translation.y -= zoom;
+                    controller.zoom = None;
+                }
+            }
         }
     }
-}
-
-#[derive(Default)]
-pub struct CommandEventState {
-    pub event_reader: EventReader<CommandEvent>,
 }
 
 fn handle_player(
@@ -123,10 +133,10 @@ fn handle_player(
     commands: &mut Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    mut command_event_state: Local<CommandEventState>,
+    mut event_states: Local<EventStates>,
     command_events: Res<Events<CommandEvent>>,
 ) {
-    for command_event in command_event_state.event_reader.iter(&command_events) {
+    for command_event in event_states.command_event_reader.iter(&command_events) {
         match command_event {
             CommandEvent::Create(target) => {
                 commands

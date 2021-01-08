@@ -1,6 +1,6 @@
 mod resources;
 
-pub use crate::input::resources::{CommandEvent, InputState};
+pub use crate::input::resources::{CameraViewEvent, CommandEvent, InputState};
 
 use crate::{client, client::SelectionRender, helpers};
 use bevy::{
@@ -18,6 +18,7 @@ pub struct InputPlugin;
 impl Plugin for InputPlugin {
     fn build(&self, app: &mut AppBuilder) {
         app.add_event::<resources::CommandEvent>()
+            .add_event::<resources::CameraViewEvent>()
             .add_resource(InputState::default())
             .add_system(input_system.system())
             .add_system(exit_on_esc_system.system())
@@ -63,6 +64,7 @@ fn input_system(
     mut zoom_controllers: Query<&mut client::CameraZoomController>,
     camera_query: Query<(&GlobalTransform, &Camera)>,
     mut command_events: ResMut<Events<resources::CommandEvent>>,
+    mut camera_view_events: ResMut<Events<resources::CameraViewEvent>>,
 ) {
     let window = windows.get_primary().unwrap();
     let (width, height) = (window.width(), window.height());
@@ -147,13 +149,9 @@ fn input_system(
                 }
             }
         }
-        for mut camera_zoom_controller in zoom_controllers.iter_mut() {
-            for event in state.mouse_wheel_event_reader.iter(&mouse_wheel_events) {
-                match event {
-                    MouseWheel { y, .. } => {
-                        camera_zoom_controller.zoom = Some(*y);
-                    }
-                }
+        for event in state.mouse_wheel_event_reader.iter(&mouse_wheel_events) {
+            match event {
+                MouseWheel { y, .. } => camera_view_events.send(CameraViewEvent::Zoom(*y)),
             }
         }
     }
