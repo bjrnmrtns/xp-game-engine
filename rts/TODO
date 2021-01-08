@@ -9,10 +9,11 @@ DONE 4: selected unit gets point to move to and moves to it
 [x] Right click must give action to move to
 [x] Assign selected units a position to move to if action move is given
 [x] make physics loop to slowly move to position and stop when close enough to location
-
-TODO 7: make player controller commands enum, so they can be different and optional
+DONE 7: make player controller commands enum, so they can be different and optional
 [x] make command enum
 [x] investigate if events are better for sending commands + currently sending events from input to client
-[] (Refactoring) make move/rectangle select/select/draw rectangle all work via events
+[x] (Refactoring) make move/rectangle select/select/draw rectangle all work via events
 
+TODO 8: let camera control also work via events instead of state via resource
+[] refactor zoom
 

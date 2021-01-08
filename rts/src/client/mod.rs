@@ -148,11 +148,10 @@ fn handle_player(
                     }
                 }
             }
-            CommandEvent::Select(begin, end) => {
+            CommandEvent::Select(low, high) => {
                 for (transform, mut material, mut unit) in query_units.iter_mut() {
                     let position = Vec2::new(transform.translation.x, transform.translation.z);
-                    let (top_left, bottom_right) = helpers::calculate_low_high(*begin, *end);
-                    unit.selected = helpers::is_selected(top_left, bottom_right, position);
+                    unit.selected = helpers::is_selected(*low, *high, position);
                     if unit.selected {
                         *material = materials.add(StandardMaterial {
                             albedo: Color::rgb(0.0, 1.0, 0.5),

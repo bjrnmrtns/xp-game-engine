@@ -125,10 +125,11 @@ fn input_system(
                         },
                         true,
                     ) => {
-                        command_events.send(CommandEvent::Select(
+                        let (low, high) = helpers::calculate_low_high(
                             input_state.last_selection_begin.unwrap(),
                             input_state.world_mouse_position,
-                        ));
+                        );
+                        command_events.send(CommandEvent::Select(low, high));
                         input_state.last_selection_begin = None;
                     }
                     (
