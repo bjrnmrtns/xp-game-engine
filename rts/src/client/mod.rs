@@ -1,10 +1,9 @@
 mod components;
 mod resources;
 
-pub use components::{
-    CameraCenterController, CameraZoomController, Command1, Command2, PlayerController,
-    SelectionRender,
-};
+pub use components::{CameraCenterController, CameraZoomController, SelectionRender};
+
+pub use resources::GameInfo;
 
 use crate::{
     client::{
@@ -19,7 +18,8 @@ use bevy::prelude::*;
 pub struct ClientPlugin;
 impl Plugin for ClientPlugin {
     fn build(&self, app: &mut AppBuilder) {
-        app.add_resource(PhysicsState::default())
+        app.add_resource(GameInfo::default())
+            .add_resource(PhysicsState::default())
             .add_startup_system(create_world.system())
             .add_system(handle_camera.system())
             .add_system(handle_player.system())
@@ -31,6 +31,7 @@ fn create_world(
     commands: &mut Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    mut game_info: ResMut<GameInfo>,
 ) {
     commands.spawn(PbrBundle {
         mesh: meshes.add(Mesh::from(shape::Plane { size: 100.0 })),
@@ -80,9 +81,8 @@ fn create_world(
         .with(GlobalTransform::identity())
         .with(Transform::identity())
         .with(CameraCenterController::default())
-        .with(PlayerController::default())
         .with_children(|parent| {
-            parent
+            game_info.camera = parent
                 .spawn(Camera3dBundle {
                     transform: Transform::from_translation(Vec3::new(0.0, 20.0, 0.0))
                         .mul_transform(Transform::from_rotation(Quat::from_rotation_x(
@@ -90,7 +90,8 @@ fn create_world(
                         ))),
                     ..Default::default()
                 })
-                .with(CameraZoomController::default());
+                .with(CameraZoomController::default())
+                .current_entity();
         });
 }
 
@@ -118,7 +119,6 @@ pub struct CommandEventState {
 }
 
 fn handle_player(
-    mut query: Query<&mut PlayerController>,
     mut query_units: Query<(&GlobalTransform, &mut Handle<StandardMaterial>, &mut Unit)>,
     commands: &mut Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -128,57 +128,44 @@ fn handle_player(
 ) {
     for command_event in command_event_state.event_reader.iter(&command_events) {
         match command_event {
-            CommandEvent::Move(target) => {
-                println!("{}", target);
-            }
-        }
-    }
-    for mut controller in query.iter_mut() {
-        if let Some((begin, end)) = controller.rectangle_select {
-            match &controller.command1 {
-                Command1::Create => {
-                    commands
-                        .spawn(PbrBundle {
-                            mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
-                            material: materials.add(StandardMaterial {
-                                albedo: Color::rgb(1.0, 0.0, 0.0),
-                                ..Default::default()
-                            }),
-                            transform: Transform::from_translation(end),
+            CommandEvent::Create(target) => {
+                commands
+                    .spawn(PbrBundle {
+                        mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
+                        material: materials.add(StandardMaterial {
+                            albedo: Color::rgb(1.0, 0.0, 0.0),
                             ..Default::default()
-                        })
-                        .with(Unit::default());
-                    controller.rectangle_select = None;
-                }
-                Command1::Select => {
-                    for (transform, mut material, mut unit) in query_units.iter_mut() {
-                        let position = Vec2::new(transform.translation.x, transform.translation.z);
-                        let (top_left, bottom_right) = helpers::calculate_low_high(begin, end);
-                        unit.selected = helpers::is_selected(top_left, bottom_right, position);
-                        if unit.selected {
-                            *material = materials.add(StandardMaterial {
-                                albedo: Color::rgb(0.0, 1.0, 0.5),
-                                ..Default::default()
-                            });
-                        } else {
-                            *material = materials.add(StandardMaterial {
-                                albedo: Color::rgb(0.0, 0.5, 1.0),
-                                ..Default::default()
-                            });
-                        }
-                    }
-                }
+                        }),
+                        transform: Transform::from_translation(Vec3::new(target.x, 0.5, target.y)),
+                        ..Default::default()
+                    })
+                    .with(Unit::default());
             }
-        }
-        match &controller.command2 {
-            Command2::Move(Some(target)) => {
+            CommandEvent::Move(target) => {
                 for (_, _, mut unit) in query_units.iter_mut() {
                     if unit.selected {
                         unit.target_position = Some(target.clone());
                     }
                 }
             }
-            _ => {}
+            CommandEvent::Select(begin, end) => {
+                for (transform, mut material, mut unit) in query_units.iter_mut() {
+                    let position = Vec2::new(transform.translation.x, transform.translation.z);
+                    let (top_left, bottom_right) = helpers::calculate_low_high(*begin, *end);
+                    unit.selected = helpers::is_selected(top_left, bottom_right, position);
+                    if unit.selected {
+                        *material = materials.add(StandardMaterial {
+                            albedo: Color::rgb(0.0, 1.0, 0.5),
+                            ..Default::default()
+                        });
+                    } else {
+                        *material = materials.add(StandardMaterial {
+                            albedo: Color::rgb(0.0, 0.5, 1.0),
+                            ..Default::default()
+                        });
+                    }
+                }
+            }
         }
     }
 }

@@ -1,11 +1,13 @@
 use bevy::prelude::*;
 
 #[derive(Default)]
-pub struct Selection {
-    pub begin: Option<Vec3>,
-    pub current_3d_mouse: Option<Vec3>,
+pub struct InputState {
+    pub last_selection_begin: Option<Vec2>,
+    pub world_mouse_position: Vec2,
 }
 
 pub enum CommandEvent {
+    Create(Vec2),
+    Select(Vec2, Vec2),
     Move(Vec2),
 }
