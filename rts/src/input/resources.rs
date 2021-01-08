@@ -8,6 +8,7 @@ pub struct InputState {
 
 pub enum CameraViewEvent {
     Zoom(f32),
+    CameraMove(Vec2),
 }
 
 pub enum CommandEvent {

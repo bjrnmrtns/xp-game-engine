@@ -1,19 +1,19 @@
 mod components;
 mod resources;
 
-pub use components::{CameraCenterController, CameraZoomController, SelectionRender};
+pub use components::SelectionRender;
 
 pub use resources::GameInfo;
 
 use crate::{
     client::{
-        components::{CameraCenter, Unit},
+        components::{CameraCenter, EmptyBundle, Unit},
         resources::PhysicsState,
     },
     helpers,
     input::{CameraViewEvent, CommandEvent},
 };
-use bevy::prelude::*;
+use bevy::{prelude::*, render::camera::Camera};
 
 pub struct ClientPlugin;
 impl Plugin for ClientPlugin {
@@ -76,11 +76,11 @@ fn create_world(
         })
         .with(Unit::default());
 
-    commands
-        .spawn(CameraCenter)
+    game_info.camera_center = commands
+        .spawn(EmptyBundle)
         .with(GlobalTransform::identity())
         .with(Transform::identity())
-        .with(CameraCenterController::default())
+        .with(CameraCenter)
         .with_children(|parent| {
             game_info.camera = parent
                 .spawn(Camera3dBundle {
@@ -90,9 +90,9 @@ fn create_world(
                         ))),
                     ..Default::default()
                 })
-                .with(CameraZoomController::default())
                 .current_entity();
-        });
+        })
+        .current_entity();
 }
 
 #[derive(Default)]
@@ -102,26 +102,26 @@ pub struct EventStates {
 }
 
 fn handle_camera(
-    mut query_center: Query<(&CameraCenterController, &mut Transform)>,
-    mut query_zoom: Query<(&mut CameraZoomController, &mut Transform)>,
+    mut query_center: Query<(&mut Transform, &CameraCenter)>,
+    mut query_zoom: Query<(&Camera, &mut Transform)>,
     mut event_states: Local<EventStates>,
     camera_view_events: Res<Events<CameraViewEvent>>,
+    game_info: Res<GameInfo>,
 ) {
-    for (controller, mut center) in query_center.iter_mut() {
-        if let Some(move_position) = controller.move_position {
-            center.translation.x += move_position.x * 0.5;
-            center.translation.z -= move_position.y * 0.5;
-        }
-    }
-    for camera_view_event in event_states
-        .camera_view_event_reader
-        .iter(&camera_view_events)
-    {
-        match camera_view_event {
-            CameraViewEvent::Zoom(zoom) => {
-                for (mut controller, mut center) in query_zoom.iter_mut() {
-                    center.translation.y -= zoom;
-                    controller.zoom = None;
+    if let (Some(camera), Some(camera_center)) = (game_info.camera, game_info.camera_center) {
+        for camera_view_event in event_states
+            .camera_view_event_reader
+            .iter(&camera_view_events)
+        {
+            match camera_view_event {
+                CameraViewEvent::Zoom(zoom) => {
+                    let (_, mut transform) = query_zoom.get_mut(camera).unwrap();
+                    transform.translation.y -= zoom;
+                }
+                CameraViewEvent::CameraMove(translation) => {
+                    let (mut transform, _) = query_center.get_mut(camera_center).unwrap();
+                    transform.translation +=
+                        Vec3::new(translation.x * 0.5, 0.0, translation.y * 0.5);
                 }
             }
         }

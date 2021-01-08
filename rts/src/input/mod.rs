@@ -60,8 +60,6 @@ fn input_system(
     keyboard_input: Res<Input<KeyCode>>,
     mut input_state: ResMut<InputState>,
     windows: Res<Windows>,
-    mut controllers: Query<&mut client::CameraCenterController>,
-    mut zoom_controllers: Query<&mut client::CameraZoomController>,
     camera_query: Query<(&GlobalTransform, &Camera)>,
     mut command_events: ResMut<Events<resources::CommandEvent>>,
     mut camera_view_events: ResMut<Events<resources::CameraViewEvent>>,
@@ -81,78 +79,76 @@ fn input_system(
             screen_size,
             cursor_position,
         );
-        for mut camera_center_controller in controllers.iter_mut() {
-            if let Some(current_position) = window.cursor_position() {
-                let x = if current_position.x > width - border_margin_width {
-                    1.0
-                } else if current_position.x < border_margin_width {
-                    -1.0
-                } else {
-                    0.0
-                };
-                let y = if current_position.y > height - border_margin_height {
-                    1.0
-                } else if current_position.y < border_margin_height {
-                    -1.0
-                } else {
-                    0.0
-                };
-                camera_center_controller.move_position = Some(Vec2::new(x, y));
-            }
+        if let Some(current_position) = window.cursor_position() {
+            let x = if current_position.x > width - border_margin_width {
+                1.0
+            } else if current_position.x < border_margin_width {
+                -1.0
+            } else {
+                0.0
+            };
+            let y = if current_position.y > height - border_margin_height {
+                -1.0
+            } else if current_position.y < border_margin_height {
+                1.0
+            } else {
+                0.0
+            };
+            camera_view_events.send(CameraViewEvent::CameraMove(Vec2::new(x, y)));
+        }
 
-            for event in state.mouse_button_event_reader.iter(&mouse_button_events) {
-                match (event, keyboard_input.pressed(KeyCode::LControl)) {
-                    (
-                        MouseButtonInput {
-                            button: MouseButton::Left,
-                            state: ElementState::Pressed,
-                        },
-                        true,
-                    ) => {
-                        input_state.last_selection_begin = Some(input_state.world_mouse_position);
-                    }
-                    (
-                        MouseButtonInput {
-                            button: MouseButton::Left,
-                            state: ElementState::Pressed,
-                        },
-                        false,
-                    ) => {
-                        command_events.send(CommandEvent::Create(input_state.world_mouse_position))
-                    }
-                    (
-                        MouseButtonInput {
-                            button: MouseButton::Left,
-                            state: ElementState::Released,
-                        },
-                        true,
-                    ) => {
+        for event in state.mouse_button_event_reader.iter(&mouse_button_events) {
+            match (event, keyboard_input.pressed(KeyCode::LControl)) {
+                (
+                    MouseButtonInput {
+                        button: MouseButton::Left,
+                        state: ElementState::Pressed,
+                    },
+                    true,
+                ) => {
+                    input_state.last_selection_begin = Some(input_state.world_mouse_position);
+                }
+                (
+                    MouseButtonInput {
+                        button: MouseButton::Left,
+                        state: ElementState::Pressed,
+                    },
+                    false,
+                ) => command_events.send(CommandEvent::Create(input_state.world_mouse_position)),
+                (
+                    MouseButtonInput {
+                        button: MouseButton::Left,
+                        state: ElementState::Released,
+                    },
+                    _,
+                ) => {
+                    if let Some(selection_begin) = input_state.last_selection_begin {
                         let (low, high) = helpers::calculate_low_high(
-                            input_state.last_selection_begin.unwrap(),
+                            selection_begin,
                             input_state.world_mouse_position,
                         );
                         command_events.send(CommandEvent::Select(low, high));
                         input_state.last_selection_begin = None;
                     }
-                    (
-                        MouseButtonInput {
-                            button: MouseButton::Right,
-                            state: ElementState::Pressed,
-                        },
-                        _,
-                    ) => {
-                        command_events.send(resources::CommandEvent::Move(
-                            input_state.world_mouse_position,
-                        ));
-                    }
-                    _ => (),
                 }
+                (
+                    MouseButtonInput {
+                        button: MouseButton::Right,
+                        state: ElementState::Pressed,
+                    },
+                    _,
+                ) => {
+                    command_events.send(resources::CommandEvent::Move(
+                        input_state.world_mouse_position,
+                    ));
+                }
+                _ => (),
             }
         }
-        for event in state.mouse_wheel_event_reader.iter(&mouse_wheel_events) {
-            match event {
-                MouseWheel { y, .. } => camera_view_events.send(CameraViewEvent::Zoom(*y)),
-            }
+    }
+    for event in state.mouse_wheel_event_reader.iter(&mouse_wheel_events) {
+        match event {
+            MouseWheel { y, .. } => camera_view_events.send(CameraViewEvent::Zoom(*y)),
         }
     }
 }

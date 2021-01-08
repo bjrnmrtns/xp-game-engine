@@ -8,4 +8,5 @@ pub struct PhysicsState {
 #[derive(Default)]
 pub struct GameInfo {
     pub camera: Option<Entity>,
+    pub camera_center: Option<Entity>,
 }

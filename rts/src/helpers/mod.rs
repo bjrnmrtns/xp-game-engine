@@ -21,7 +21,7 @@ pub fn calculate_midpoint_scale(point0: Vec2, point1: Vec2) -> (Vec2, Vec2) {
 }
 
 pub fn is_selected(low: Vec2, high: Vec2, point: Vec2) -> bool {
-    let selection_margin = 0.25;
+    let selection_margin = 0.5;
     assert!(low.x <= high.x);
     assert!(low.y <= high.y);
     point.x > low.x - selection_margin

@@ -13,8 +13,9 @@ DONE 7: make player controller commands enum, so they can be different and optio
 [x] make command enum
 [x] investigate if events are better for sending commands + currently sending events from input to client
 [x] (Refactoring) make move/rectangle select/select/draw rectangle all work via events
-
-TODO 8: let camera control also work via events instead of state via resource
+DONE 8: let camera control also work via events instead of state via resource
 [x] refactor zoom
-[] let moving center also work via events
-[] put center entity and potentially others in GameInfo resource
+[x] let moving center also work via events
+[x] put center entity and potentially others in GameInfo resource
+DONE 9: fix rectangle select, also react on right mouse release without LCTRL
+
