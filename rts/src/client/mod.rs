@@ -73,10 +73,10 @@ fn create_world(
                 albedo: Color::rgb(1.0, 0.0, 1.0),
                 ..Default::default()
             }),
-            transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
+            transform: Transform::from_translation(Vec3::zero()),
             ..Default::default()
         })
-        .with(Unit::new(unit_id_generator.generate()));
+        .with(Unit::new(unit_id_generator.generate(), Vec2::zero()));
 
     game_info.camera_center = commands
         .spawn(EmptyBundle)
@@ -152,7 +152,7 @@ fn handle_player(
                         transform: Transform::from_translation(Vec3::new(target.x, 0.5, target.y)),
                         ..Default::default()
                     })
-                    .with(Unit::new(unit_id_generator.generate()));
+                    .with(Unit::new(unit_id_generator.generate(), *target));
             }
             CommandEvent::Move(target) => {
                 for (_, _, mut unit) in query_units.iter_mut() {
