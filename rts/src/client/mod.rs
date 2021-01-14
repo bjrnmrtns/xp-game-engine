@@ -191,6 +191,10 @@ fn handle_physics(
     let step_time = 1.0 / steps_per_second;
     let max_velocity = 2.0;
     let expected_steps = (time.time_since_startup().as_secs_f32() * steps_per_second) as u64;
+    let all_units = query_units
+        .iter_mut()
+        .map(|(transform, unit)| (*transform, unit.clone()))
+        .collect::<Vec<_>>();
     for _ in physics_state.steps_done..expected_steps {
         for (mut transform, mut unit) in query_units.iter_mut() {
             if let Some(desired_position) = unit.desired_position {
@@ -199,7 +203,21 @@ fn handle_physics(
                 let current_direction = Vec2::new(forward_3d.x, forward_3d.z).normalize();
                 let desired_direction = desired_position - current_position;
 
-                let angle = desired_direction.angle_between(current_direction);
+                let mut seperation_direction = Vec3::zero();
+                for (transform_other, unit_other) in &all_units {
+                    if unit_other.id != unit.id {
+                        let distance = transform.translation.distance(transform_other.translation);
+                        if distance < 2.0 {
+                            seperation_direction += (1.0 - distance)
+                                * (transform_other.translation - transform.translation);
+                        }
+                    }
+                }
+
+                let total_direction = desired_direction.normalize()
+                    + Vec2::new(seperation_direction.x, seperation_direction.z);
+
+                let angle = total_direction.angle_between(current_direction);
                 let rotation = if angle > std::f32::consts::FRAC_PI_2 * step_time {
                     std::f32::consts::FRAC_PI_2 * step_time
                 } else if angle < -std::f32::consts::FRAC_PI_2 * step_time {
@@ -208,7 +226,7 @@ fn handle_physics(
                     angle
                 };
 
-                if desired_direction.length() > 0.25 {
+                if desired_direction.length() > 2.0 {
                     let movement = transform.forward().normalize() * max_velocity * step_time;
                     transform.translation += movement;
                 } else {

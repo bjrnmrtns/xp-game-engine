@@ -8,7 +8,7 @@ pub struct CameraCenter;
 #[derive(Default, Debug)]
 pub struct SelectionRender;
 
-#[derive(Bundle)]
+#[derive(Bundle, Clone)]
 pub struct Unit {
     pub id: u32,
     pub selected: bool,
