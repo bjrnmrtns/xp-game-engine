@@ -8,7 +8,7 @@ pub use resources::GameInfo;
 use crate::{
     client::{
         components::{CameraCenter, EmptyBundle, Unit},
-        resources::PhysicsState,
+        resources::{PhysicsState, UnitIdGenerator},
     },
     helpers,
     input::{CameraViewEvent, CommandEvent},
@@ -19,6 +19,7 @@ pub struct ClientPlugin;
 impl Plugin for ClientPlugin {
     fn build(&self, app: &mut AppBuilder) {
         app.add_resource(GameInfo::default())
+            .add_resource(UnitIdGenerator::default())
             .add_resource(PhysicsState::default())
             .add_startup_system(create_world.system())
             .add_system(handle_camera.system())
@@ -29,6 +30,7 @@ impl Plugin for ClientPlugin {
 
 fn create_world(
     commands: &mut Commands,
+    mut unit_id_generator: ResMut<UnitIdGenerator>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut game_info: ResMut<GameInfo>,
@@ -74,7 +76,7 @@ fn create_world(
             transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
             ..Default::default()
         })
-        .with(Unit::default());
+        .with(Unit::new(unit_id_generator.generate()));
 
     game_info.camera_center = commands
         .spawn(EmptyBundle)
@@ -131,6 +133,7 @@ fn handle_camera(
 fn handle_player(
     mut query_units: Query<(&GlobalTransform, &mut Handle<StandardMaterial>, &mut Unit)>,
     commands: &mut Commands,
+    mut unit_id_generator: ResMut<UnitIdGenerator>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut event_states: Local<EventStates>,
@@ -149,7 +152,7 @@ fn handle_player(
                         transform: Transform::from_translation(Vec3::new(target.x, 0.5, target.y)),
                         ..Default::default()
                     })
-                    .with(Unit::default());
+                    .with(Unit::new(unit_id_generator.generate()));
             }
             CommandEvent::Move(target) => {
                 for (_, _, mut unit) in query_units.iter_mut() {
