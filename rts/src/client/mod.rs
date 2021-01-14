@@ -186,7 +186,7 @@ fn handle_physics(
 ) {
     let steps_per_second = 60.0;
     let step_time = 1.0 / steps_per_second;
-    let speed = 3.0; // m/s
+    let speed = 2.0; // m/s
     let expected_steps = (time.time_since_startup().as_secs_f64() * steps_per_second) as u64;
     for _ in physics_state.steps_done..expected_steps {
         for (mut transform, mut unit) in query_units.iter_mut() {
@@ -194,7 +194,7 @@ fn handle_physics(
                 println!("{}", target);
                 let current = Vec2::new(transform.translation.x, transform.translation.z);
                 let direction = target - current;
-                if direction.length() > 3.0 {
+                if direction.length() > 0.25 {
                     let movement = direction.normalize() * (step_time * speed * 3.0) as f32;
                     transform.translation.x += movement.x;
                     transform.translation.z += movement.y;
