@@ -154,7 +154,7 @@ fn handle_player(
             CommandEvent::Move(target) => {
                 for (_, _, mut unit) in query_units.iter_mut() {
                     if unit.selected {
-                        unit.target_position = Some(target.clone());
+                        unit.desired_position = Some(target.clone());
                     }
                 }
             }
@@ -184,23 +184,34 @@ fn handle_physics(
     mut physics_state: ResMut<PhysicsState>,
     mut query_units: Query<(&mut Transform, &mut Unit)>,
 ) {
-    let steps_per_second = 60.0;
+    let steps_per_second = 60.0f32;
     let step_time = 1.0 / steps_per_second;
-    let speed = 2.0; // m/s
-    let expected_steps = (time.time_since_startup().as_secs_f64() * steps_per_second) as u64;
+    let max_velocity = 2.0;
+    let expected_steps = (time.time_since_startup().as_secs_f32() * steps_per_second) as u64;
     for _ in physics_state.steps_done..expected_steps {
         for (mut transform, mut unit) in query_units.iter_mut() {
-            if let Some(target) = unit.target_position {
-                println!("{}", target);
-                let current = Vec2::new(transform.translation.x, transform.translation.z);
-                let direction = target - current;
-                if direction.length() > 0.25 {
-                    let movement = direction.normalize() * (step_time * speed * 3.0) as f32;
-                    transform.translation.x += movement.x;
-                    transform.translation.z += movement.y;
+            if let Some(desired_position) = unit.desired_position {
+                let current_position = Vec2::new(transform.translation.x, transform.translation.z);
+                let forward_3d = transform.forward();
+                let current_direction = Vec2::new(forward_3d.x, forward_3d.z).normalize();
+                let desired_direction = desired_position - current_position;
+
+                let angle = desired_direction.angle_between(current_direction);
+                let rotation = if angle > std::f32::consts::FRAC_PI_2 * step_time {
+                    std::f32::consts::FRAC_PI_2 * step_time
+                } else if angle < -std::f32::consts::FRAC_PI_2 * step_time {
+                    -std::f32::consts::FRAC_PI_2 * step_time
                 } else {
-                    unit.target_position = None;
+                    angle
+                };
+
+                if desired_direction.length() > 0.25 {
+                    let movement = transform.forward().normalize() * max_velocity * step_time;
+                    transform.translation += movement;
+                } else {
+                    unit.desired_position = None;
                 }
+                transform.rotation *= Quat::from_rotation_y(rotation);
             }
         }
     }

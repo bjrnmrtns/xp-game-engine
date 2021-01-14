@@ -11,5 +11,5 @@ pub struct SelectionRender;
 #[derive(Bundle, Default)]
 pub struct Unit {
     pub selected: bool,
-    pub target_position: Option<Vec2>,
+    pub desired_position: Option<Vec2>,
 }
