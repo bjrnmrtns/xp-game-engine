@@ -23,6 +23,6 @@ DONE 11: implement flocking behaviour seperation
 [x] identify different units by id
 [x] implement seperation
 DONE 15: implement steering behaviour based on forces, instead of rotation/angle
-TODO 12: implement flocking cohesion
-TODO 13: implement flocking alignment
-TODO 14: implement collision avoidance
+DONE 12: implement flocking cohesion
+DONE 13: implement flocking alignment
+DONE 14: implement collision avoidance
