@@ -224,7 +224,27 @@ fn steering_cohesion(current: &Unit, all_units: &[Unit]) -> Vec2 {
     if count == 1 {
         Vec2::zero()
     } else {
-        return steering_seek(&(center_of_mass / count as f32), &current);
+        steering_seek(&(center_of_mass / count as f32), &current)
+    }
+}
+
+fn steering_alignment(current: &Unit, all_units: &[Unit]) -> Vec2 {
+    let mut average_heading = Vec2::zero();
+    let mut count = 0;
+    for unit in all_units {
+        if current.id != unit.id {
+            let distance = current.position.distance(unit.position);
+            if distance < current.max_cohesion && unit.velocity.length() > 0.0 {
+                average_heading = average_heading + unit.velocity.normalize();
+                count += 1;
+            }
+        }
+    }
+    if count == 0 {
+        Vec2::zero()
+    } else {
+        let desired = average_heading / count as f32 * current.max_speed;
+        (desired - current.velocity) * (current.max_force / current.max_speed)
     }
 }
 
@@ -247,7 +267,8 @@ fn handle_physics(
                 let seek = steering_seek(&destination, &current);
                 let seperation = steering_seperation(&current, all_units.as_slice());
                 let cohesion = steering_cohesion(&current, all_units.as_slice());
-                current.forces = seek + seperation + cohesion;
+                let alignment = steering_alignment(&current, all_units.as_slice());
+                current.forces = seek + seperation + (cohesion * 0.3) + alignment;
             }
         }
         for (_, mut unit) in query_units.iter_mut() {
@@ -273,26 +294,3 @@ fn handle_physics(
     }
     physics_state.steps_done = expected_steps;
 }
-/*let forward_3d = transform.forward();
-let position = Vec2::new(transform.translation.x, transform.translation.z);
-let velocity = Vec2::new(forward_3d.x, forward_3d.z).normalize() * unit.speed;
-
-let new_velocity = velocity + seek * step_time;
-let new_velocity = if new_velocity.length() > unit.max_speed {
-    new_velocity.normalize() * unit.max_speed
-} else {
-    new_velocity
-};
-unit.speed = new_velocity.length();
-
-let new_position = position + new_velocity * step_time;
-transform.translation = Vec3::new(new_position.x, 0.5, new_position.y);
-let new_velocity_3d = Vec3::new(new_velocity.x, 0.5, new_velocity.y);
-let angle = new_velocity_3d.angle_between(transform.forward());
-transform.rotation *= Quat::from_rotation_y(angle);
-
-if destination.distance(Vec2::new(transform.translation.x, transform.translation.z))
-    < 2.0
-{
-    unit.destination = None;
-}*/
