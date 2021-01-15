@@ -209,6 +209,25 @@ fn steering_seperation(current: &Unit, all_units: &[Unit]) -> Vec2 {
     }
 }
 
+fn steering_cohesion(current: &Unit, all_units: &[Unit]) -> Vec2 {
+    let mut center_of_mass = current.position;
+    let mut count = 1;
+    for unit in all_units {
+        if current.id != unit.id {
+            let distance = current.position.distance(unit.position);
+            if distance < current.max_cohesion {
+                center_of_mass = center_of_mass + unit.position;
+                count += 1;
+            }
+        }
+    }
+    if count == 1 {
+        Vec2::zero()
+    } else {
+        return steering_seek(&(center_of_mass / count as f32), &current);
+    }
+}
+
 fn handle_physics(
     time: Res<Time>,
     mut physics_state: ResMut<PhysicsState>,
@@ -227,7 +246,8 @@ fn handle_physics(
             if let Some(destination) = current.destination {
                 let seek = steering_seek(&destination, &current);
                 let seperation = steering_seperation(&current, all_units.as_slice());
-                current.forces = seek + seperation;
+                let cohesion = steering_cohesion(&current, all_units.as_slice());
+                current.forces = seek + seperation + cohesion;
             }
         }
         for (_, mut unit) in query_units.iter_mut() {
