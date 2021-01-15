@@ -12,12 +12,15 @@ pub struct SelectionRender;
 pub struct Unit {
     pub id: u32,
     pub selected: bool,
+    pub min_seperation: f32,
+    pub radius: f32,
     pub max_speed: f32,
     pub max_force: f32,
     pub position: Vec2,
     pub rotation: f32,
     pub velocity: Vec2,
     pub destination: Option<Vec2>,
+    pub forces: Vec2,
 }
 
 impl Unit {
@@ -25,12 +28,15 @@ impl Unit {
         Self {
             id,
             selected: false,
+            min_seperation: 0.25,
+            radius: 0.5,
             max_speed: 4.0,
             max_force: 5.0,
             position,
             rotation: 0.0,
             velocity: Vec2::zero(),
             destination: None,
+            forces: Vec2::zero(),
         }
     }
 }

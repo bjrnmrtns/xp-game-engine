@@ -22,7 +22,7 @@ DONE 10: implement simple seeking behaviour
 DONE 11: implement flocking behaviour seperation
 [x] identify different units by id
 [x] implement seperation
+DONE 15: implement steering behaviour based on forces, instead of rotation/angle
 TODO 12: implement flocking cohesion
 TODO 13: implement flocking alignment
 TODO 14: implement collision avoidance
-TODO 15: implement steering behaviour based on forces, instead of rotation/angle

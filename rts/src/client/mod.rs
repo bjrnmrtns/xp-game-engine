@@ -145,6 +145,7 @@ fn handle_player(
                 commands
                     .spawn(PbrBundle {
                         mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
+
                         material: materials.add(StandardMaterial {
                             albedo: Color::rgb(1.0, 0.0, 0.0),
                             ..Default::default()
@@ -182,10 +183,30 @@ fn handle_player(
     }
 }
 
-fn steering_seek(destination: &Vec2, unit: &Unit) -> Vec2 {
-    let desired_velocity = (*destination - unit.position).normalize() * unit.max_speed;
-    let desired_steering = desired_velocity - unit.velocity;
-    desired_steering * (unit.max_force / unit.max_speed)
+fn steering_seek(destination: &Vec2, current: &Unit) -> Vec2 {
+    let desired_velocity = (*destination - current.position).normalize() * current.max_speed;
+    let desired_steering = desired_velocity - current.velocity;
+    desired_steering * (current.max_force / current.max_speed)
+}
+
+fn steering_seperation(current: &Unit, all_units: &[Unit]) -> Vec2 {
+    let mut total = Vec2::zero();
+    let mut count = 0;
+    for unit in all_units {
+        if current.id != unit.id {
+            let distance = current.position.distance(unit.position);
+            if distance < current.min_seperation + unit.radius + current.radius {
+                let push = current.position - unit.position;
+                total = total + push / current.radius;
+                count += 1;
+            }
+        }
+    }
+    if count == 0 {
+        Vec2::zero()
+    } else {
+        (total / count as f32) * current.max_force
+    }
 }
 
 fn handle_physics(
@@ -196,30 +217,39 @@ fn handle_physics(
     let steps_per_second = 60.0f32;
     let step_time = 1.0 / steps_per_second;
     let expected_steps = (time.time_since_startup().as_secs_f32() * steps_per_second) as u64;
-    for _ in physics_state.steps_done..expected_steps {
-        for (mut transform, mut unit) in query_units.iter_mut() {
-            if let Some(destination) = unit.destination {
-                let seek = steering_seek(&destination, &unit);
 
-                unit.velocity = unit.velocity + seek * step_time;
+    for _ in physics_state.steps_done..expected_steps {
+        let all_units = query_units
+            .iter_mut()
+            .map(|(_, unit)| unit.clone())
+            .collect::<Vec<_>>();
+        for (_, mut current) in query_units.iter_mut() {
+            if let Some(destination) = current.destination {
+                let seek = steering_seek(&destination, &current);
+                let seperation = steering_seperation(&current, all_units.as_slice());
+                current.forces = seek + seperation;
+            }
+        }
+        for (_, mut unit) in query_units.iter_mut() {
+            if let Some(_) = unit.destination {
+                unit.velocity = unit.velocity + unit.forces * step_time;
                 unit.velocity = if unit.velocity.length() > unit.max_speed {
                     unit.velocity.normalize() * unit.max_speed
                 } else {
                     unit.velocity
                 };
                 unit.position = unit.position + unit.velocity * step_time;
-
-                transform.translation.x = unit.position.x;
-                transform.translation.z = unit.position.y;
-                transform.rotation = Quat::from_rotation_y(
-                    Vec3::new(0.0, transform.translation.y, -1.0).angle_between(Vec3::new(
-                        unit.velocity.x,
-                        transform.translation.y,
-                        unit.velocity.y,
-                    )),
-                );
             }
         }
+    }
+
+    for (mut transform, unit) in query_units.iter_mut() {
+        transform.translation.x = unit.position.x;
+        transform.translation.z = unit.position.y;
+        /*transform.rotation = Quat::from_rotation_y(
+            Vec3::new(unit.velocity.x, transform.translation.y, unit.velocity.y)
+                .angle_between(Vec3::new(0.0, transform.translation.y, -1.0)),
+        );*/
     }
     physics_state.steps_done = expected_steps;
 }
