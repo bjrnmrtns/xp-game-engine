@@ -157,7 +157,7 @@ fn handle_player(
             CommandEvent::Move(target) => {
                 for (_, _, mut unit) in query_units.iter_mut() {
                     if unit.selected {
-                        unit.desired_position = Some(target.clone());
+                        unit.destination = Some(target.clone());
                     }
                 }
             }
@@ -182,6 +182,12 @@ fn handle_player(
     }
 }
 
+fn steering_seek(destination: &Vec2, unit: &Unit) -> Vec2 {
+    let desired_velocity = (*destination - unit.position).normalize() * unit.max_speed;
+    let desired_steering = desired_velocity - unit.velocity;
+    desired_steering * (unit.max_force / unit.max_speed)
+}
+
 fn handle_physics(
     time: Res<Time>,
     mut physics_state: ResMut<PhysicsState>,
@@ -189,52 +195,54 @@ fn handle_physics(
 ) {
     let steps_per_second = 60.0f32;
     let step_time = 1.0 / steps_per_second;
-    let max_velocity = 2.0;
     let expected_steps = (time.time_since_startup().as_secs_f32() * steps_per_second) as u64;
-    let all_units = query_units
-        .iter_mut()
-        .map(|(transform, unit)| (*transform, unit.clone()))
-        .collect::<Vec<_>>();
     for _ in physics_state.steps_done..expected_steps {
         for (mut transform, mut unit) in query_units.iter_mut() {
-            if let Some(desired_position) = unit.desired_position {
-                let current_position = Vec2::new(transform.translation.x, transform.translation.z);
-                let forward_3d = transform.forward();
-                let current_direction = Vec2::new(forward_3d.x, forward_3d.z).normalize();
-                let desired_direction = desired_position - current_position;
+            if let Some(destination) = unit.destination {
+                let seek = steering_seek(&destination, &unit);
 
-                let mut seperation_direction = Vec3::zero();
-                for (transform_other, unit_other) in &all_units {
-                    if unit_other.id != unit.id {
-                        let distance = transform.translation.distance(transform_other.translation);
-                        if distance < 2.0 {
-                            seperation_direction += (1.0 - distance)
-                                * (transform_other.translation - transform.translation);
-                        }
-                    }
-                }
-
-                let total_direction = desired_direction.normalize()
-                    + Vec2::new(seperation_direction.x, seperation_direction.z);
-
-                let angle = total_direction.angle_between(current_direction);
-                let rotation = if angle > std::f32::consts::FRAC_PI_2 * step_time {
-                    std::f32::consts::FRAC_PI_2 * step_time
-                } else if angle < -std::f32::consts::FRAC_PI_2 * step_time {
-                    -std::f32::consts::FRAC_PI_2 * step_time
+                unit.velocity = unit.velocity + seek * step_time;
+                unit.velocity = if unit.velocity.length() > unit.max_speed {
+                    unit.velocity.normalize() * unit.max_speed
                 } else {
-                    angle
+                    unit.velocity
                 };
+                unit.position = unit.position + unit.velocity * step_time;
 
-                if desired_direction.length() > 2.0 {
-                    let movement = transform.forward().normalize() * max_velocity * step_time;
-                    transform.translation += movement;
-                } else {
-                    unit.desired_position = None;
-                }
-                transform.rotation *= Quat::from_rotation_y(rotation);
+                transform.translation.x = unit.position.x;
+                transform.translation.z = unit.position.y;
+                transform.rotation = Quat::from_rotation_y(
+                    Vec3::new(0.0, transform.translation.y, -1.0).angle_between(Vec3::new(
+                        unit.velocity.x,
+                        transform.translation.y,
+                        unit.velocity.y,
+                    )),
+                );
             }
         }
     }
     physics_state.steps_done = expected_steps;
 }
+/*let forward_3d = transform.forward();
+let position = Vec2::new(transform.translation.x, transform.translation.z);
+let velocity = Vec2::new(forward_3d.x, forward_3d.z).normalize() * unit.speed;
+
+let new_velocity = velocity + seek * step_time;
+let new_velocity = if new_velocity.length() > unit.max_speed {
+    new_velocity.normalize() * unit.max_speed
+} else {
+    new_velocity
+};
+unit.speed = new_velocity.length();
+
+let new_position = position + new_velocity * step_time;
+transform.translation = Vec3::new(new_position.x, 0.5, new_position.y);
+let new_velocity_3d = Vec3::new(new_velocity.x, 0.5, new_velocity.y);
+let angle = new_velocity_3d.angle_between(transform.forward());
+transform.rotation *= Quat::from_rotation_y(angle);
+
+if destination.distance(Vec2::new(transform.translation.x, transform.translation.z))
+    < 2.0
+{
+    unit.destination = None;
+}*/
