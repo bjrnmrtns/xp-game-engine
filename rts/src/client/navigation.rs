@@ -32,10 +32,22 @@ impl Into<Cell> for (usize, usize) {
 impl FlowField {
     pub fn new(width: usize, height: usize) -> Self {
         Self {
-            cells: vec![std::u32::MAX; width * height],
+            cells: vec![std::u32::MAX - 1; width * height],
             width,
             height,
         }
+    }
+
+    pub fn with_blocked_cell(mut self, cell: &Cell) -> Self {
+        self.set(&cell, std::u32::MAX);
+        self
+    }
+
+    pub fn with_blocked_cells(mut self, cells: &[Cell]) -> Self {
+        for cell in cells {
+            self.set(cell, std::u32::MAX);
+        }
+        self
     }
 
     pub fn get(&self, cell: &Cell) -> u32 {
@@ -90,6 +102,25 @@ impl FlowField {
         open.push_back(cell);
         while !open.is_empty() {
             let cell = open.pop_front().unwrap();
+            let value = self.get(&cell);
+            for neighbour_cell in self.get_neighbours(&cell) {
+                let n_value = self.get(&neighbour_cell);
+                if n_value != std::u32::MAX && n_value > value + 100 {
+                    self.set(&neighbour_cell, value + 100);
+                    if !open.contains(&neighbour_cell) {
+                        open.push_back(neighbour_cell);
+                    }
+                }
+            }
+            for neighbour_cell in self.get_neighbours_cross(&cell) {
+                let n_value = self.get(&neighbour_cell);
+                if n_value != std::u32::MAX && n_value > value + 141 {
+                    self.set(&neighbour_cell, value + 141);
+                    if !open.contains(&neighbour_cell) {
+                        open.push_back(neighbour_cell);
+                    }
+                }
+            }
         }
         self
     }
@@ -97,7 +128,7 @@ impl FlowField {
     pub fn print(&self) {
         for y in 0..self.height {
             for x in 0..self.width {
-                print!("{:010} ", self.get(&(x, y).into()));
+                print!("{:10} ", self.get(&(x, y).into()));
             }
             println!("");
         }
@@ -145,6 +176,15 @@ mod tests {
     #[test]
     fn set_destination_test() {
         let flow_field = FlowField::new(10, 10).with_destination(Cell::new(4, 4));
+        flow_field.print();
+    }
+
+    #[test]
+    fn set_destination_with_one_blocked_test() {
+        let flow_field = FlowField::new(10, 10)
+            .with_blocked_cell(&Cell::new(3, 3))
+            .with_destination(Cell::new(4, 4));
+        assert!(flow_field.get(&Cell::new(3, 3)) == std::u32::MAX);
         flow_field.print();
     }
 }
