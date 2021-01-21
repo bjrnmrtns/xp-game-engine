@@ -36,9 +36,22 @@ impl Unit {
             max_force: 5.0,
             position,
             rotation: 0.0,
-            velocity: Vec2::zero(),
+            velocity: Vec2::new(0.0, -1.0),
             destination: None,
             forces: Vec2::zero(),
         }
+    }
+}
+
+#[derive(Bundle, Clone)]
+pub struct Building {
+    pub id: u32,
+    pub position: Vec2,
+    pub size: f32,
+}
+
+impl Building {
+    pub fn new(id: u32, position: Vec2, size: f32) -> Self {
+        Self { id, position, size }
     }
 }

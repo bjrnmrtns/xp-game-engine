@@ -7,8 +7,8 @@ pub use resources::GameInfo;
 
 use crate::{
     client::{
-        components::{CameraCenter, EmptyBundle, Unit},
-        resources::{PhysicsState, UnitIdGenerator},
+        components::{Building, CameraCenter, EmptyBundle, Unit},
+        resources::{BuildingIdGenerator, PhysicsState, UnitIdGenerator},
     },
     helpers,
     input::{CameraViewEvent, CommandEvent},
@@ -20,6 +20,7 @@ impl Plugin for ClientPlugin {
     fn build(&self, app: &mut AppBuilder) {
         app.add_resource(GameInfo::default())
             .add_resource(UnitIdGenerator::default())
+            .add_resource(BuildingIdGenerator::default())
             .add_resource(PhysicsState::default())
             .add_startup_system(create_world.system())
             .add_system(handle_camera.system())
@@ -30,7 +31,7 @@ impl Plugin for ClientPlugin {
 
 fn create_world(
     commands: &mut Commands,
-    mut unit_id_generator: ResMut<UnitIdGenerator>,
+    mut building_id_generator: ResMut<BuildingIdGenerator>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut game_info: ResMut<GameInfo>,
@@ -68,7 +69,7 @@ fn create_world(
 
     commands
         .spawn(PbrBundle {
-            mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
+            mesh: meshes.add(Mesh::from(shape::Cube { size: 2.0 })),
             material: materials.add(StandardMaterial {
                 albedo: Color::rgb(1.0, 0.0, 1.0),
                 ..Default::default()
@@ -76,7 +77,11 @@ fn create_world(
             transform: Transform::from_translation(Vec3::zero()),
             ..Default::default()
         })
-        .with(Unit::new(unit_id_generator.generate(), Vec2::zero()));
+        .with(Building::new(
+            building_id_generator.generate(),
+            Vec2::zero(),
+            2.0,
+        ));
 
     game_info.camera_center = commands
         .spawn(EmptyBundle)
@@ -159,6 +164,7 @@ fn handle_player(
                 for (_, _, mut unit) in query_units.iter_mut() {
                     if unit.selected {
                         unit.destination = Some(target.clone());
+                        println!("{}", unit.destination.unwrap());
                     }
                 }
             }
@@ -287,6 +293,8 @@ fn handle_physics(
     for (mut transform, unit) in query_units.iter_mut() {
         transform.translation.x = unit.position.x;
         transform.translation.z = unit.position.y;
+        let angle = Vec2::new(0.0, -1.0).angle_between(unit.velocity);
+        //transform.rotation = Quat::from_rotation_y(angle);
         /*transform.rotation = Quat::from_rotation_y(
             Vec3::new(unit.velocity.x, transform.translation.y, unit.velocity.y)
                 .angle_between(Vec3::new(0.0, transform.translation.y, -1.0)),

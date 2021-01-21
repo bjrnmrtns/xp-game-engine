@@ -27,3 +27,20 @@ impl UnitIdGenerator {
         }
     }
 }
+
+#[derive(Default)]
+pub struct BuildingIdGenerator {
+    pub last_id: Option<u32>,
+}
+
+impl BuildingIdGenerator {
+    pub fn generate(&mut self) -> u32 {
+        if let Some(last_id) = self.last_id {
+            self.last_id = Some(last_id + 1);
+            self.last_id.unwrap()
+        } else {
+            self.last_id = Some(0);
+            self.last_id.unwrap()
+        }
+    }
+}
