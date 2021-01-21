@@ -1,3 +1,4 @@
+use crate::client::navigation::FlowField;
 use bevy::prelude::*;
 
 #[derive(Default)]
@@ -14,6 +15,18 @@ pub struct GameInfo {
 #[derive(Default)]
 pub struct UnitIdGenerator {
     pub last_id: Option<u32>,
+}
+
+pub struct FlowFields {
+    pub flow_field: FlowField,
+}
+
+impl FlowFields {
+    pub fn new(width: usize, height: usize) -> Self {
+        Self {
+            flow_field: FlowField::new(width, height),
+        }
+    }
 }
 
 impl UnitIdGenerator {

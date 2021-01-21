@@ -65,13 +65,20 @@ impl FlowField {
         self.values[self.height * cell.y + cell.x] = value;
     }
 
-    pub fn set_flow(&mut self, cell: &Cell, direction: Option<Vec2>) {
+    pub fn set_flow_cell(&mut self, cell: &Cell, direction: Option<Vec2>) {
         assert!(cell.x < self.width);
         assert!(cell.y < self.height);
         self.flow[self.height * cell.y + cell.x] = direction;
     }
 
-    pub fn get_flow(&mut self, cell: &Cell) -> Option<Vec2> {
+    pub fn get_flow_cell(&mut self, cell: &Cell) -> Option<Vec2> {
+        assert!(cell.x < self.width);
+        assert!(cell.y < self.height);
+        self.flow[self.height * cell.y + cell.x]
+    }
+
+    pub fn get_flow(&mut self, destination: &Vec2) -> Option<Vec2> {
+        let cell = self.destination_to_cell(destination);
         assert!(cell.x < self.width);
         assert!(cell.y < self.height);
         self.flow[self.height * cell.y + cell.x]
@@ -111,7 +118,19 @@ impl FlowField {
         neighbours
     }
 
-    pub fn with_destination(mut self, cell: Cell) -> Self {
+    fn destination_to_cell(&self, destination: &Vec2) -> Cell {
+        (
+            (destination.x + self.width as f32 / 2.0) as usize,
+            (destination.y + self.height as f32 / 2.0) as usize,
+        )
+            .into()
+    }
+
+    pub fn set_destination(&mut self, destination: Vec2) {
+        self.set_destination_cell(self.destination_to_cell(&destination));
+    }
+
+    pub fn set_destination_cell(&mut self, cell: Cell) {
         let mut open = VecDeque::new();
         self.set(&cell, 0);
         open.push_back(cell);
@@ -137,7 +156,6 @@ impl FlowField {
                 }
             }
         }
-        self
     }
 
     pub fn calculate_flow(&mut self) {
@@ -166,7 +184,7 @@ impl FlowField {
                         );
                     }
                 }
-                self.set_flow(&cell, direction);
+                self.set_flow_cell(&cell, direction);
             }
         }
     }
@@ -221,15 +239,15 @@ mod tests {
 
     #[test]
     fn set_destination_test() {
-        let flow_field = FlowField::new(10, 10).with_destination(Cell::new(4, 4));
+        let mut flow_field = FlowField::new(10, 10);
+        flow_field.set_destination_cell(Cell::new(4, 4));
         flow_field.print();
     }
 
     #[test]
     fn set_destination_with_one_blocked_test() {
-        let flow_field = FlowField::new(10, 10)
-            .with_blocked_cell(&Cell::new(3, 3))
-            .with_destination(Cell::new(4, 4));
+        let mut flow_field = FlowField::new(10, 10).with_blocked_cell(&Cell::new(3, 3));
+        flow_field.set_destination_cell(Cell::new(4, 4));
         assert!(flow_field.get(&Cell::new(3, 3)) == std::u32::MAX);
         flow_field.print();
     }

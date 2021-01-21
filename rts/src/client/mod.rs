@@ -9,7 +9,7 @@ pub use resources::GameInfo;
 use crate::{
     client::{
         components::{Building, CameraCenter, EmptyBundle, Unit},
-        resources::{BuildingIdGenerator, PhysicsState, UnitIdGenerator},
+        resources::{BuildingIdGenerator, FlowFields, PhysicsState, UnitIdGenerator},
     },
     helpers,
     input::{CameraViewEvent, CommandEvent},
@@ -23,6 +23,7 @@ impl Plugin for ClientPlugin {
             .add_resource(UnitIdGenerator::default())
             .add_resource(BuildingIdGenerator::default())
             .add_resource(PhysicsState::default())
+            .add_resource(FlowFields::new(512, 512))
             .add_startup_system(create_world.system())
             .add_system(handle_camera.system())
             .add_system(handle_player.system())
@@ -139,6 +140,7 @@ fn handle_camera(
 fn handle_player(
     mut query_units: Query<(&GlobalTransform, &mut Handle<StandardMaterial>, &mut Unit)>,
     commands: &mut Commands,
+    mut flow_fields: ResMut<FlowFields>,
     mut unit_id_generator: ResMut<UnitIdGenerator>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
@@ -257,6 +259,7 @@ fn steering_alignment(current: &Unit, all_units: &[Unit]) -> Vec2 {
 fn handle_physics(
     time: Res<Time>,
     mut physics_state: ResMut<PhysicsState>,
+    mut flow_fields: ResMut<FlowFields>,
     mut query_units: Query<(&mut Transform, &mut Unit)>,
     query_buildings: Query<(&Transform, &Building)>,
 ) {

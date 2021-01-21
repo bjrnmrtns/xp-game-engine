@@ -29,5 +29,6 @@ DONE 14: implement collision avoidance
 TODO 15: implement buildings static
 TODO 16: implement flowfield navigation
 [x] implement array of values with print debugging
-[] implement set destination and calculate values of other fields
+[x] implement set destination and calculate values of other fields
+[] integrate flowfield into game
 TODO 17: start implementation magickavoxel integration
