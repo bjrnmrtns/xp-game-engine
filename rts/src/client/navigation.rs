@@ -1,3 +1,4 @@
+use bevy::prelude::Vec2;
 use std::collections::VecDeque;
 
 pub struct Neighbours(Vec<Cell>);
@@ -15,7 +16,8 @@ impl Cell {
 }
 
 pub struct FlowField {
-    cells: Vec<u32>,
+    values: Vec<u32>,
+    flow: Vec<Option<Vec2>>,
     width: usize,
     height: usize,
 }
@@ -32,7 +34,8 @@ impl Into<Cell> for (usize, usize) {
 impl FlowField {
     pub fn new(width: usize, height: usize) -> Self {
         Self {
-            cells: vec![std::u32::MAX - 1; width * height],
+            values: vec![std::u32::MAX - 1; width * height],
+            flow: vec![None; width * height],
             width,
             height,
         }
@@ -53,13 +56,25 @@ impl FlowField {
     pub fn get(&self, cell: &Cell) -> u32 {
         assert!(cell.x < self.width);
         assert!(cell.y < self.height);
-        self.cells[self.height * cell.y + cell.x]
+        self.values[self.height * cell.y + cell.x]
     }
 
     pub fn set(&mut self, cell: &Cell, value: u32) {
         assert!(cell.x < self.width);
         assert!(cell.y < self.height);
-        self.cells[self.height * cell.y + cell.x] = value;
+        self.values[self.height * cell.y + cell.x] = value;
+    }
+
+    pub fn set_flow(&mut self, cell: &Cell, direction: Option<Vec2>) {
+        assert!(cell.x < self.width);
+        assert!(cell.y < self.height);
+        self.flow[self.height * cell.y + cell.x] = direction;
+    }
+
+    pub fn get_flow(&mut self, cell: &Cell) -> Option<Vec2> {
+        assert!(cell.x < self.width);
+        assert!(cell.y < self.height);
+        self.flow[self.height * cell.y + cell.x]
     }
 
     pub fn get_neighbours(&self, cell: &Cell) -> Vec<Cell> {
@@ -123,6 +138,37 @@ impl FlowField {
             }
         }
         self
+    }
+
+    pub fn calculate_flow(&mut self) {
+        for y in 0..self.height {
+            for x in 0..self.width {
+                let cell = Cell::new(x, y);
+                let mut value = std::u32::MAX - 1;
+                let mut direction = None;
+                for neighbour in self.get_neighbours(&cell) {
+                    let n_value = self.get(&neighbour);
+                    if n_value != std::u32::MAX && n_value < value {
+                        value = n_value;
+                        direction = Some(
+                            Vec2::new((neighbour.x - cell.x) as f32, (neighbour.y - cell.y) as f32)
+                                .normalize(),
+                        );
+                    }
+                }
+                for neighbour in self.get_neighbours_cross(&cell) {
+                    let n_value = self.get(&neighbour);
+                    if n_value != std::u32::MAX && n_value < value {
+                        value = n_value;
+                        direction = Some(
+                            Vec2::new((neighbour.x - cell.x) as f32, (neighbour.y - cell.y) as f32)
+                                .normalize(),
+                        );
+                    }
+                }
+                self.set_flow(&cell, direction);
+            }
+        }
     }
 
     pub fn print(&self) {
