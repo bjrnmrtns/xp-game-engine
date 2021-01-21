@@ -1,4 +1,5 @@
 mod components;
+mod navigation;
 mod resources;
 
 pub use components::SelectionRender;
@@ -164,7 +165,6 @@ fn handle_player(
                 for (_, _, mut unit) in query_units.iter_mut() {
                     if unit.selected {
                         unit.destination = Some(target.clone());
-                        println!("{}", unit.destination.unwrap());
                     }
                 }
             }
@@ -258,10 +258,16 @@ fn handle_physics(
     time: Res<Time>,
     mut physics_state: ResMut<PhysicsState>,
     mut query_units: Query<(&mut Transform, &mut Unit)>,
+    query_buildings: Query<(&Transform, &Building)>,
 ) {
     let steps_per_second = 60.0f32;
     let step_time = 1.0 / steps_per_second;
     let expected_steps = (time.time_since_startup().as_secs_f32() * steps_per_second) as u64;
+
+    let all_buildings = query_buildings
+        .iter()
+        .map(|(_, building)| building.clone())
+        .collect::<Vec<_>>();
 
     for _ in physics_state.steps_done..expected_steps {
         let all_units = query_units
