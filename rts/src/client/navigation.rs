@@ -71,17 +71,17 @@ impl FlowField {
         self.flow[self.height * cell.y + cell.x] = direction;
     }
 
-    pub fn get_flow_cell(&mut self, cell: &Cell) -> Option<Vec2> {
+    pub fn get_flow_cell(&self, cell: &Cell) -> Option<Vec2> {
         assert!(cell.x < self.width);
         assert!(cell.y < self.height);
         self.flow[self.height * cell.y + cell.x]
     }
 
-    pub fn get_flow(&mut self, destination: &Vec2) -> Option<Vec2> {
+    pub fn get_flow(&self, destination: &Vec2) -> Option<Vec2> {
         let cell = self.destination_to_cell(destination);
         assert!(cell.x < self.width);
         assert!(cell.y < self.height);
-        self.flow[self.height * cell.y + cell.x]
+        self.get_flow_cell(&cell)
     }
 
     pub fn get_neighbours(&self, cell: &Cell) -> Vec<Cell> {

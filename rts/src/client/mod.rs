@@ -9,6 +9,7 @@ pub use resources::GameInfo;
 use crate::{
     client::{
         components::{Building, CameraCenter, EmptyBundle, Unit},
+        navigation::FlowField,
         resources::{BuildingIdGenerator, FlowFields, PhysicsState, UnitIdGenerator},
     },
     helpers,
@@ -167,6 +168,8 @@ fn handle_player(
                 for (_, _, mut unit) in query_units.iter_mut() {
                     if unit.selected {
                         unit.destination = Some(target.clone());
+                        flow_fields.flow_field.set_destination(target.clone());
+                        flow_fields.flow_field.calculate_flow();
                     }
                 }
             }
@@ -189,6 +192,12 @@ fn handle_player(
             }
         }
     }
+}
+
+fn steering_flow_field(current: &Unit, flowfield: &FlowField) -> Vec2 {
+    let desired_velocity = flowfield.get_flow(&current.position).unwrap() * current.max_speed;
+    let desired_steering = desired_velocity - current.velocity;
+    desired_steering * (current.max_force / current.max_speed)
 }
 
 fn steering_seek(destination: &Vec2, current: &Unit) -> Vec2 {
@@ -259,7 +268,7 @@ fn steering_alignment(current: &Unit, all_units: &[Unit]) -> Vec2 {
 fn handle_physics(
     time: Res<Time>,
     mut physics_state: ResMut<PhysicsState>,
-    mut flow_fields: ResMut<FlowFields>,
+    flow_fields: Res<FlowFields>,
     mut query_units: Query<(&mut Transform, &mut Unit)>,
     query_buildings: Query<(&Transform, &Building)>,
 ) {
