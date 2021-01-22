@@ -164,11 +164,12 @@ fn handle_player(
                     .with(Unit::new(unit_id_generator.generate(), *target));
             }
             CommandEvent::Move(target) => {
+                flow_fields.flow_field.reset();
+                flow_fields.flow_field.set_destination(target.clone());
+                flow_fields.flow_field.calculate_flow();
                 for (_, _, mut unit) in query_units.iter_mut() {
                     if unit.selected {
                         unit.destination = Some(target.clone());
-                        flow_fields.flow_field.set_destination(target.clone());
-                        flow_fields.flow_field.calculate_flow();
                     }
                 }
             }

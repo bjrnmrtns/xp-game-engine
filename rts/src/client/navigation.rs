@@ -51,6 +51,12 @@ impl FlowField {
         }
     }
 
+    pub fn reset(&mut self) {
+        for v in &mut self.values {
+            *v = std::u32::MAX - 1;
+        }
+    }
+
     pub fn with_blocked_cell(mut self, cell: &Cell) -> Self {
         self.set(&cell, std::u32::MAX);
         self
@@ -250,6 +256,8 @@ impl FlowField {
 #[cfg(test)]
 mod tests {
     use crate::client::navigation::{Cell, FlowField};
+    use bevy::prelude::Vec2;
+
     #[test]
     fn get_neighbours_test() {
         let neighbours = FlowField::new(10, 10).get_neighbours(&(3, 3).into());
@@ -312,5 +320,20 @@ mod tests {
         flow_field.calculate_flow();
         flow_field.print();
         flow_field.print_flow();
+    }
+
+    #[test]
+    fn position_to_cell_test() {
+        let flow_field = FlowField::new(4, 4);
+        let cell = flow_field.position_to_cell(&Vec2::new(0.5, 0.5));
+        assert!(cell.x == 2 && cell.y == 2);
+        let cell = flow_field.position_to_cell(&Vec2::new(0.01, 0.01));
+        assert!(cell.x == 2 && cell.y == 2);
+        let cell = flow_field.position_to_cell(&Vec2::new(-0.01, -0.01));
+        assert!(cell.x == 1 && cell.y == 1);
+        let cell = flow_field.position_to_cell(&Vec2::new(-0.99, -0.99));
+        assert!(cell.x == 1 && cell.y == 1);
+        let cell = flow_field.position_to_cell(&Vec2::new(-1.01, -1.01));
+        assert!(cell.x == 0 && cell.y == 0);
     }
 }
