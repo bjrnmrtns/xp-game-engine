@@ -1,8 +1,6 @@
 use bevy::prelude::Vec2;
 use std::collections::VecDeque;
 
-pub struct Neighbours(Vec<Cell>);
-
 #[derive(PartialEq, Eq)]
 pub struct Cell {
     pub x: usize,
@@ -176,24 +174,26 @@ impl FlowField {
                 let current = Cell::new(x, y);
                 let mut value = std::u32::MAX - 1;
                 let mut direction = None;
-                for neighbour in self.get_neighbours(&current) {
-                    let n_value = self.get(&neighbour);
-                    if n_value != std::u32::MAX && n_value < value {
-                        value = n_value;
-                        direction = Some(IVec2::new(
-                            (neighbour.x as i32 - current.x as i32),
-                            (neighbour.y as i32 - current.y as i32),
-                        ));
+                if self.get(&current) != std::u32::MAX {
+                    for neighbour in self.get_neighbours(&current) {
+                        let n_value = self.get(&neighbour);
+                        if n_value < value {
+                            value = n_value;
+                            direction = Some(IVec2::new(
+                                neighbour.x as i32 - current.x as i32,
+                                neighbour.y as i32 - current.y as i32,
+                            ));
+                        }
                     }
-                }
-                for neighbour in self.get_neighbours_cross(&current) {
-                    let n_value = self.get(&neighbour);
-                    if n_value != std::u32::MAX && n_value < value {
-                        value = n_value;
-                        direction = Some(IVec2::new(
-                            (neighbour.x as i32 - current.x as i32),
-                            (neighbour.y as i32 - current.y as i32),
-                        ));
+                    for neighbour in self.get_neighbours_cross(&current) {
+                        let n_value = self.get(&neighbour);
+                        if n_value < value {
+                            value = n_value;
+                            direction = Some(IVec2::new(
+                                neighbour.x as i32 - current.x as i32,
+                                neighbour.y as i32 - current.y as i32,
+                            ));
+                        }
                     }
                 }
                 self.set_flow_cell(&current, direction);
@@ -202,7 +202,7 @@ impl FlowField {
     }
 
     pub fn print(&self) {
-        for y in 0..self.height {
+        for y in (0..self.height).rev() {
             for x in 0..self.width {
                 print!("{:10} ", self.get(&(x, y).into()));
             }
@@ -235,7 +235,7 @@ impl FlowField {
                 if let Some(direction) = self.get_flow_cell(&(x, y).into()) {
                     print!(" {}", Self::get_string_vector(&direction));
                 } else {
-                    print!("  ");
+                    print!(" x");
                 }
             }
             println!("");
@@ -298,7 +298,7 @@ mod tests {
 
     #[test]
     fn print_flow() {
-        let mut flow_field = FlowField::new(25, 25); //.with_blocked_cell(&Cell::new(3, 3));
+        let mut flow_field = FlowField::new(25, 25).with_blocked_cell(&Cell::new(8, 8)); //.with_blocked_cell(&Cell::new(3, 3));
         flow_field.set_destination_cell(Cell::new(10, 10));
         flow_field.calculate_flow();
         flow_field.print();
