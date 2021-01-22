@@ -193,11 +193,11 @@ fn handle_player(
     }
 }
 
-/*fn steering_flow_field(current: &Unit, flowfield: &FlowField) -> Vec2 {
-    let desired_velocity = flowfield.get_flow(&current.position).unwrap() * current.max_speed;
+fn steering_flow_field(current: &Unit, flowfield: &FlowField) -> Vec2 {
+    let desired_velocity = flowfield.get_flow(&current.position) * current.max_speed;
     let desired_steering = desired_velocity - current.velocity;
     desired_steering * (current.max_force / current.max_speed)
-}*/
+}
 
 fn steering_seek(destination: &Vec2, current: &Unit) -> Vec2 {
     let desired_velocity = (*destination - current.position).normalize() * current.max_speed;
@@ -292,6 +292,7 @@ fn handle_physics(
                 let cohesion = steering_cohesion(&current, all_units.as_slice());
                 let alignment = steering_alignment(&current, all_units.as_slice());
                 current.forces = seek + seperation + (cohesion * 0.1) + alignment;
+                current.forces = steering_flow_field(&current, &flow_fields.flow_field);
             }
         }
         for (_, mut unit) in query_units.iter_mut() {

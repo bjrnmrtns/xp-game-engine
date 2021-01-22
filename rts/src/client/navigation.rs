@@ -87,11 +87,15 @@ impl FlowField {
         self.flow[self.height * cell.y + cell.x]
     }
 
-    pub fn get_flow(&self, position: &Vec2) -> Option<IVec2> {
+    pub fn get_flow(&self, position: &Vec2) -> Vec2 {
         let cell = self.position_to_cell(position);
         assert!(cell.x < self.width);
         assert!(cell.y < self.height);
-        self.get_flow_cell(&cell)
+        if let Some(flow) = self.get_flow_cell(&cell) {
+            Vec2::new(flow.x as f32, flow.y as f32).normalize()
+        } else {
+            Vec2::zero()
+        }
     }
 
     pub fn get_neighbours(&self, cell: &Cell) -> Vec<Cell> {
