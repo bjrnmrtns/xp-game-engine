@@ -9,7 +9,7 @@ pub use resources::GameInfo;
 use crate::{
     client::{
         components::{Building, CameraCenter, EmptyBundle, Unit},
-        navigation::FlowField,
+        navigation::{Cell, FlowField},
         resources::{BuildingIdGenerator, FlowFields, PhysicsState, UnitIdGenerator},
     },
     helpers,
@@ -34,6 +34,7 @@ impl Plugin for ClientPlugin {
 
 fn create_world(
     commands: &mut Commands,
+    mut flow_fields: ResMut<FlowFields>,
     mut building_id_generator: ResMut<BuildingIdGenerator>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
@@ -71,19 +72,22 @@ fn create_world(
 
     commands
         .spawn(PbrBundle {
-            mesh: meshes.add(Mesh::from(shape::Cube { size: 2.0 })),
+            mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
             material: materials.add(StandardMaterial {
                 albedo: Color::rgb(1.0, 0.0, 1.0),
                 ..Default::default()
             }),
-            transform: Transform::from_translation(Vec3::zero()),
+            transform: Transform::from_translation(Vec3::new(0.5, 0.5, 0.5)),
             ..Default::default()
         })
         .with(Building::new(
             building_id_generator.generate(),
-            Vec2::zero(),
-            2.0,
+            Vec2::new(0.5, 0.5),
+            1.0,
         ));
+    flow_fields
+        .flow_field
+        .with_blocked_cells(&[Cell::new(256, 256)]);
 
     game_info.camera_center = commands
         .spawn(EmptyBundle)
@@ -195,9 +199,7 @@ fn handle_player(
 }
 
 fn steering_flow_field(current: &Unit, flowfield: &FlowField) -> Vec2 {
-    let desired_velocity = flowfield.get_flow(&current.position) * current.max_speed;
-    let desired_steering = desired_velocity - current.velocity;
-    desired_steering * (current.max_force / current.max_speed)
+    flowfield.get_flow(&current.position) * current.max_speed
 }
 
 fn steering_seek(destination: &Vec2, current: &Unit) -> Vec2 {
@@ -276,35 +278,11 @@ fn handle_physics(
     let step_time = 1.0 / steps_per_second;
     let expected_steps = (time.time_since_startup().as_secs_f32() * steps_per_second) as u64;
 
-    let all_buildings = query_buildings
-        .iter()
-        .map(|(_, building)| building.clone())
-        .collect::<Vec<_>>();
-
     for _ in physics_state.steps_done..expected_steps {
-        let all_units = query_units
-            .iter_mut()
-            .map(|(_, unit)| unit.clone())
-            .collect::<Vec<_>>();
         for (_, mut current) in query_units.iter_mut() {
             if let Some(destination) = current.destination {
-                let seek = steering_seek(&destination, &current);
-                let seperation = steering_seperation(&current, all_units.as_slice());
-                let cohesion = steering_cohesion(&current, all_units.as_slice());
-                let alignment = steering_alignment(&current, all_units.as_slice());
-                current.forces = seek + seperation + (cohesion * 0.1) + alignment;
                 current.forces = steering_flow_field(&current, &flow_fields.flow_field);
-            }
-        }
-        for (_, mut unit) in query_units.iter_mut() {
-            if let Some(_) = unit.destination {
-                unit.velocity = unit.velocity + unit.forces * step_time;
-                unit.velocity = if unit.velocity.length() > unit.max_speed {
-                    unit.velocity.normalize() * unit.max_speed
-                } else {
-                    unit.velocity
-                };
-                unit.position = unit.position + unit.velocity * step_time;
+                current.position = current.position + current.forces * step_time;
             }
         }
     }

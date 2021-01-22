@@ -53,20 +53,20 @@ impl FlowField {
 
     pub fn reset(&mut self) {
         for v in &mut self.values {
-            *v = std::u32::MAX - 1;
+            if *v != std::u32::MAX {
+                *v = std::u32::MAX - 1;
+            }
         }
     }
 
-    pub fn with_blocked_cell(mut self, cell: &Cell) -> Self {
+    pub fn with_blocked_cell(&mut self, cell: &Cell) {
         self.set(&cell, std::u32::MAX);
-        self
     }
 
-    pub fn with_blocked_cells(mut self, cells: &[Cell]) -> Self {
+    pub fn with_blocked_cells(&mut self, cells: &[Cell]) {
         for cell in cells {
             self.set(cell, std::u32::MAX);
         }
-        self
     }
 
     pub fn get(&self, cell: &Cell) -> u32 {
@@ -302,7 +302,8 @@ mod tests {
 
     #[test]
     fn set_destination_with_one_blocked_test() {
-        let mut flow_field = FlowField::new(10, 10).with_blocked_cell(&Cell::new(3, 3));
+        let mut flow_field = FlowField::new(10, 10);
+        flow_field.with_blocked_cell(&Cell::new(3, 3));
         flow_field.set_destination_cell(Cell::new(4, 4));
         assert!(flow_field.get(&Cell::new(3, 3)) == std::u32::MAX);
         flow_field.print();
@@ -310,7 +311,8 @@ mod tests {
 
     #[test]
     fn print_flow() {
-        let mut flow_field = FlowField::new(25, 25).with_blocked_cells(&[
+        let mut flow_field = FlowField::new(25, 25);
+        flow_field.with_blocked_cells(&[
             Cell::new(8, 8),
             Cell::new(7, 8),
             Cell::new(8, 7),
