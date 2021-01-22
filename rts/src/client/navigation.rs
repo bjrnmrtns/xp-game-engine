@@ -298,7 +298,12 @@ mod tests {
 
     #[test]
     fn print_flow() {
-        let mut flow_field = FlowField::new(25, 25).with_blocked_cell(&Cell::new(8, 8)); //.with_blocked_cell(&Cell::new(3, 3));
+        let mut flow_field = FlowField::new(25, 25).with_blocked_cells(&[
+            Cell::new(8, 8),
+            Cell::new(7, 8),
+            Cell::new(8, 7),
+            Cell::new(7, 7),
+        ]); //.with_blocked_cell(&Cell::new(3, 3));
         flow_field.set_destination_cell(Cell::new(10, 10));
         flow_field.calculate_flow();
         flow_field.print();
