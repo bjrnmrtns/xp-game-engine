@@ -48,7 +48,6 @@ fn create_world(
         transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
         ..Default::default()
     });
-
     commands
         .spawn(PbrBundle {
             mesh: meshes.add(Mesh::from(shape::Plane { size: 1.0 })),
@@ -194,11 +193,11 @@ fn handle_player(
     }
 }
 
-fn steering_flow_field(current: &Unit, flowfield: &FlowField) -> Vec2 {
+/*fn steering_flow_field(current: &Unit, flowfield: &FlowField) -> Vec2 {
     let desired_velocity = flowfield.get_flow(&current.position).unwrap() * current.max_speed;
     let desired_steering = desired_velocity - current.velocity;
     desired_steering * (current.max_force / current.max_speed)
-}
+}*/
 
 fn steering_seek(destination: &Vec2, current: &Unit) -> Vec2 {
     let desired_velocity = (*destination - current.position).normalize() * current.max_speed;

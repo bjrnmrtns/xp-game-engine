@@ -30,5 +30,6 @@ TODO 15: implement buildings static
 TODO 16: implement flowfield navigation
 [x] implement array of values with print debugging
 [x] implement set destination and calculate values of other fields
+[] render tiles with text on top, for debugging purposes
 [] integrate flowfield into game
 TODO 17: start implementation magickavoxel integration
