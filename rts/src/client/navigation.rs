@@ -124,16 +124,32 @@ impl FlowField {
     pub fn get_neighbours_cross(&self, cell: &Cell) -> Vec<Cell> {
         let mut neighbours = Vec::new();
         if cell.x + 1 < self.width && cell.y + 1 < self.height {
-            neighbours.push((cell.x + 1, cell.y + 1).into());
+            if self.get(&(cell.x + 1, cell.y).into()) != std::u32::MAX
+                && self.get(&(cell.x, cell.y + 1).into()) != std::u32::MAX
+            {
+                neighbours.push((cell.x + 1, cell.y + 1).into());
+            }
         }
         if cell.x + 1 < self.width && cell.y > 0 {
-            neighbours.push((cell.x + 1, cell.y - 1).into());
+            if self.get(&(cell.x + 1, cell.y).into()) != std::u32::MAX
+                && self.get(&(cell.x, cell.y - 1).into()) != std::u32::MAX
+            {
+                neighbours.push((cell.x + 1, cell.y - 1).into());
+            }
         }
         if cell.x > 0 && cell.y + 1 < self.height {
-            neighbours.push((cell.x - 1, cell.y + 1).into());
+            if self.get(&(cell.x - 1, cell.y).into()) != std::u32::MAX
+                && self.get(&(cell.x, cell.y + 1).into()) != std::u32::MAX
+            {
+                neighbours.push((cell.x - 1, cell.y + 1).into());
+            }
         }
         if cell.x > 0 && cell.y > 0 {
-            neighbours.push((cell.x - 1, cell.y - 1).into());
+            if self.get(&(cell.x - 1, cell.y).into()) != std::u32::MAX
+                && self.get(&(cell.x, cell.y - 1).into()) != std::u32::MAX
+            {
+                neighbours.push((cell.x - 1, cell.y - 1).into());
+            }
         }
         neighbours
     }
@@ -182,7 +198,7 @@ impl FlowField {
         for y in 0..self.height {
             for x in 0..self.width {
                 let current = Cell::new(x, y);
-                let mut value = std::u32::MAX - 1;
+                let mut value = self.get(&current);
                 let mut direction = None;
                 if self.get(&current) != std::u32::MAX {
                     for neighbour in self.get_neighbours(&current) {
