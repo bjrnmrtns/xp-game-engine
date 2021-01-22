@@ -23,11 +23,15 @@ impl IVec2 {
     pub fn new(x: i32, y: i32) -> Self {
         Self { x, y }
     }
+
+    pub fn zero() -> Self {
+        Self { x: 0, y: 0 }
+    }
 }
 
 pub struct FlowField {
     values: Vec<u32>,
-    flow: Vec<Option<IVec2>>,
+    flow: Vec<IVec2>,
     width: usize,
     height: usize,
 }
@@ -45,7 +49,7 @@ impl FlowField {
     pub fn new(width: usize, height: usize) -> Self {
         Self {
             values: vec![std::u32::MAX - 1; width * height],
-            flow: vec![None; width * height],
+            flow: vec![IVec2::zero(); width * height],
             width,
             height,
         }
@@ -81,26 +85,46 @@ impl FlowField {
         self.values[self.height * cell.y + cell.x] = value;
     }
 
-    pub fn set_flow_cell(&mut self, cell: &Cell, direction: Option<IVec2>) {
-        assert!(cell.x < self.width);
-        assert!(cell.y < self.height);
-        self.flow[self.height * cell.y + cell.x] = direction;
+    pub fn set_flow_cell(&mut self, x: usize, y: usize, direction: IVec2) {
+        assert!(x < self.width);
+        assert!(y < self.height);
+        self.flow[self.height * y + x] = direction;
     }
 
-    pub fn get_flow_cell(&self, cell: &Cell) -> Option<IVec2> {
-        assert!(cell.x < self.width);
-        assert!(cell.y < self.height);
-        self.flow[self.height * cell.y + cell.x]
+    pub fn get_flow_cell(&self, x: usize, y: usize) -> IVec2 {
+        assert!(x < self.width);
+        assert!(y < self.height);
+        self.flow[self.height * y + x]
+    }
+
+    pub fn get_flow_cell_f32(&self, x: usize, y: usize) -> Vec2 {
+        let v = self.get_flow_cell(x, y);
+        Vec2::new(v.x as f32, v.y as f32).normalize()
     }
 
     pub fn get_flow(&self, position: &Vec2) -> Vec2 {
         let cell = self.position_to_cell(position);
         assert!(cell.x < self.width);
         assert!(cell.y < self.height);
-        if let Some(flow) = self.get_flow_cell(&cell) {
-            Vec2::new(flow.x as f32, flow.y as f32).normalize()
-        } else {
+        let flow = self.get_flow_cell(cell.x, cell.y);
+        Vec2::new(flow.x as f32, flow.y as f32).normalize()
+    }
+
+    pub fn get_flow_bilininterpol(&self, position: &Vec2) -> Vec2 {
+        let cell = self.position_to_cell(position);
+        let f00 = self.get_flow_cell_f32(cell.x, cell.y);
+        let f01 = self.get_flow_cell_f32(cell.x, cell.y + 1);
+        let f10 = self.get_flow_cell_f32(cell.x + 1, cell.y);
+        let f11 = self.get_flow_cell_f32(cell.x + 1, cell.y + 1);
+        let x_weight = position.x - cell.x as f32;
+        let top = f00 * (1.0 - x_weight) + f10 * x_weight;
+        let bottom = f01 * (1.0 - x_weight) + f11 * x_weight;
+        let y_weight = position.y - cell.y as f32;
+        let direction = (top * (1.0 - y_weight) + bottom * y_weight).normalize();
+        if direction.is_nan() {
             Vec2::zero()
+        } else {
+            direction
         }
     }
 
@@ -199,30 +223,30 @@ impl FlowField {
             for x in 0..self.width {
                 let current = Cell::new(x, y);
                 let mut value = self.get(&current);
-                let mut direction = None;
+                let mut direction = IVec2::zero();
                 if self.get(&current) != std::u32::MAX {
                     for neighbour in self.get_neighbours(&current) {
                         let n_value = self.get(&neighbour);
                         if n_value < value {
                             value = n_value;
-                            direction = Some(IVec2::new(
+                            direction = IVec2::new(
                                 neighbour.x as i32 - current.x as i32,
                                 neighbour.y as i32 - current.y as i32,
-                            ));
+                            );
                         }
                     }
                     for neighbour in self.get_neighbours_cross(&current) {
                         let n_value = self.get(&neighbour);
                         if n_value < value {
                             value = n_value;
-                            direction = Some(IVec2::new(
+                            direction = IVec2::new(
                                 neighbour.x as i32 - current.x as i32,
                                 neighbour.y as i32 - current.y as i32,
-                            ));
+                            );
                         }
                     }
                 }
-                self.set_flow_cell(&current, direction);
+                self.set_flow_cell(current.x, current.y, direction);
             }
         }
     }
@@ -258,11 +282,8 @@ impl FlowField {
     pub fn print_flow(&self) {
         for y in (0..self.height).rev() {
             for x in 0..self.width {
-                if let Some(direction) = self.get_flow_cell(&(x, y).into()) {
-                    print!(" {}", Self::get_string_vector(&direction));
-                } else {
-                    print!(" x");
-                }
+                let direction = self.get_flow_cell(x, y);
+                print!(" {}", Self::get_string_vector(&direction));
             }
             println!("");
         }

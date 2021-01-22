@@ -199,7 +199,9 @@ fn handle_player(
 }
 
 fn steering_flow_field(current: &Unit, flowfield: &FlowField) -> Vec2 {
-    flowfield.get_flow(&current.position) * current.max_speed
+    let desired_vel = flowfield.get_flow_bilininterpol(&current.position) * current.max_speed;
+    let desired_steering = desired_vel - current.velocity;
+    desired_steering * (current.max_force / current.max_speed)
 }
 
 fn steering_seek(destination: &Vec2, current: &Unit) -> Vec2 {
@@ -282,7 +284,13 @@ fn handle_physics(
         for (_, mut current) in query_units.iter_mut() {
             if let Some(destination) = current.destination {
                 current.forces = steering_flow_field(&current, &flow_fields.flow_field);
-                current.position = current.position + current.forces * step_time;
+                current.velocity = current.velocity + current.forces * step_time;
+                current.velocity = if current.velocity.length() > current.max_speed {
+                    current.velocity.normalize() * current.max_speed
+                } else {
+                    current.velocity
+                };
+                current.position = current.position + current.velocity * step_time;
             }
         }
     }
