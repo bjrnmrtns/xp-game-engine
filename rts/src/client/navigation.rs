@@ -69,19 +69,13 @@ impl FlowField {
 
     pub fn block_position_with_size(&mut self, pos: &IVec2, size: usize) {
         assert!(size % 2 == 0);
-        let cell_position = self.position_to_cell_i(&pos);
+        let cell_position = self.position_to_cell(&pos);
         let half_size = size / 2;
 
         for y in (cell_position.y - half_size)..(cell_position.y + half_size) {
             for x in (cell_position.x - half_size)..(cell_position.x + half_size) {
                 self.set_blocked_cell(&Cell::new(x, y));
             }
-        }
-    }
-
-    pub fn with_blocked_cells(&mut self, cells: &[Cell]) {
-        for cell in cells {
-            self.set(cell, std::u32::MAX);
         }
     }
 
@@ -115,16 +109,16 @@ impl FlowField {
     }
 
     pub fn get_flow_bilininterpol(&self, position: &Vec2) -> Vec2 {
-        let cell = self.position_to_cell(position);
-        let f00 = self.get_flow_cell_f32(cell.x, cell.y);
-        let f01 = self.get_flow_cell_f32(cell.x, cell.y + 1);
-        let f10 = self.get_flow_cell_f32(cell.x + 1, cell.y);
-        let f11 = self.get_flow_cell_f32(cell.x + 1, cell.y + 1);
+        let floor = self.position_to_cell_floor(position);
+        let f00 = self.get_flow_cell_f32(floor.x, floor.y);
+        let f01 = self.get_flow_cell_f32(floor.x, floor.y + 1);
+        let f10 = self.get_flow_cell_f32(floor.x + 1, floor.y);
+        let f11 = self.get_flow_cell_f32(floor.x + 1, floor.y + 1);
         let mapped_position = self.mapped_position(position);
-        let x_weight = mapped_position.x - cell.x as f32;
+        let x_weight = mapped_position.x - floor.x as f32;
         let top = f00 * (1.0 - x_weight) + f10 * x_weight;
         let bottom = f01 * (1.0 - x_weight) + f11 * x_weight;
-        let y_weight = mapped_position.y - cell.y as f32;
+        let y_weight = mapped_position.y - floor.y as f32;
         let direction = (top * (1.0 - y_weight) + bottom * y_weight).normalize();
         if direction.is_nan() {
             Vec2::zero()
@@ -183,7 +177,7 @@ impl FlowField {
         neighbours
     }
 
-    fn position_to_cell_i(&self, position: &IVec2) -> Cell {
+    fn position_to_cell(&self, position: &IVec2) -> Cell {
         (
             (position.x + (self.width / 2) as i32) as usize,
             (position.y + (self.height / 2) as i32) as usize,
@@ -194,22 +188,18 @@ impl FlowField {
     fn mapped_position(&self, position: &Vec2) -> Vec2 {
         assert!(self.width % 2 == 0);
         assert!(self.height % 2 == 0);
-        let x = position.x + (self.width / 2) as f32;
-        let y = position.y + (self.height / 2) as f32;
+        let x = position.x.floor() + (self.width / 2) as f32;
+        let y = position.y.floor() + (self.height / 2) as f32;
         Vec2::new(x, y)
     }
 
-    fn position_to_cell(&self, position: &Vec2) -> Cell {
-        let mapped_position_floored = self.mapped_position(&position).floor();
-        (
-            mapped_position_floored.x as usize,
-            mapped_position_floored.y as usize,
-        )
-            .into()
+    fn position_to_cell_floor(&self, position: &Vec2) -> Cell {
+        let mapped_position = self.mapped_position(&position);
+        (mapped_position.x as usize, mapped_position.y as usize).into()
     }
 
     pub fn set_destination(&mut self, destination: Vec2) {
-        self.set_destination_cell(self.position_to_cell(&destination));
+        self.set_destination_cell(self.position_to_cell_floor(&destination));
     }
 
     pub fn set_destination_cell(&mut self, cell: Cell) {
@@ -386,15 +376,15 @@ mod tests {
     #[test]
     fn position_to_cell_test() {
         let flow_field = FlowField::new(4, 4);
-        let cell = flow_field.position_to_cell(&Vec2::new(0.5, 0.5));
+        let cell = flow_field.position_to_cell_floor(&Vec2::new(0.5, 0.5));
         assert!(cell.x == 2 && cell.y == 2);
-        let cell = flow_field.position_to_cell(&Vec2::new(0.01, 0.01));
+        let cell = flow_field.position_to_cell_floor(&Vec2::new(0.01, 0.01));
         assert!(cell.x == 2 && cell.y == 2);
-        let cell = flow_field.position_to_cell(&Vec2::new(-0.01, -0.01));
+        let cell = flow_field.position_to_cell_floor(&Vec2::new(-0.01, -0.01));
         assert!(cell.x == 1 && cell.y == 1);
-        let cell = flow_field.position_to_cell(&Vec2::new(-0.99, -0.99));
+        let cell = flow_field.position_to_cell_floor(&Vec2::new(-0.99, -0.99));
         assert!(cell.x == 1 && cell.y == 1);
-        let cell = flow_field.position_to_cell(&Vec2::new(-1.01, -1.01));
+        let cell = flow_field.position_to_cell_floor(&Vec2::new(-1.01, -1.01));
         assert!(cell.x == 0 && cell.y == 0);
     }
 
