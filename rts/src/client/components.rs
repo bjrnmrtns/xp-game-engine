@@ -33,7 +33,7 @@ impl Unit {
             max_cohesion: 4.0,
             radius: 0.5,
             max_speed: 4.0,
-            max_force: 5.0,
+            max_force: 15.0,
             position,
             rotation: 0.0,
             velocity: Vec2::new(0.0, -1.0),

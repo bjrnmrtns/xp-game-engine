@@ -26,10 +26,10 @@ DONE 15: implement steering behaviour based on forces, instead of rotation/angle
 DONE 12: implement flocking cohesion
 DONE 13: implement flocking alignment
 DONE 14: implement collision avoidance
-TODO 15: implement buildings static
-TODO 16: implement flowfield navigation (still with jittering movement)
+DONE 16: implement flowfield navigation (still with jittering movement)
 [x] implement array of values with print debugging
 [x] implement set destination and calculate values of other fields
 [x] integrate flowfield into game
-[] add blocking object to test flowfield further
+[x] add blocking object to test flowfield further
+TODO 15: implement buildings static
 TODO 17: start implementation magickavoxel loader

@@ -105,20 +105,21 @@ impl FlowField {
 
     pub fn get_flow_cell_f32(&self, x: usize, y: usize) -> Vec2 {
         let v = self.get_flow_cell(x, y);
-        Vec2::new(v.x as f32, v.y as f32).normalize()
+        Vec2::new(v.x as f32, v.y as f32)
     }
 
     pub fn get_flow_bilininterpol(&self, position: &Vec2) -> Vec2 {
-        let floor = self.position_to_cell_floor(position);
-        let f00 = self.get_flow_cell_f32(floor.x, floor.y);
-        let f01 = self.get_flow_cell_f32(floor.x, floor.y + 1);
-        let f10 = self.get_flow_cell_f32(floor.x + 1, floor.y);
-        let f11 = self.get_flow_cell_f32(floor.x + 1, floor.y + 1);
+        let floor_pos = position.floor();
+        let (x, y) = self.map(floor_pos.x as isize, floor_pos.y as isize);
+        let f00 = self.get_flow_cell_f32(x, y);
+        let f01 = self.get_flow_cell_f32(x, y + 1);
+        let f10 = self.get_flow_cell_f32(x + 1, y);
+        let f11 = self.get_flow_cell_f32(x + 1, y + 1);
         let mapped_position = self.mapped_position(position);
-        let x_weight = mapped_position.x - floor.x as f32;
+        let x_weight = mapped_position.x - x as f32;
         let top = f00 * (1.0 - x_weight) + f10 * x_weight;
         let bottom = f01 * (1.0 - x_weight) + f11 * x_weight;
-        let y_weight = mapped_position.y - floor.y as f32;
+        let y_weight = mapped_position.y - y as f32;
         let direction = (top * (1.0 - y_weight) + bottom * y_weight).normalize();
         if direction.is_nan() {
             Vec2::zero()
@@ -198,8 +199,23 @@ impl FlowField {
         (mapped_position.x as usize, mapped_position.y as usize).into()
     }
 
+    fn map(&self, x: isize, y: isize) -> (usize, usize) {
+        (
+            (x + self.width as isize / 2) as usize,
+            (y + self.height as isize / 2) as usize,
+        )
+    }
+
     pub fn set_destination(&mut self, destination: Vec2) {
-        self.set_destination_cell(self.position_to_cell_floor(&destination));
+        self.set_destination_i(
+            destination.x.floor() as isize,
+            destination.y.floor() as isize,
+        );
+    }
+
+    pub fn set_destination_i(&mut self, x: isize, y: isize) {
+        let (x, y) = self.map(x, y);
+        self.set_destination_cell(Cell::new(x, y));
     }
 
     pub fn set_destination_cell(&mut self, cell: Cell) {
@@ -361,12 +377,6 @@ mod tests {
     #[test]
     fn print_flow() {
         let mut flow_field = FlowField::new(25, 25);
-        flow_field.with_blocked_cells(&[
-            Cell::new(8, 8),
-            Cell::new(7, 8),
-            Cell::new(8, 7),
-            Cell::new(7, 7),
-        ]); //.with_blocked_cell(&Cell::new(3, 3));
         flow_field.set_destination_cell(Cell::new(10, 10));
         flow_field.calculate_flow();
         flow_field.print();
@@ -390,9 +400,10 @@ mod tests {
 
     #[test]
     fn interpolation_test_four_cells() {
-        let mut flow_field = FlowField::new(3, 3);
-        flow_field.set_destination_cell(Cell::new(2, 2));
+        let mut flow_field = FlowField::new(4, 4);
+        flow_field.set_destination(Vec2::new(0.5, 0.5));
         flow_field.calculate_flow();
         flow_field.print_flow();
+        let flow = flow_field.get_flow_bilininterpol(&Vec2::new(0.5, -0.5));
     }
 }
