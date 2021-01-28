@@ -70,7 +70,7 @@ fn create_world(
         ..Default::default()
     });
 
-    commands
+    /*commands
         .spawn(PbrBundle {
             mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
             material: materials.add(StandardMaterial {
@@ -88,6 +88,8 @@ fn create_world(
     flow_fields
         .flow_field
         .with_blocked_cells(&[Cell::new(256, 256)]);
+
+     */
 
     game_info.camera_center = commands
         .spawn(EmptyBundle)
@@ -171,6 +173,7 @@ fn handle_player(
                 flow_fields.flow_field.reset();
                 flow_fields.flow_field.set_destination(target.clone());
                 flow_fields.flow_field.calculate_flow();
+                flow_fields.flow_field.print_flow();
                 for (_, _, mut unit) in query_units.iter_mut() {
                     if unit.selected {
                         unit.destination = Some(target.clone());
@@ -200,8 +203,8 @@ fn handle_player(
 
 fn steering_flow_field(current: &Unit, flowfield: &FlowField) -> Vec2 {
     let desired_vel = flowfield.get_flow_bilininterpol(&current.position) * current.max_speed;
-    let desired_steering = desired_vel - current.velocity;
-    desired_steering * (current.max_force / current.max_speed)
+    let velocity_change = desired_vel - current.velocity;
+    velocity_change * (current.max_force / current.max_speed)
 }
 
 fn steering_seek(destination: &Vec2, current: &Unit) -> Vec2 {
@@ -283,8 +286,8 @@ fn handle_physics(
     for _ in physics_state.steps_done..expected_steps {
         for (_, mut current) in query_units.iter_mut() {
             if let Some(destination) = current.destination {
-                current.forces = steering_flow_field(&current, &flow_fields.flow_field);
-                current.velocity = current.velocity + current.forces * step_time;
+                let force = steering_flow_field(&current, &flow_fields.flow_field);
+                current.velocity = current.velocity + force * step_time;
                 current.velocity = if current.velocity.length() > current.max_speed {
                     current.velocity.normalize() * current.max_speed
                 } else {

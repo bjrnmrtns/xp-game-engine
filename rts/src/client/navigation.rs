@@ -180,8 +180,8 @@ impl FlowField {
 
     fn position_to_cell(&self, position: &Vec2) -> Cell {
         (
-            (position.x + self.width as f32 / 2.0) as usize,
-            (position.y + self.height as f32 / 2.0) as usize,
+            (position.x + self.width as f32 / 2.0).floor() as usize,
+            (position.y + self.height as f32 / 2.0).floor() as usize,
         )
             .into()
     }
@@ -325,9 +325,9 @@ mod tests {
 
     #[test]
     fn get_neighbours_cross_edge_test() {
-        let neighbours = FlowField::new(10, 10).get_neighbours_cross(&(10, 10).into());
+        let neighbours = FlowField::new(10, 10).get_neighbours_cross(&(9, 9).into());
         assert_eq!(neighbours.len(), 1);
-        assert!(neighbours.contains(&Cell::new(9, 9)));
+        assert!(neighbours.contains(&Cell::new(8, 8)));
     }
 
     #[test]
@@ -374,5 +374,13 @@ mod tests {
         assert!(cell.x == 1 && cell.y == 1);
         let cell = flow_field.position_to_cell(&Vec2::new(-1.01, -1.01));
         assert!(cell.x == 0 && cell.y == 0);
+    }
+
+    #[test]
+    fn interpolation_test_four_cells() {
+        let mut flow_field = FlowField::new(3, 3);
+        flow_field.set_destination_cell(Cell::new(2, 2));
+        flow_field.calculate_flow();
+        flow_field.print_flow();
     }
 }
