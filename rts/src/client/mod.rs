@@ -199,13 +199,13 @@ fn steering_flow_field(current: &Unit, flowfield: &FlowField) -> Vec2 {
     velocity_change * (current.max_force / current.max_speed)
 }
 
-fn _steering_seek(destination: &Vec2, current: &Unit) -> Vec2 {
+fn steering_seek(destination: &Vec2, current: &Unit) -> Vec2 {
     let desired_velocity = (*destination - current.position).normalize() * current.max_speed;
     let desired_steering = desired_velocity - current.velocity;
     desired_steering * (current.max_force / current.max_speed)
 }
 
-fn _steering_seperation(current: &Unit, all_units: &[Unit]) -> Vec2 {
+fn steering_seperation(current: &Unit, all_units: &[Unit]) -> Vec2 {
     let mut total = Vec2::zero();
     let mut count = 0;
     for unit in all_units {
@@ -225,7 +225,7 @@ fn _steering_seperation(current: &Unit, all_units: &[Unit]) -> Vec2 {
     }
 }
 
-fn _steering_cohesion(current: &Unit, all_units: &[Unit]) -> Vec2 {
+fn steering_cohesion(current: &Unit, all_units: &[Unit]) -> Vec2 {
     let mut center_of_mass = current.position;
     let mut count = 1;
     for unit in all_units {
@@ -240,11 +240,11 @@ fn _steering_cohesion(current: &Unit, all_units: &[Unit]) -> Vec2 {
     if count == 1 {
         Vec2::zero()
     } else {
-        _steering_seek(&(center_of_mass / count as f32), &current)
+        steering_seek(&(center_of_mass / count as f32), &current)
     }
 }
 
-fn _steering_alignment(current: &Unit, all_units: &[Unit]) -> Vec2 {
+fn steering_alignment(current: &Unit, all_units: &[Unit]) -> Vec2 {
     let mut average_heading = Vec2::zero();
     let mut count = 0;
     for unit in all_units {
@@ -275,17 +275,31 @@ fn handle_physics(
     let step_time = 1.0 / steps_per_second;
     let expected_steps = (time.time_since_startup().as_secs_f32() * steps_per_second) as u64;
 
+    let all_units = query_units
+        .iter_mut()
+        .map(|(_, unit)| unit.clone())
+        .collect::<Vec<_>>();
+
     for _ in physics_state.steps_done..expected_steps {
         for (_, mut current) in query_units.iter_mut() {
-            if let Some(_destination) = current.destination {
-                let force = steering_flow_field(&current, &flow_fields.flow_field);
-                current.velocity = current.velocity + force * step_time;
-                current.velocity = if current.velocity.length() > current.max_speed {
-                    current.velocity.normalize() * current.max_speed
+            if let Some(destination) = current.destination {
+                let flow_direction = steering_flow_field(&current, &flow_fields.flow_field);
+                let seperation = steering_seperation(&current, all_units.as_slice());
+                let cohesion = steering_cohesion(&current, all_units.as_slice());
+                let alignment = steering_alignment(&current, all_units.as_slice());
+                current.forces = flow_direction + seperation + (cohesion * 0.1) + alignment;
+                current.forces = flow_direction;
+            }
+        }
+        for (_, mut unit) in query_units.iter_mut() {
+            if let Some(_) = unit.destination {
+                unit.velocity = unit.velocity + unit.forces * step_time;
+                unit.velocity = if unit.velocity.length() > unit.max_speed {
+                    unit.velocity.normalize() * unit.max_speed
                 } else {
-                    current.velocity
+                    unit.velocity
                 };
-                current.position = current.position + current.velocity * step_time;
+                unit.position = unit.position + unit.velocity * step_time;
             }
         }
     }
@@ -294,5 +308,6 @@ fn handle_physics(
         transform.translation.x = unit.position.x;
         transform.translation.z = unit.position.y;
     }
+
     physics_state.steps_done = expected_steps;
 }
