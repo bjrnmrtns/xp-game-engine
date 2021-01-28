@@ -63,8 +63,20 @@ impl FlowField {
         }
     }
 
-    pub fn with_blocked_cell(&mut self, cell: &Cell) {
+    pub fn set_blocked_cell(&mut self, cell: &Cell) {
         self.set(&cell, std::u32::MAX);
+    }
+
+    pub fn block_position_with_size(&mut self, pos: &IVec2, size: usize) {
+        assert!(size % 2 == 0);
+        let cell_position = self.position_to_cell_i(&pos);
+        let half_size = size / 2;
+
+        for y in (cell_position.y - half_size)..(cell_position.y + half_size) {
+            for x in (cell_position.x - half_size)..(cell_position.x + half_size) {
+                self.set_blocked_cell(&Cell::new(x, y));
+            }
+        }
     }
 
     pub fn with_blocked_cells(&mut self, cells: &[Cell]) {
@@ -102,24 +114,17 @@ impl FlowField {
         Vec2::new(v.x as f32, v.y as f32).normalize()
     }
 
-    pub fn get_flow(&self, position: &Vec2) -> Vec2 {
-        let cell = self.position_to_cell(position);
-        assert!(cell.x < self.width);
-        assert!(cell.y < self.height);
-        let flow = self.get_flow_cell(cell.x, cell.y);
-        Vec2::new(flow.x as f32, flow.y as f32).normalize()
-    }
-
     pub fn get_flow_bilininterpol(&self, position: &Vec2) -> Vec2 {
         let cell = self.position_to_cell(position);
         let f00 = self.get_flow_cell_f32(cell.x, cell.y);
         let f01 = self.get_flow_cell_f32(cell.x, cell.y + 1);
         let f10 = self.get_flow_cell_f32(cell.x + 1, cell.y);
         let f11 = self.get_flow_cell_f32(cell.x + 1, cell.y + 1);
-        let x_weight = position.x - cell.x as f32;
+        let mapped_position = self.mapped_position(position);
+        let x_weight = mapped_position.x - cell.x as f32;
         let top = f00 * (1.0 - x_weight) + f10 * x_weight;
         let bottom = f01 * (1.0 - x_weight) + f11 * x_weight;
-        let y_weight = position.y - cell.y as f32;
+        let y_weight = mapped_position.y - cell.y as f32;
         let direction = (top * (1.0 - y_weight) + bottom * y_weight).normalize();
         if direction.is_nan() {
             Vec2::zero()
@@ -178,10 +183,27 @@ impl FlowField {
         neighbours
     }
 
-    fn position_to_cell(&self, position: &Vec2) -> Cell {
+    fn position_to_cell_i(&self, position: &IVec2) -> Cell {
         (
-            (position.x + self.width as f32 / 2.0).floor() as usize,
-            (position.y + self.height as f32 / 2.0).floor() as usize,
+            (position.x + (self.width / 2) as i32) as usize,
+            (position.y + (self.height / 2) as i32) as usize,
+        )
+            .into()
+    }
+
+    fn mapped_position(&self, position: &Vec2) -> Vec2 {
+        assert!(self.width % 2 == 0);
+        assert!(self.height % 2 == 0);
+        let x = position.x + (self.width / 2) as f32;
+        let y = position.y + (self.height / 2) as f32;
+        Vec2::new(x, y)
+    }
+
+    fn position_to_cell(&self, position: &Vec2) -> Cell {
+        let mapped_position_floored = self.mapped_position(&position).floor();
+        (
+            mapped_position_floored.x as usize,
+            mapped_position_floored.y as usize,
         )
             .into()
     }
@@ -251,7 +273,7 @@ impl FlowField {
         }
     }
 
-    pub fn print(&self) {
+    fn print(&self) {
         for y in (0..self.height).rev() {
             for x in 0..self.width {
                 print!("{:10} ", self.get(&(x, y).into()));
@@ -340,7 +362,7 @@ mod tests {
     #[test]
     fn set_destination_with_one_blocked_test() {
         let mut flow_field = FlowField::new(10, 10);
-        flow_field.with_blocked_cell(&Cell::new(3, 3));
+        flow_field.set_blocked_cell(&Cell::new(3, 3));
         flow_field.set_destination_cell(Cell::new(4, 4));
         assert!(flow_field.get(&Cell::new(3, 3)) == std::u32::MAX);
         flow_field.print();

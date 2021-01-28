@@ -9,7 +9,7 @@ pub use resources::GameInfo;
 use crate::{
     client::{
         components::{Building, CameraCenter, EmptyBundle, Unit},
-        navigation::{Cell, FlowField},
+        navigation::{Cell, FlowField, IVec2},
         resources::{BuildingIdGenerator, FlowFields, PhysicsState, UnitIdGenerator},
     },
     helpers,
@@ -24,7 +24,7 @@ impl Plugin for ClientPlugin {
             .add_resource(UnitIdGenerator::default())
             .add_resource(BuildingIdGenerator::default())
             .add_resource(PhysicsState::default())
-            .add_resource(FlowFields::new(512, 512))
+            .add_resource(FlowFields::new(64, 64))
             .add_startup_system(create_world.system())
             .add_system(handle_camera.system())
             .add_system(handle_player.system())
@@ -70,26 +70,18 @@ fn create_world(
         ..Default::default()
     });
 
-    /*commands
-        .spawn(PbrBundle {
-            mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
-            material: materials.add(StandardMaterial {
-                albedo: Color::rgb(1.0, 0.0, 1.0),
-                ..Default::default()
-            }),
-            transform: Transform::from_translation(Vec3::new(0.5, 0.5, 0.5)),
+    commands.spawn(PbrBundle {
+        mesh: meshes.add(Mesh::from(shape::Cube { size: 8.0 })),
+        material: materials.add(StandardMaterial {
+            albedo: Color::rgb(1.0, 0.0, 1.0),
             ..Default::default()
-        })
-        .with(Building::new(
-            building_id_generator.generate(),
-            Vec2::new(0.5, 0.5),
-            1.0,
-        ));
+        }),
+        transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
+        ..Default::default()
+    });
     flow_fields
         .flow_field
-        .with_blocked_cells(&[Cell::new(256, 256)]);
-
-     */
+        .block_position_with_size(&IVec2::new(0, 0), 8);
 
     game_info.camera_center = commands
         .spawn(EmptyBundle)
@@ -207,13 +199,13 @@ fn steering_flow_field(current: &Unit, flowfield: &FlowField) -> Vec2 {
     velocity_change * (current.max_force / current.max_speed)
 }
 
-fn steering_seek(destination: &Vec2, current: &Unit) -> Vec2 {
+fn _steering_seek(destination: &Vec2, current: &Unit) -> Vec2 {
     let desired_velocity = (*destination - current.position).normalize() * current.max_speed;
     let desired_steering = desired_velocity - current.velocity;
     desired_steering * (current.max_force / current.max_speed)
 }
 
-fn steering_seperation(current: &Unit, all_units: &[Unit]) -> Vec2 {
+fn _steering_seperation(current: &Unit, all_units: &[Unit]) -> Vec2 {
     let mut total = Vec2::zero();
     let mut count = 0;
     for unit in all_units {
@@ -233,7 +225,7 @@ fn steering_seperation(current: &Unit, all_units: &[Unit]) -> Vec2 {
     }
 }
 
-fn steering_cohesion(current: &Unit, all_units: &[Unit]) -> Vec2 {
+fn _steering_cohesion(current: &Unit, all_units: &[Unit]) -> Vec2 {
     let mut center_of_mass = current.position;
     let mut count = 1;
     for unit in all_units {
@@ -248,11 +240,11 @@ fn steering_cohesion(current: &Unit, all_units: &[Unit]) -> Vec2 {
     if count == 1 {
         Vec2::zero()
     } else {
-        steering_seek(&(center_of_mass / count as f32), &current)
+        _steering_seek(&(center_of_mass / count as f32), &current)
     }
 }
 
-fn steering_alignment(current: &Unit, all_units: &[Unit]) -> Vec2 {
+fn _steering_alignment(current: &Unit, all_units: &[Unit]) -> Vec2 {
     let mut average_heading = Vec2::zero();
     let mut count = 0;
     for unit in all_units {
@@ -285,7 +277,7 @@ fn handle_physics(
 
     for _ in physics_state.steps_done..expected_steps {
         for (_, mut current) in query_units.iter_mut() {
-            if let Some(destination) = current.destination {
+            if let Some(_destination) = current.destination {
                 let force = steering_flow_field(&current, &flow_fields.flow_field);
                 current.velocity = current.velocity + force * step_time;
                 current.velocity = if current.velocity.length() > current.max_speed {
@@ -301,12 +293,6 @@ fn handle_physics(
     for (mut transform, unit) in query_units.iter_mut() {
         transform.translation.x = unit.position.x;
         transform.translation.z = unit.position.y;
-        let angle = Vec2::new(0.0, -1.0).angle_between(unit.velocity);
-        //transform.rotation = Quat::from_rotation_y(angle);
-        /*transform.rotation = Quat::from_rotation_y(
-            Vec3::new(unit.velocity.x, transform.translation.y, unit.velocity.y)
-                .angle_between(Vec3::new(0.0, transform.translation.y, -1.0)),
-        );*/
     }
     physics_state.steps_done = expected_steps;
 }

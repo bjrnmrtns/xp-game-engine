@@ -27,9 +27,9 @@ DONE 12: implement flocking cohesion
 DONE 13: implement flocking alignment
 DONE 14: implement collision avoidance
 TODO 15: implement buildings static
-TODO 16: implement flowfield navigation
+TODO 16: implement flowfield navigation (still with jittering movement)
 [x] implement array of values with print debugging
 [x] implement set destination and calculate values of other fields
-[] render tiles with text on top, for debugging purposes
-[] integrate flowfield into game
-TODO 17: start implementation magickavoxel integration
+[x] integrate flowfield into game
+[] add blocking object to test flowfield further
+TODO 17: start implementation magickavoxel loader
