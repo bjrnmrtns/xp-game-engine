@@ -5,6 +5,15 @@ pub struct Handle<T> {
     marker: PhantomData<T>,
 }
 
+impl<T> Clone for Handle<T> {
+    fn clone(&self) -> Self {
+        Self {
+            id: self.id,
+            marker: PhantomData,
+        }
+    }
+}
+
 impl<T> Handle<T> {
     pub fn new(id: u64) -> Self {
         Self {

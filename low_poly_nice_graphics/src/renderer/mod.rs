@@ -3,5 +3,5 @@ mod error;
 mod pipeline;
 mod renderer;
 
-pub use pipeline::{Asset, Mesh, Pipeline};
+pub use pipeline::{Mesh, Pipeline, Shape};
 pub use renderer::Renderer;

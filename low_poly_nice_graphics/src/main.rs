@@ -1,7 +1,13 @@
 mod assets;
+mod entity;
 mod renderer;
 
-use crate::renderer::{Asset, Mesh};
+use crate::{
+    assets::Assets,
+    entity::Entity,
+    renderer::{Mesh, Shape},
+};
+use nalgebra_glm::identity;
 use winit::{
     event::{Event, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
@@ -18,12 +24,17 @@ fn main() {
     let pipeline = futures::executor::block_on(renderer::Pipeline::new(&renderer))
         .expect("Could not create pipeline");
 
-    let triangle = Mesh::create_mesh_from(&renderer, &Asset::default());
+    let mut meshes = Assets::new();
+    let triangle = Entity {
+        mesh_handle: meshes.add(Mesh::create_mesh_from(&renderer, &Shape::default())),
+        model: identity(),
+    };
+
     event_loop.run(move |event, _, control_flow| {
         *control_flow = winit::event_loop::ControlFlow::Poll;
         match event {
             Event::RedrawRequested(_) => {
-                pipeline.render(&triangle, &mut renderer);
+                pipeline.render(&triangle, &meshes, &mut renderer);
             }
             Event::MainEventsCleared => {
                 window.request_redraw();

@@ -1,6 +1,7 @@
 DONE 1: Create window (winit) add gameloop and render triangle, with fixed camera, ability to close window
-TODO 3: Add Asset implementation so meshes have handles and can be assigned to entities.
-TODO 4: Add Entity implementation
+DONE 3: Add Asset implementation so meshes have handles and can be assigned to entities.
+DONE 4: Add Entity implementation
+TODO 8: Move model data in entity to instance data and add instance data to gpu (instances redering)
 TODO 2: Generate simple noisy terrain still with fixed camera
 TODO 7: Start lighting implementation to have good looking low poly graphics
 TODO 5: Add transform implementation and can be added to entities

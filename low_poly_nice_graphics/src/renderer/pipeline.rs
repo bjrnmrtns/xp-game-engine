@@ -1,4 +1,8 @@
-use crate::renderer::{depth_texture::DepthTexture, error::RendererError, Renderer};
+use crate::{
+    assets::Assets,
+    entity::Entity,
+    renderer::{depth_texture::DepthTexture, error::RendererError, Renderer},
+};
 use nalgebra_glm::{identity, vec3, Mat4, Vec3};
 use std::io::Read;
 use wgpu::util::DeviceExt;
@@ -34,7 +38,7 @@ pub struct Mesh {
 }
 
 impl Mesh {
-    pub fn create_mesh_from(renderer: &Renderer, asset: &Asset) -> Self {
+    pub fn create_mesh_from(renderer: &Renderer, asset: &Shape) -> Self {
         let vertex_buffer = renderer
             .device
             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -60,11 +64,11 @@ impl Mesh {
 
 #[repr(C)]
 #[derive(Debug)]
-pub struct Asset {
+pub struct Shape {
     pub vertices: Vec<Vertex>,
 }
 
-impl Default for Asset {
+impl Default for Shape {
     fn default() -> Self {
         Self {
             vertices: vec![
@@ -245,7 +249,7 @@ impl Pipeline {
         })
     }
 
-    pub fn render(&self, mesh: &Mesh, renderer: &mut Renderer) {
+    pub fn render(&self, entity: &Entity, meshes: &Assets<Mesh>, renderer: &mut Renderer) {
         let target = &renderer
             .swap_chain
             .get_current_frame()
@@ -283,10 +287,11 @@ impl Pipeline {
                 }),
             });
             let uniforms = Uniforms {
-                m: mesh.model.clone(),
+                m: entity.model.clone(),
                 v: identity(),
                 p: identity(),
             };
+            let mesh = meshes.get(entity.mesh_handle.clone()).unwrap();
             renderer
                 .queue
                 .write_buffer(&self.uniform_buffer, 0, bytemuck::cast_slice(&[uniforms]));
