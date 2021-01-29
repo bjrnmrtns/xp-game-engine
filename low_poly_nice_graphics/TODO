@@ -1,2 +1,2 @@
-TODO 1: Create window (winit) add gameloop and render triangle, with fixed camera, ability to close window
+DONE 1: Create window (winit) add gameloop and render triangle, with fixed camera, ability to close window
 TODO 2: Generate simple noisy terrain still with fixed camera
