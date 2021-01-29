@@ -3,9 +3,9 @@ use winit::window::Window;
 
 pub struct Renderer {
     surface: wgpu::Surface,
-    device: wgpu::Device,
+    pub device: wgpu::Device,
     queue: wgpu::Queue,
-    swap_chain_descriptor: wgpu::SwapChainDescriptor,
+    pub swap_chain_descriptor: wgpu::SwapChainDescriptor,
     swap_chain: wgpu::SwapChain,
 }
 
