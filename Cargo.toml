@@ -2,6 +2,7 @@
 members = [
     "rts",
     "low_poly",
+    "low_poly_nice_graphics",
     "game",
     "xp_ui",
     "xp_math",

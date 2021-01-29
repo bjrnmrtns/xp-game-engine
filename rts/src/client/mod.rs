@@ -287,7 +287,7 @@ fn handle_physics(
                 let seperation = steering_seperation(&current, all_units.as_slice());
                 let cohesion = steering_cohesion(&current, all_units.as_slice());
                 let alignment = steering_alignment(&current, all_units.as_slice());
-                current.forces = flow_direction + seperation + (cohesion * 0.1) + alignment;
+                current.forces = flow_direction + seperation /*+ (cohesion * 0.1) + alignment*/;
             }
         }
         for (_, mut unit) in query_units.iter_mut() {

@@ -1,0 +1,10 @@
+[package]
+name = "low_poly_nice_graphics"
+version = "0.1.0"
+authors = ["Bjorn Martens <bjorn@expeditious.nl>"]
+edition = "2018"
+
+[dependencies]
+noise = "0.7"
+winit = "0.24"
+wgpu = "0.6"
