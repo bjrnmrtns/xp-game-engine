@@ -89,14 +89,12 @@ impl Pipeline {
             p: identity(),
         };
 
-        let uniform_buffer =
-            renderer
-                .device
-                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                    label: None,
-                    contents: bytemuck::cast_slice(&[uniforms]),
-                    usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
-                });
+        let uniform_buffer = renderer.device.create_buffer(&wgpu::BufferDescriptor {
+            label: None,
+            usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
+            size: (std::mem::size_of::<Uniforms>()) as u64,
+            mapped_at_creation: false,
+        });
 
         let uniform_bind_group_layout =
             renderer

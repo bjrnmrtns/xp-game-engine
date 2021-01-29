@@ -9,17 +9,13 @@ layout(location=1) out vec3 out_normal;
 
 layout(set=0, binding=0)
 uniform Uniforms {
-    mat4 projection;
-    mat4 view;
-};
-
-layout(set=0, binding=1)
-buffer Instances {
-    mat4 models[];
+    mat4 m;
+    mat4 v;
+    mat4 p;
 };
 
 void main() {
-    out_normal = mat3(transpose(inverse(view * models[gl_InstanceIndex]))) * in_normal;
+    out_normal = mat3(transpose(inverse(v * m))) * in_normal;
     out_color = in_color;
-    gl_Position = projection * view * models[gl_InstanceIndex] * vec4(in_position, 1.0);
+    gl_Position = p * v * m * vec4(in_position, 1.0);
 }
