@@ -4,10 +4,10 @@ use winit::window::Window;
 pub struct Renderer {
     surface: wgpu::Surface,
     pub device: wgpu::Device,
-    queue: wgpu::Queue,
+    pub(crate) queue: wgpu::Queue,
     pub swap_chain_descriptor: wgpu::SwapChainDescriptor,
-    swap_chain: wgpu::SwapChain,
-    depth_texture: DepthTexture,
+    pub(crate) swap_chain: wgpu::SwapChain,
+    pub(crate) depth_texture: DepthTexture,
 }
 
 impl Renderer {
@@ -65,47 +65,5 @@ impl Renderer {
         self.swap_chain = self
             .device
             .create_swap_chain(&self.surface, &self.swap_chain_descriptor);
-    }
-
-    pub fn render(&mut self, pipeline: Pipeline) {
-        let target = &self
-            .swap_chain
-            .get_current_frame()
-            .expect("Could not get next frame texture_view")
-            .output
-            .view;
-        let mut encoder = self
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
-        {
-            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
-                    attachment: target,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: 0.0,
-                            g: 0.0,
-                            b: 0.0,
-                            a: 1.0,
-                        }),
-                        store: true,
-                    },
-                }],
-                depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachmentDescriptor {
-                    attachment: &self.depth_texture.view,
-                    depth_ops: Some(wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(1.0),
-                        store: true,
-                    }),
-                    stencil_ops: Some(wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(0),
-                        store: true,
-                    }),
-                }),
-            });
-            pipeline.render(&mut render_pass, &self.queue);
-        }
-        self.queue.submit(std::iter::once(encoder.finish()));
     }
 }

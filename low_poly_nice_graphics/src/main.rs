@@ -19,7 +19,9 @@ fn main() {
     event_loop.run(move |event, _, control_flow| {
         *control_flow = winit::event_loop::ControlFlow::Poll;
         match event {
-            Event::RedrawRequested(_) => (), // run loop
+            Event::RedrawRequested(_) => {
+                pipeline.render(&mut renderer);
+            }
             Event::MainEventsCleared => {
                 window.request_redraw();
             }

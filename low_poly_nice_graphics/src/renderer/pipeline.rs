@@ -188,15 +188,49 @@ impl Pipeline {
         })
     }
 
-    pub fn render<'a, 'b>(
-        &'a self,
-        render_pass: &'b mut wgpu::RenderPass<'a>,
-        queue: &wgpu::Queue,
-    ) {
-        //queue.write_buffer(&self.uniform_buffer, 0, bytemuck::cast_slice();
-        render_pass.set_pipeline(&self.render_pipeline);
-        //render_pass.set_vertex_buffer(0, );
-        render_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
-        //render_pass.draw();
+    pub fn render(&self, renderer: &mut Renderer) {
+        let target = &renderer
+            .swap_chain
+            .get_current_frame()
+            .expect("Could not get next frame texture_view")
+            .output
+            .view;
+        let mut encoder = renderer
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+        {
+            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
+                    attachment: &target,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color {
+                            r: 0.0,
+                            g: 0.0,
+                            b: 0.0,
+                            a: 1.0,
+                        }),
+                        store: true,
+                    },
+                }],
+                depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachmentDescriptor {
+                    attachment: &renderer.depth_texture.view,
+                    depth_ops: Some(wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(1.0),
+                        store: true,
+                    }),
+                    stencil_ops: Some(wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(0),
+                        store: true,
+                    }),
+                }),
+            });
+            //queue.write_buffer(&self.uniform_buffer, 0, bytemuck::cast_slice();
+            render_pass.set_pipeline(&self.render_pipeline);
+            //render_pass.set_vertex_buffer(0, );
+            render_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
+            //render_pass.draw();
+        }
+        renderer.queue.submit(std::iter::once(encoder.finish()));
     }
 }
