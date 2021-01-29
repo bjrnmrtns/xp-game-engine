@@ -1,4 +1,4 @@
-use crate::renderer::{depth_texture::DepthTexture, error::RendererError, Pipeline};
+use crate::renderer::{depth_texture::DepthTexture, error::RendererError};
 use winit::window::Window;
 
 pub struct Renderer {

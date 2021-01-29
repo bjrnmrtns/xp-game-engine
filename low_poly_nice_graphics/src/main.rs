@@ -1,7 +1,6 @@
 mod renderer;
 
 use crate::renderer::{Asset, Mesh};
-use renderer::Renderer;
 use winit::{
     event::{Event, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
@@ -15,7 +14,7 @@ fn main() {
         .expect("Could not create window");
     let mut renderer = futures::executor::block_on(renderer::Renderer::new(&window))
         .expect("Could not create renderer");
-    let mut pipeline = futures::executor::block_on(renderer::Pipeline::new(&renderer))
+    let pipeline = futures::executor::block_on(renderer::Pipeline::new(&renderer))
         .expect("Could not create pipeline");
 
     let triangle = Mesh::create_mesh_from(&renderer, &Asset::default());

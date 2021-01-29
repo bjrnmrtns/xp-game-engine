@@ -2,7 +2,6 @@ use crate::renderer::{depth_texture::DepthTexture, error::RendererError, Rendere
 use nalgebra_glm::{identity, vec3, Mat4, Vec3};
 use std::io::Read;
 use wgpu::util::DeviceExt;
-use winit::window::Window;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
@@ -147,12 +146,6 @@ impl Pipeline {
         let fs_module_source = wgpu::util::make_spirv(spirv_fs_bytes.as_slice());
         let vs_module = renderer.device.create_shader_module(vs_module_source);
         let fs_module = renderer.device.create_shader_module(fs_module_source);
-
-        let uniforms = Uniforms {
-            m: identity(),
-            v: identity(),
-            p: identity(),
-        };
 
         let uniform_buffer = renderer.device.create_buffer(&wgpu::BufferDescriptor {
             label: None,
