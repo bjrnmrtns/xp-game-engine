@@ -1,5 +1,6 @@
 mod renderer;
 
+use crate::renderer::Mesh;
 use renderer::Renderer;
 use winit::{
     event::{Event, WindowEvent},
@@ -16,11 +17,13 @@ fn main() {
         .expect("Could not create renderer");
     let mut pipeline = futures::executor::block_on(renderer::Pipeline::new(&renderer))
         .expect("Could not create pipeline");
+
+    let triangle = Mesh::default();
     event_loop.run(move |event, _, control_flow| {
         *control_flow = winit::event_loop::ControlFlow::Poll;
         match event {
             Event::RedrawRequested(_) => {
-                pipeline.render(&mut renderer);
+                pipeline.render(&triangle, &mut renderer);
             }
             Event::MainEventsCleared => {
                 window.request_redraw();

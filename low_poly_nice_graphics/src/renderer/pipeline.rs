@@ -1,5 +1,5 @@
 use crate::renderer::{depth_texture::DepthTexture, error::RendererError, Renderer};
-use nalgebra_glm::{identity, Mat4, Vec3};
+use nalgebra_glm::{identity, vec3, Mat4, Vec3};
 use std::io::Read;
 use wgpu::util::DeviceExt;
 use winit::window::Window;
@@ -24,6 +24,26 @@ pub struct Uniforms {
 
 unsafe impl bytemuck::Pod for Uniforms {}
 unsafe impl bytemuck::Zeroable for Uniforms {}
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct Mesh {
+    vertices: Vec<Vertex>,
+    model: Mat4,
+}
+
+impl Default for Mesh {
+    fn default() -> Self {
+        Self {
+            vertices: vec![Vertex {
+                position: vec3(-0.5, -0.5, -2.0),
+                normal: vec3(0.0, 0.5, 0.0),
+                color: vec3(0.5, -0.5, 0.0),
+            }],
+            model: identity(),
+        }
+    }
+}
 
 impl Vertex {
     fn desc<'a>() -> wgpu::VertexBufferDescriptor<'a> {
@@ -188,7 +208,7 @@ impl Pipeline {
         })
     }
 
-    pub fn render(&self, renderer: &mut Renderer) {
+    pub fn render(&self, mesh: &Mesh, renderer: &mut Renderer) {
         let target = &renderer
             .swap_chain
             .get_current_frame()
@@ -225,9 +245,16 @@ impl Pipeline {
                     }),
                 }),
             });
-            //queue.write_buffer(&self.uniform_buffer, 0, bytemuck::cast_slice();
+            let uniforms = Uniforms {
+                m: mesh.model.clone(),
+                v: identity(),
+                p: identity(),
+            };
+            renderer
+                .queue
+                .write_buffer(&self.uniform_buffer, 0, bytemuck::cast_slice(&[uniforms]));
             render_pass.set_pipeline(&self.render_pipeline);
-            //render_pass.set_vertex_buffer(0, );
+            //            render_pass.set_vertex_buffer(0, ));
             render_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
             //render_pass.draw();
         }
