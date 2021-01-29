@@ -6,7 +6,7 @@ use winit::window::Window;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
-struct Vertex {
+pub struct Vertex {
     pub position: Vec3,
     pub normal: Vec3,
     pub color: Vec3,
@@ -28,11 +28,44 @@ unsafe impl bytemuck::Zeroable for Uniforms {}
 #[repr(C)]
 #[derive(Debug)]
 pub struct Mesh {
-    vertices: Vec<Vertex>,
+    vertex_buffer: wgpu::Buffer,
+    index_buffer: wgpu::Buffer,
+    len: u32,
     model: Mat4,
 }
 
-impl Default for Mesh {
+impl Mesh {
+    pub fn create_mesh_from(renderer: &Renderer, asset: &Asset) -> Self {
+        let vertex_buffer = renderer
+            .device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: None,
+                contents: bytemuck::cast_slice(asset.vertices.as_slice()),
+                usage: wgpu::BufferUsage::VERTEX,
+            });
+        let index_buffer = renderer
+            .device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: None,
+                contents: bytemuck::cast_slice(&[0, 1, 2]),
+                usage: wgpu::BufferUsage::INDEX,
+            });
+        Self {
+            vertex_buffer,
+            index_buffer,
+            len: 3,
+            model: identity(),
+        }
+    }
+}
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct Asset {
+    pub vertices: Vec<Vertex>,
+}
+
+impl Default for Asset {
     fn default() -> Self {
         Self {
             vertices: vec![Vertex {
@@ -40,7 +73,6 @@ impl Default for Mesh {
                 normal: vec3(0.0, 0.5, 0.0),
                 color: vec3(0.5, -0.5, 0.0),
             }],
-            model: identity(),
         }
     }
 }
@@ -254,9 +286,9 @@ impl Pipeline {
                 .queue
                 .write_buffer(&self.uniform_buffer, 0, bytemuck::cast_slice(&[uniforms]));
             render_pass.set_pipeline(&self.render_pipeline);
-            //            render_pass.set_vertex_buffer(0, ));
+            render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
             render_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
-            //render_pass.draw();
+            render_pass.draw(0..mesh.len, 0..1);
         }
         renderer.queue.submit(std::iter::once(encoder.finish()));
     }

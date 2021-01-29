@@ -1,6 +1,6 @@
 mod renderer;
 
-use crate::renderer::Mesh;
+use crate::renderer::{Asset, Mesh};
 use renderer::Renderer;
 use winit::{
     event::{Event, WindowEvent},
@@ -18,7 +18,7 @@ fn main() {
     let mut pipeline = futures::executor::block_on(renderer::Pipeline::new(&renderer))
         .expect("Could not create pipeline");
 
-    let triangle = Mesh::default();
+    let triangle = Mesh::create_mesh_from(&renderer, &Asset::default());
     event_loop.run(move |event, _, control_flow| {
         *control_flow = winit::event_loop::ControlFlow::Poll;
         match event {
