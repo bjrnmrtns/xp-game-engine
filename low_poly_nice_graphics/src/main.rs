@@ -1,3 +1,4 @@
+mod assets;
 mod renderer;
 
 use crate::renderer::{Asset, Mesh};
