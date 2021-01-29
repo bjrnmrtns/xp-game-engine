@@ -1,4 +1,4 @@
-use crate::renderer::{error::RendererError, Renderer};
+use crate::renderer::{depth_texture::DepthTexture, error::RendererError, Renderer};
 use nalgebra_glm::{identity, Mat4, Vec3};
 use std::io::Read;
 use wgpu::util::DeviceExt;
@@ -163,7 +163,7 @@ impl Pipeline {
                     }],
                     primitive_topology: wgpu::PrimitiveTopology::TriangleList,
                     depth_stencil_state: Some(wgpu::DepthStencilStateDescriptor {
-                        format: wgpu::TextureFormat::Depth32Float,
+                        format: DepthTexture::DEPTH_FORMAT,
                         depth_write_enabled: true,
                         depth_compare: wgpu::CompareFunction::Less,
                         stencil: wgpu::StencilStateDescriptor {

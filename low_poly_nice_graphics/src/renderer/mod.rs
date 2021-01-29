@@ -1,3 +1,4 @@
+mod depth_texture;
 mod error;
 mod pipeline;
 mod renderer;
