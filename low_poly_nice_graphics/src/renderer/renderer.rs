@@ -67,7 +67,7 @@ impl Renderer {
             .create_swap_chain(&self.surface, &self.swap_chain_descriptor);
     }
 
-    pub fn render(&mut self, pipeline: &Pipeline) {
+    pub fn render(&mut self, pipeline: Pipeline) {
         let target = &self
             .swap_chain
             .get_current_frame()
@@ -78,7 +78,7 @@ impl Renderer {
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
         {
-            let render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
                     attachment: target,
                     resolve_target: None,
@@ -104,6 +104,7 @@ impl Renderer {
                     }),
                 }),
             });
+            pipeline.render(&mut render_pass, &self.queue);
         }
         self.queue.submit(std::iter::once(encoder.finish()));
     }

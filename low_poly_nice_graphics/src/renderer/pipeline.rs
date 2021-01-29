@@ -187,4 +187,16 @@ impl Pipeline {
             render_pipeline,
         })
     }
+
+    pub fn render<'a, 'b>(
+        &'a self,
+        render_pass: &'b mut wgpu::RenderPass<'a>,
+        queue: &wgpu::Queue,
+    ) {
+        //queue.write_buffer(&self.uniform_buffer, 0, bytemuck::cast_slice();
+        render_pass.set_pipeline(&self.render_pipeline);
+        //render_pass.set_vertex_buffer(0, );
+        render_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
+        //render_pass.draw();
+    }
 }
