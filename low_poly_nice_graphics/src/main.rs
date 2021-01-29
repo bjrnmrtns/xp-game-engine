@@ -1,3 +1,6 @@
+mod renderer;
+
+use renderer::Renderer;
 use winit::{
     event::{Event, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
@@ -5,6 +8,7 @@ use winit::{
 };
 
 fn main() {
+    Renderer::new(1, 1);
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()
         .build(&event_loop)
