@@ -12,7 +12,10 @@ fn main() {
     let window = WindowBuilder::new()
         .build(&event_loop)
         .expect("Could not create window");
-    Renderer::new(&window);
+    let mut renderer = futures::executor::block_on(renderer::Renderer::new(&window))
+        .expect("Could not create renderer");
+    let mut pipeline = futures::executor::block_on(renderer::Pipeline::new(&renderer))
+        .expect("Could not create pipeline");
     event_loop.run(move |event, _, control_flow| {
         *control_flow = winit::event_loop::ControlFlow::Poll;
         match event {
@@ -24,11 +27,13 @@ fn main() {
                 ref event,
                 window_id,
             } if window_id == window.id() => match event {
-                WindowEvent::Resized(physical_size) => {
-                    //futures::executor::block_on(renderer.resize(*physical_size));
+                WindowEvent::Resized(size) => {
+                    futures::executor::block_on(renderer.resize(size.width, size.height));
                 }
                 WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
-                    //futures::executor::block_on(renderer.resize(**new_inner_size));
+                    futures::executor::block_on(
+                        renderer.resize(new_inner_size.width, new_inner_size.height),
+                    );
                 }
                 WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
                 _ => (),

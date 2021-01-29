@@ -2,6 +2,7 @@ use crate::renderer::{error::RendererError, Renderer};
 use nalgebra_glm::{identity, Mat4, Vec3};
 use std::io::Read;
 use wgpu::util::DeviceExt;
+use winit::window::Window;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]

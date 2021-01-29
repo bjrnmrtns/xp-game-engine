@@ -55,4 +55,12 @@ impl Renderer {
             swap_chain,
         })
     }
+
+    pub async fn resize(&mut self, width: u32, height: u32) {
+        self.swap_chain_descriptor.width = width;
+        self.swap_chain_descriptor.height = height;
+        self.swap_chain = self
+            .device
+            .create_swap_chain(&self.surface, &self.swap_chain_descriptor);
+    }
 }
