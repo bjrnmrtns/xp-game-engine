@@ -1,3 +1,4 @@
+mod error;
 mod pipeline;
 mod renderer;
 

@@ -8,11 +8,11 @@ use winit::{
 };
 
 fn main() {
-    Renderer::new(1, 1);
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()
         .build(&event_loop)
         .expect("Could not create window");
+    Renderer::new(&window);
     event_loop.run(move |event, _, control_flow| {
         *control_flow = winit::event_loop::ControlFlow::Poll;
         match event {
