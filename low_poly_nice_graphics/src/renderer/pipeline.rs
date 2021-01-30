@@ -1,7 +1,7 @@
 use crate::{
     assets::Assets,
     entity::Entity,
-    renderer::{depth_texture::DepthTexture, error::RendererError, Renderer},
+    renderer::{depth_texture::DepthTexture, error::RendererError, shape::Shape, Renderer},
 };
 use nalgebra_glm::{identity, Mat4};
 use std::io::Read;
@@ -34,11 +34,32 @@ pub struct Mesh {
     vertex_buffer: wgpu::Buffer,
     index_buffer: wgpu::Buffer,
     len: u32,
-    model: Mat4,
 }
 
 impl Mesh {
-    pub fn create_mesh_from(renderer: &Renderer, shape: &Shape) -> Self {
+    pub fn from_shape(renderer: &Renderer, shape: &Shape) -> Self {
+        let vertex_buffer = renderer
+            .device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: None,
+                contents: bytemuck::cast_slice(shape.vertices.as_slice()),
+                usage: wgpu::BufferUsage::VERTEX,
+            });
+        let index_buffer = renderer
+            .device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: None,
+                contents: bytemuck::cast_slice(shape.indices.as_slice()),
+                usage: wgpu::BufferUsage::INDEX,
+            });
+        Self {
+            vertex_buffer,
+            index_buffer,
+            len: shape.indices.len() as u32,
+        }
+    }
+
+    pub fn from_simple_triangle(renderer: &Renderer, shape: &SimpleTriangle) -> Self {
         let vertex_buffer = renderer
             .device
             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -57,18 +78,17 @@ impl Mesh {
             vertex_buffer,
             index_buffer,
             len: 3,
-            model: identity(),
         }
     }
 }
 
 #[repr(C)]
 #[derive(Debug)]
-pub struct Shape {
+pub struct SimpleTriangle {
     pub vertices: Vec<Vertex>,
 }
 
-impl Default for Shape {
+impl Default for SimpleTriangle {
     fn default() -> Self {
         Self {
             vertices: vec![

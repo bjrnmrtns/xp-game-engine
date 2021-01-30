@@ -5,7 +5,7 @@ mod renderer;
 use crate::{
     assets::Assets,
     entity::Entity,
-    renderer::{Mesh, Shape},
+    renderer::{Mesh, SimpleTriangle},
 };
 use nalgebra_glm::identity;
 use winit::{
@@ -26,7 +26,10 @@ fn main() {
 
     let mut meshes = Assets::new();
     let triangle = Entity {
-        mesh_handle: meshes.add(Mesh::create_mesh_from(&renderer, &Shape::default())),
+        mesh_handle: meshes.add(Mesh::from_simple_triangle(
+            &renderer,
+            &SimpleTriangle::default(),
+        )),
         model: identity(),
     };
 
