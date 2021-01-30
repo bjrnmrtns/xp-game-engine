@@ -3,16 +3,16 @@ use crate::{
     entity::Entity,
     renderer::{depth_texture::DepthTexture, error::RendererError, Renderer},
 };
-use nalgebra_glm::{identity, vec3, Mat4, Vec3};
+use nalgebra_glm::{identity, Mat4};
 use std::io::Read;
 use wgpu::util::DeviceExt;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub struct Vertex {
-    pub position: Vec3,
-    pub normal: Vec3,
-    pub color: Vec3,
+    pub position: [f32; 3],
+    pub normal: [f32; 3],
+    pub color: [f32; 3],
 }
 unsafe impl bytemuck::Pod for Vertex {}
 unsafe impl bytemuck::Zeroable for Vertex {}
@@ -38,12 +38,12 @@ pub struct Mesh {
 }
 
 impl Mesh {
-    pub fn create_mesh_from(renderer: &Renderer, asset: &Shape) -> Self {
+    pub fn create_mesh_from(renderer: &Renderer, shape: &Shape) -> Self {
         let vertex_buffer = renderer
             .device
             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: None,
-                contents: bytemuck::cast_slice(asset.vertices.as_slice()),
+                contents: bytemuck::cast_slice(shape.vertices.as_slice()),
                 usage: wgpu::BufferUsage::VERTEX,
             });
         let index_buffer = renderer
@@ -73,19 +73,19 @@ impl Default for Shape {
         Self {
             vertices: vec![
                 Vertex {
-                    position: vec3(0.5, -0.5, 0.0),
-                    normal: vec3(0.0, 0.0, 1.0),
-                    color: vec3(1.0, 0.0, 0.0),
+                    position: [0.5, -0.5, 0.0],
+                    normal: [0.0, 0.0, 1.0],
+                    color: [1.0, 0.0, 0.0],
                 },
                 Vertex {
-                    position: vec3(0.0, 0.5, 0.0),
-                    normal: vec3(0.0, 0.0, 1.0),
-                    color: vec3(1.0, 0.0, 0.0),
+                    position: [0.0, 0.5, 0.0],
+                    normal: [0.0, 0.0, 1.0],
+                    color: [1.0, 0.0, 0.0],
                 },
                 Vertex {
-                    position: vec3(-0.5, -0.5, 0.0),
-                    normal: vec3(0.0, 0.0, 1.0),
-                    color: vec3(1.0, 0.0, 0.0),
+                    position: [-0.5, -0.5, 0.0],
+                    normal: [0.0, 0.0, 1.0],
+                    color: [1.0, 0.0, 0.0],
                 },
             ],
         }
