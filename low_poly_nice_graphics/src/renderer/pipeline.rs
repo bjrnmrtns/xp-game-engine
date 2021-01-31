@@ -32,7 +32,6 @@ unsafe impl bytemuck::Zeroable for Uniforms {}
 #[derive(Debug)]
 pub struct Mesh {
     vertex_buffer: wgpu::Buffer,
-    index_buffer: wgpu::Buffer,
     len: u32,
 }
 
@@ -45,21 +44,13 @@ impl Mesh {
                 contents: bytemuck::cast_slice(shape.vertices.as_slice()),
                 usage: wgpu::BufferUsage::VERTEX,
             });
-        let index_buffer = renderer
-            .device
-            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: None,
-                contents: bytemuck::cast_slice(shape.indices.as_slice()),
-                usage: wgpu::BufferUsage::INDEX,
-            });
         Self {
             vertex_buffer,
-            index_buffer,
-            len: shape.indices.len() as u32,
+            len: shape.vertices.len() as u32,
         }
     }
 
-    pub fn from_simple_triangle(renderer: &Renderer, simple_triangle: &SimpleTriangle) -> Self {
+    pub fn from_simple_triangle(renderer: &Renderer, simple_triangle: SimpleTriangle) -> Self {
         let vertex_buffer = renderer
             .device
             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -67,16 +58,8 @@ impl Mesh {
                 contents: bytemuck::cast_slice(simple_triangle.vertices.as_slice()),
                 usage: wgpu::BufferUsage::VERTEX,
             });
-        let index_buffer = renderer
-            .device
-            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: None,
-                contents: bytemuck::cast_slice(&[0, 1, 2]),
-                usage: wgpu::BufferUsage::INDEX,
-            });
         Self {
             vertex_buffer,
-            index_buffer,
             len: 3,
         }
     }

@@ -5,7 +5,7 @@ mod renderer;
 use crate::{
     assets::Assets,
     entity::Entity,
-    renderer::{Mesh, Shape, Terrain},
+    renderer::{Mesh, Shape, SimpleTriangle, Terrain},
 };
 use nalgebra_glm::identity;
 use winit::{
