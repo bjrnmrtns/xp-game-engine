@@ -10,9 +10,15 @@ pub struct Terrain {
     subdivisions: u32,
 }
 
+impl Terrain {
+    pub fn new(size: f32, subdivisions: u32) -> Self {
+        Self { size, subdivisions }
+    }
+}
+
 impl From<Terrain> for Shape {
     fn from(terrain: Terrain) -> Self {
-        let increments = 2u32.pow(terrain.subdivisions);
+        let increments = 2i32.pow(terrain.subdivisions);
         let increment = terrain.size / increments as f32;
         let mut vertices = Vec::new();
         let mut indices = Vec::new();

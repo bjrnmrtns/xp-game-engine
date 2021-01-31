@@ -37,7 +37,7 @@ pub struct Mesh {
 }
 
 impl Mesh {
-    pub fn from_shape(renderer: &Renderer, shape: &Shape) -> Self {
+    pub fn from_shape(renderer: &Renderer, shape: Shape) -> Self {
         let vertex_buffer = renderer
             .device
             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -59,12 +59,12 @@ impl Mesh {
         }
     }
 
-    pub fn from_simple_triangle(renderer: &Renderer, shape: &SimpleTriangle) -> Self {
+    pub fn from_simple_triangle(renderer: &Renderer, simple_triangle: &SimpleTriangle) -> Self {
         let vertex_buffer = renderer
             .device
             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: None,
-                contents: bytemuck::cast_slice(shape.vertices.as_slice()),
+                contents: bytemuck::cast_slice(simple_triangle.vertices.as_slice()),
                 usage: wgpu::BufferUsage::VERTEX,
             });
         let index_buffer = renderer

@@ -6,3 +6,4 @@ mod shape;
 
 pub use pipeline::{Mesh, Pipeline, SimpleTriangle, Vertex};
 pub use renderer::Renderer;
+pub use shape::{Shape, Terrain};

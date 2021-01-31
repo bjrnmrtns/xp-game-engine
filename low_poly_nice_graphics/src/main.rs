@@ -5,7 +5,7 @@ mod renderer;
 use crate::{
     assets::Assets,
     entity::Entity,
-    renderer::{Mesh, SimpleTriangle},
+    renderer::{Mesh, Shape, Terrain},
 };
 use nalgebra_glm::identity;
 use winit::{
@@ -25,10 +25,10 @@ fn main() {
         .expect("Could not create pipeline");
 
     let mut meshes = Assets::new();
-    let triangle = Entity {
-        mesh_handle: meshes.add(Mesh::from_simple_triangle(
+    let terrain = Entity {
+        mesh_handle: meshes.add(Mesh::from_shape(
             &renderer,
-            &SimpleTriangle::default(),
+            Shape::from(Terrain::new(3.0, 3)),
         )),
         model: identity(),
     };
@@ -37,7 +37,7 @@ fn main() {
         *control_flow = winit::event_loop::ControlFlow::Poll;
         match event {
             Event::RedrawRequested(_) => {
-                pipeline.render(&triangle, &meshes, &mut renderer);
+                pipeline.render(&terrain, &meshes, &mut renderer);
             }
             Event::MainEventsCleared => {
                 window.request_redraw();
