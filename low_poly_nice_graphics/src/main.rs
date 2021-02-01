@@ -37,10 +37,7 @@ fn main() {
     );
     let mut meshes = Assets::new();
     let terrain = Entity {
-        mesh_handle: meshes.add(Mesh::from_shape(
-            &renderer,
-            Shape::from(Plane::new(100.0, 3)),
-        )),
+        mesh_handle: meshes.add(Mesh::from_shape(&renderer, Shape::from(Plane::new(100.0)))),
         model: identity(),
     };
 
