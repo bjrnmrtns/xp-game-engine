@@ -3,7 +3,7 @@ use crate::{
     entity::Entity,
     renderer::{depth_texture::DepthTexture, error::RendererError, shape::Shape, Renderer},
 };
-use nalgebra_glm::{identity, Mat4};
+use nalgebra_glm::Mat4;
 use std::io::Read;
 use wgpu::util::DeviceExt;
 
@@ -47,50 +47,6 @@ impl Mesh {
         Self {
             vertex_buffer,
             len: shape.vertices.len() as u32,
-        }
-    }
-
-    pub fn from_simple_triangle(renderer: &Renderer, simple_triangle: SimpleTriangle) -> Self {
-        let vertex_buffer = renderer
-            .device
-            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: None,
-                contents: bytemuck::cast_slice(simple_triangle.vertices.as_slice()),
-                usage: wgpu::BufferUsage::VERTEX,
-            });
-        Self {
-            vertex_buffer,
-            len: 3,
-        }
-    }
-}
-
-#[repr(C)]
-#[derive(Debug)]
-pub struct SimpleTriangle {
-    pub vertices: Vec<Vertex>,
-}
-
-impl Default for SimpleTriangle {
-    fn default() -> Self {
-        Self {
-            vertices: vec![
-                Vertex {
-                    position: [1.0, -1.0, -1.0],
-                    normal: [0.0, 0.0, 1.0],
-                    color: [1.0, 0.0, 0.0],
-                },
-                Vertex {
-                    position: [0.0, 1.0, -1.0],
-                    normal: [0.0, 0.0, 1.0],
-                    color: [1.0, 0.0, 0.0],
-                },
-                Vertex {
-                    position: [-1.0, -1.0, -1.0],
-                    normal: [0.0, 0.0, 1.0],
-                    color: [1.0, 0.0, 0.0],
-                },
-            ],
         }
     }
 }
@@ -213,7 +169,7 @@ impl Pipeline {
                     }),
                     rasterization_state: Some(wgpu::RasterizationStateDescriptor {
                         front_face: wgpu::FrontFace::Ccw,
-                        cull_mode: wgpu::CullMode::Back,
+                        cull_mode: wgpu::CullMode::None,
                         clamp_depth: false,
                         depth_bias: 0,
                         depth_bias_slope_scale: 0.0,

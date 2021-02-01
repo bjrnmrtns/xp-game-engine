@@ -4,6 +4,6 @@ mod pipeline;
 mod renderer;
 mod shape;
 
-pub use pipeline::{Mesh, Pipeline, SimpleTriangle, Vertex};
+pub use pipeline::{Mesh, Pipeline, Vertex};
 pub use renderer::Renderer;
 pub use shape::{Plane, Shape};

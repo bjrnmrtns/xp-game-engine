@@ -5,7 +5,7 @@ mod renderer;
 use crate::{
     assets::Assets,
     entity::Entity,
-    renderer::{Mesh, Plane, Shape, SimpleTriangle},
+    renderer::{Mesh, Plane, Shape},
 };
 use nalgebra_glm::{identity, vec3};
 use winit::{
@@ -30,16 +30,16 @@ fn main() {
         0.1,
         1000.0,
     );
+    let view = nalgebra_glm::look_at(
+        &vec3(0.0, 4.0, 0.0),
+        &vec3(0.0, 4.0, -1.0),
+        &vec3(0.0, 1.0, 0.0),
+    );
     let mut meshes = Assets::new();
     let terrain = Entity {
-        /*mesh_handle: meshes.add(Mesh::from_shape(
+        mesh_handle: meshes.add(Mesh::from_shape(
             &renderer,
-            Shape::from(Terrain::new(3.0, 3)),
-
-        )),*/
-        mesh_handle: meshes.add(Mesh::from_simple_triangle(
-            &renderer,
-            SimpleTriangle::default(),
+            Shape::from(Plane::new(100.0, 3)),
         )),
         model: identity(),
     };
@@ -48,7 +48,7 @@ fn main() {
         *control_flow = winit::event_loop::ControlFlow::Poll;
         match event {
             Event::RedrawRequested(_) => {
-                pipeline.render(&terrain, &meshes, projection, identity(), &mut renderer);
+                pipeline.render(&terrain, &meshes, projection, view, &mut renderer);
             }
             Event::MainEventsCleared => {
                 window.request_redraw();

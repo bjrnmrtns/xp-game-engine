@@ -31,12 +31,12 @@ impl From<Plane> for Shape {
                         color: [0.0, 0.0, 1.0],
                     },
                     Vertex {
-                        position: [(x + 1) as f32 * increment, 0.0, (z + 1) as f32 * increment],
+                        position: [x as f32 * increment, 0.0, (z + 1) as f32 * increment],
                         normal: [0.0, 1.0, 0.0],
                         color: [0.0, 0.0, 1.0],
                     },
                     Vertex {
-                        position: [x as f32 * increment, 0.0, (z + 1) as f32 * increment],
+                        position: [(x + 1) as f32 * increment, 0.0, (z + 1) as f32 * increment],
                         normal: [0.0, 1.0, 0.0],
                         color: [0.0, 0.0, 1.0],
                     },
@@ -46,12 +46,12 @@ impl From<Plane> for Shape {
                         color: [0.0, 0.0, 1.0],
                     },
                     Vertex {
-                        position: [(x + 1) as f32 * increment, 0.0, z as f32 * increment],
+                        position: [(x + 1) as f32 * increment, 0.0, (z + 1) as f32 * increment],
                         normal: [0.0, 1.0, 0.0],
                         color: [0.0, 0.0, 1.0],
                     },
                     Vertex {
-                        position: [(x + 1) as f32 * increment, 0.0, (z + 1) as f32 * increment],
+                        position: [(x + 1) as f32 * increment, 0.0, z as f32 * increment],
                         normal: [0.0, 1.0, 0.0],
                         color: [0.0, 0.0, 1.0],
                     },
