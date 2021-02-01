@@ -76,17 +76,17 @@ impl Default for SimpleTriangle {
         Self {
             vertices: vec![
                 Vertex {
-                    position: [0.5, -0.5, 0.0],
+                    position: [1.0, -1.0, -1.0],
                     normal: [0.0, 0.0, 1.0],
                     color: [1.0, 0.0, 0.0],
                 },
                 Vertex {
-                    position: [0.0, 0.5, 0.0],
+                    position: [0.0, 1.0, -1.0],
                     normal: [0.0, 0.0, 1.0],
                     color: [1.0, 0.0, 0.0],
                 },
                 Vertex {
-                    position: [-0.5, -0.5, 0.0],
+                    position: [-1.0, -1.0, -1.0],
                     normal: [0.0, 0.0, 1.0],
                     color: [1.0, 0.0, 0.0],
                 },
@@ -252,7 +252,14 @@ impl Pipeline {
         })
     }
 
-    pub fn render(&self, entity: &Entity, meshes: &Assets<Mesh>, renderer: &mut Renderer) {
+    pub fn render(
+        &self,
+        entity: &Entity,
+        meshes: &Assets<Mesh>,
+        projection: Mat4,
+        view: Mat4,
+        renderer: &mut Renderer,
+    ) {
         let target = &renderer
             .swap_chain
             .get_current_frame()
@@ -291,8 +298,8 @@ impl Pipeline {
             });
             let uniforms = Uniforms {
                 m: entity.model.clone(),
-                v: identity(),
-                p: identity(),
+                v: view,
+                p: projection,
             };
             let mesh = meshes.get(entity.mesh_handle.clone()).unwrap();
             renderer

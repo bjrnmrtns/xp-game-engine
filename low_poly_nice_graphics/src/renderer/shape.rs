@@ -4,19 +4,19 @@ pub struct Shape {
     pub vertices: Vec<Vertex>,
 }
 
-pub struct Terrain {
+pub struct Plane {
     size: f32,
     subdivisions: u32,
 }
 
-impl Terrain {
+impl Plane {
     pub fn new(size: f32, subdivisions: u32) -> Self {
         Self { size, subdivisions }
     }
 }
 
-impl From<Terrain> for Shape {
-    fn from(terrain: Terrain) -> Self {
+impl From<Plane> for Shape {
+    fn from(terrain: Plane) -> Self {
         let increments = 2i32.pow(terrain.subdivisions);
         let increment = terrain.size / increments as f32;
         let mut vertices = Vec::new();

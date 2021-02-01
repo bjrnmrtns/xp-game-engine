@@ -5,9 +5,9 @@ mod renderer;
 use crate::{
     assets::Assets,
     entity::Entity,
-    renderer::{Mesh, Shape, SimpleTriangle, Terrain},
+    renderer::{Mesh, Plane, Shape, SimpleTriangle},
 };
-use nalgebra_glm::identity;
+use nalgebra_glm::{identity, vec3};
 use winit::{
     event::{Event, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
@@ -24,11 +24,22 @@ fn main() {
     let pipeline = futures::executor::block_on(renderer::Pipeline::new(&renderer))
         .expect("Could not create pipeline");
 
+    let projection = nalgebra_glm::perspective(
+        renderer.swap_chain_descriptor.width as f32 / renderer.swap_chain_descriptor.height as f32,
+        45.0,
+        0.1,
+        1000.0,
+    );
     let mut meshes = Assets::new();
     let terrain = Entity {
-        mesh_handle: meshes.add(Mesh::from_shape(
+        /*mesh_handle: meshes.add(Mesh::from_shape(
             &renderer,
             Shape::from(Terrain::new(3.0, 3)),
+
+        )),*/
+        mesh_handle: meshes.add(Mesh::from_simple_triangle(
+            &renderer,
+            SimpleTriangle::default(),
         )),
         model: identity(),
     };
@@ -37,7 +48,7 @@ fn main() {
         *control_flow = winit::event_loop::ControlFlow::Poll;
         match event {
             Event::RedrawRequested(_) => {
-                pipeline.render(&terrain, &meshes, &mut renderer);
+                pipeline.render(&terrain, &meshes, projection, identity(), &mut renderer);
             }
             Event::MainEventsCleared => {
                 window.request_redraw();

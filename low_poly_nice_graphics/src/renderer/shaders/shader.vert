@@ -9,13 +9,13 @@ layout(location=1) out vec3 out_normal;
 
 layout(set=0, binding=0)
 uniform Uniforms {
-    mat4 m;
-    mat4 v;
-    mat4 p;
+    mat4 model;
+    mat4 view;
+    mat4 proj;
 };
 
 void main() {
-    out_normal = mat3(transpose(inverse(v * m))) * in_normal;
+    out_normal = mat3(transpose(inverse(view * model))) * in_normal;
     out_color = in_color;
-    gl_Position = p * v * m * vec4(in_position, 1.0);
+    gl_Position = proj * view * model * vec4(in_position, 1.0);
 }
