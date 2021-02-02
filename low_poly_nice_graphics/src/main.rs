@@ -1,11 +1,13 @@
 mod assets;
 mod entity;
 mod renderer;
+mod terrain;
 
 use crate::{
     assets::Assets,
     entity::Entity,
     renderer::{Mesh, Plane, Shape},
+    terrain::Terrain,
 };
 use nalgebra_glm::{identity, vec3};
 use winit::{
@@ -31,13 +33,16 @@ fn main() {
         1000.0,
     );
     let view = nalgebra_glm::look_at(
-        &vec3(0.0, 4.0, 0.0),
-        &vec3(0.0, 4.0, -1.0),
+        &vec3(60.0, 10.0, 60.0),
+        &vec3(0.0, 0.0, -1.0),
         &vec3(0.0, 1.0, 0.0),
     );
     let mut meshes = Assets::new();
     let terrain = Entity {
-        mesh_handle: meshes.add(Mesh::from_shape(&renderer, Shape::from(Plane::new(100.0)))),
+        mesh_handle: meshes.add(Mesh::from_shape(
+            &renderer,
+            Shape::from(Plane::new(100.0, 6, Box::new(Terrain::new()))),
+        )),
         model: identity(),
     };
 

@@ -6,4 +6,4 @@ mod shape;
 
 pub use pipeline::{Mesh, Pipeline, Vertex};
 pub use renderer::Renderer;
-pub use shape::{Plane, Shape};
+pub use shape::{Height, Plane, Shape};

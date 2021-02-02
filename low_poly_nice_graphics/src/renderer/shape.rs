@@ -23,7 +23,15 @@ pub struct Plane {
 }
 
 impl Plane {
-    pub fn new(size: f32) -> Self {
+    pub fn new(size: f32, subdivisions: u32, height_function: Box<dyn Height>) -> Self {
+        Self {
+            size,
+            subdivisions,
+            height_function,
+        }
+    }
+
+    pub fn flat(size: f32) -> Self {
         Self {
             size,
             subdivisions: 0,
@@ -41,67 +49,65 @@ impl From<Plane> for Shape {
             for z in 0..increments {
                 let x = x as f32 - increments as f32 / 2.0;
                 let z = z as f32 - increments as f32 / 2.0;
+                let p00 = [
+                    x * increment,
+                    plane.height_function.height(x * increment, z * increment),
+                    z * increment,
+                ];
+                let p01 = [
+                    x * increment,
+                    plane
+                        .height_function
+                        .height(x * increment, (z + 1.0) * increment),
+                    (z + 1.0) * increment,
+                ];
+                let p10 = [
+                    (x + 1.0) * increment,
+                    plane
+                        .height_function
+                        .height((x + 1.0) * increment, z * increment),
+                    z * increment,
+                ];
+                let p11 = [
+                    (x + 1.0) * increment,
+                    plane
+                        .height_function
+                        .height((x + 1.0) * increment, (z + 1.0) * increment),
+                    (z + 1.0) * increment,
+                ];
+                let n0 =
+                    nalgebra_glm::triangle_normal(&p00.into(), &p01.into(), &p11.into()).into();
+                let n1 =
+                    nalgebra_glm::triangle_normal(&p00.into(), &p11.into(), &p10.into()).into();
                 vertices.extend_from_slice(&[
                     Vertex {
-                        position: [
-                            x * increment,
-                            plane.height_function.height(x * increment, z * increment),
-                            z * increment,
-                        ],
-                        normal: [0.0, 1.0, 0.0],
+                        position: p00,
+                        normal: n0,
                         color: [0.0, 0.0, 1.0],
                     },
                     Vertex {
-                        position: [
-                            x * increment,
-                            plane
-                                .height_function
-                                .height(x * increment, (z + 1.0) * increment),
-                            (z + 1.0) * increment,
-                        ],
-                        normal: [0.0, 1.0, 0.0],
+                        position: p01,
+                        normal: n0,
                         color: [0.0, 0.0, 1.0],
                     },
                     Vertex {
-                        position: [
-                            (x + 1.0) * increment,
-                            plane
-                                .height_function
-                                .height((x + 1.0) * increment, (z + 1.0) * increment),
-                            (z + 1.0) * increment,
-                        ],
-                        normal: [0.0, 1.0, 0.0],
+                        position: p11,
+                        normal: n0,
                         color: [0.0, 0.0, 1.0],
                     },
                     Vertex {
-                        position: [
-                            x * increment,
-                            plane.height_function.height(x * increment, z * increment),
-                            z * increment,
-                        ],
-                        normal: [0.0, 1.0, 0.0],
+                        position: p00,
+                        normal: n1,
                         color: [0.0, 0.0, 1.0],
                     },
                     Vertex {
-                        position: [
-                            (x + 1.0) * increment,
-                            plane
-                                .height_function
-                                .height((x + 1.0) * increment, (z + 1.0) * increment),
-                            (z + 1.0) * increment,
-                        ],
-                        normal: [0.0, 1.0, 0.0],
+                        position: p11,
+                        normal: n1,
                         color: [0.0, 0.0, 1.0],
                     },
                     Vertex {
-                        position: [
-                            (x + 1.0) * increment,
-                            plane
-                                .height_function
-                                .height((x + 1.0) * increment, z * increment),
-                            z * increment,
-                        ],
-                        normal: [0.0, 1.0, 0.0],
+                        position: p10,
+                        normal: n1,
                         color: [0.0, 0.0, 1.0],
                     },
                 ]);
