@@ -1,7 +1,9 @@
 #version 450
 
-layout(location=0) flat in vec3 in_color;
-layout(location=1) flat in vec3 in_normal;
+layout(location=0) in vec3 in_position;
+layout(location=1) in vec3 in_color;
+layout(location=2) in vec3 in_normal;
+
 layout(location=0) out vec4 out_color;
 
 layout(set=0, binding=0)
@@ -22,9 +24,17 @@ const vec3 light_color = vec3(1.0, 1.0, 1.0);
 */
 void main()
 {
+    // diffuse calculation
+    vec3 light_position = mat3(view) * light;
+    vec3 light_direction = normalize(light_position - in_position);
+    vec3 normal = normalize(in_normal);
+    float diff = max(dot(normal, light_direction), 0.0);
+    vec3 diffuse = diff * light_color;
+
+    // ambient calculation
     float ambient_strength = 0.1;
     vec3 ambient = ambient_strength * light_color;
 
-    vec3 result = ambient * in_color;
+    vec3 result = (ambient + diffuse) * in_color;
     out_color = vec4(result, 1.0);
 }
