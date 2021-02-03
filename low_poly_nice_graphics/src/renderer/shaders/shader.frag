@@ -12,9 +12,19 @@ uniform Uniforms {
 };
 
 const vec3 light = vec3(1.0, 1.0, -1.0);
+const vec3 light_color = vec3(1.0, 1.0, 1.0);
 
-void main() {
+/*void main() {
     vec3 view_light = mat3(view) * light;
     float lum = max(dot(normalize(in_normal), normalize(view_light)), 0.0);
     out_color = vec4(in_color * (0.2 + 0.8 * lum), 1.0);
+}
+*/
+void main()
+{
+    float ambient_strength = 0.1;
+    vec3 ambient = ambient_strength * light_color;
+
+    vec3 result = ambient * in_color;
+    out_color = vec4(result, 1.0);
 }
