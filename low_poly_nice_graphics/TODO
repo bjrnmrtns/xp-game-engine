@@ -3,6 +3,10 @@ DONE 3: Add Asset implementation so meshes have handles and can be assigned to e
 DONE 4: Add Entity implementation
 DONE 2: Generate simple noisy terrain still with fixed camera
 TODO 7: Start lighting implementation to have good looking low poly graphics
+[x] implement basic spot / directional / point with specular/diffuse/amient (light and material)
+[] define a light in rust which automatically uploads to gpu (uniform buffer array)
+[] render the lights in the scene in seperate pass
+[] shadow mapping
 TODO 8: Move model data to instance data and add instance data to gpu (instances redering)
 TODO 5: Add transform implementation and can be added to entities
 TODO 6: Add Graph so entities can have parent child relation
