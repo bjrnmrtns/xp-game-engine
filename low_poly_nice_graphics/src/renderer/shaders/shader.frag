@@ -31,7 +31,7 @@ uniform Uniforms {
 
     vec4 spot_position;
     vec4 spot_direction;
-    vec4 cut_off; // first component (x) is cut_off
+    vec4 cut_off; // first component (x) is inner cut_off, second (y) is outer cut_off
 
     vec4 material_ambient;
     vec4 material_diffuse;
@@ -52,23 +52,28 @@ void main()
 
     // diffuse calculation
     vec3 world_normal = normalize(in_world_normal);
-    vec3 directional_light_direction = normalize(-vec3(directional_direction));
-    float diff = max(dot(world_normal, directional_light_direction), 0.0);
+    vec3 light_direction = normalize(vec3(spot_position) - in_world_position);//normalize(-vec3(directional_direction));
+    float diff = max(dot(world_normal, light_direction), 0.0);
     vec3 diffuse = vec3(light_diffuse) * diff * vec3(material_diffuse);
 
     // point-light attenuation
     float distance = length(vec3(point_position) - in_world_position);
     float attenuation = 1.0 / (constant_linear_quadratic[0] + constant_linear_quadratic[1] * distance + constant_linear_quadratic[2] * (distance * distance));
 
+    // spot light
+    float theta = dot(light_direction, normalize(-vec3(spot_direction)));
+    float epsilon = cut_off[0] - cut_off[1];
+    float intensity = clamp((theta, cut_off[1]) / epsilon, 0.0, 1.0);
+
     // specular calculation
     vec3 view_direction = normalize(vec3(world_camera_position) - in_world_position);
-    vec3 reflect_direction = reflect(-directional_light_direction, world_normal);
+    vec3 reflect_direction = reflect(-light_direction, world_normal);
     float spec = pow(max(dot(view_direction, reflect_direction), 0.0), material_shininess);
     vec3 specular = vec3(light_specular) * spec * vec3(material_specular);
 
     ambient *= attenuation;
-    diffuse *= attenuation;
-    specular *= attenuation;
+    diffuse *= attenuation * intensity;
+    specular *= attenuation * intensity;
 
     vec3 result = (ambient + diffuse + specular) * in_color;
     out_color = vec4(result, 1.0);

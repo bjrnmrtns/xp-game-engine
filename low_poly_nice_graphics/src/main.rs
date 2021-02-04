@@ -32,7 +32,7 @@ fn main() {
         0.1,
         1000.0,
     );
-    let world_camera_position = [60.0, 20.0, 60.0, 1.0];
+    let world_camera_position = [60.0, 5.0, 60.0, 1.0];
     let view = nalgebra_glm::look_at(
         &vec3(
             world_camera_position[0],

@@ -299,15 +299,10 @@ impl Pipeline {
                 point_specular: [1.0, 1.0, 1.0, 1.0],
                 constant_linear_quadratic: [1.0, 0.09, 0.032, 1.0],
                 spot_position: world_camera_position,
-                spot_direction: [
-                    -world_camera_position[0],
-                    -world_camera_position[1],
-                    -world_camera_position[2],
-                    world_camera_position[3],
-                ], // looking at 0.0, 0.0, 0.0 for now
+                spot_direction: [-1.0, -1.0, -1.0, 1.0],
                 cut_off: [
                     (12.5 * (std::f32::consts::FRAC_PI_2 / 360.0)).cos(),
-                    1.0,
+                    (17.5 * (std::f32::consts::FRAC_PI_2 / 360.0)).cos(),
                     1.0,
                     1.0,
                 ],
