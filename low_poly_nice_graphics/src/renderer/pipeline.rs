@@ -39,7 +39,7 @@ pub struct Uniforms {
     pub point_ambient: [f32; 4],
     pub point_diffuse: [f32; 4],
     pub point_specular: [f32; 4],
-    pub constant_linear_specular: [f32; 4], // first three components (xyz) represent constant linear and quadratic
+    pub constant_linear_quadratic: [f32; 4], // first three components (xyz) represent constant linear and quadratic
 
     pub spot_position: [f32; 4],
     pub spot_direction: [f32; 4],
@@ -297,7 +297,7 @@ impl Pipeline {
                 point_ambient: [0.2, 0.2, 0.2, 1.0],
                 point_diffuse: [0.5, 0.5, 0.5, 1.0],
                 point_specular: [1.0, 1.0, 1.0, 1.0],
-                constant_linear_specular: [1.0, 0.09, 0.032, 1.0],
+                constant_linear_quadratic: [1.0, 0.09, 0.032, 1.0],
                 spot_position: world_camera_position,
                 spot_direction: [
                     -world_camera_position[0],

@@ -58,7 +58,7 @@ fn main() {
             Event::RedrawRequested(_) => {
                 let time_since_start_secs = (std::time::Instant::now() - start_time).as_secs_f32();
                 let light_position_value = time_since_start_secs.sin() * 50.0;
-                let model_rotation_y = time_since_start_secs;
+                let model_rotation_y = 0.0; //time_since_start_secs;
                 terrain.model = nalgebra_glm::rotate_y(&identity(), model_rotation_y);
                 pipeline.render(
                     &terrain,
