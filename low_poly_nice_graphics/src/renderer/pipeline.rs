@@ -23,9 +23,17 @@ pub struct Uniforms {
     pub m: Mat4,
     pub v: Mat4,
     pub p: Mat4,
+    pub world_camera_position: [f32; 4],
     // needs to be 4 x f32 (because of 16 bits allignment) I assume
     pub world_light_position: [f32; 4],
-    pub light_color: [f32; 4],
+    pub light_ambient: [f32; 4],
+    pub light_diffuse: [f32; 4],
+    pub light_specular: [f32; 4],
+
+    pub material_ambient: [f32; 4],
+    pub material_diffuse: [f32; 4],
+    pub material_specular: [f32; 4],
+    pub material_shininess: f32,
 }
 
 unsafe impl bytemuck::Pod for Uniforms {}
@@ -218,7 +226,7 @@ impl Pipeline {
         projection: Mat4,
         view: Mat4,
         world_light_position: [f32; 4],
-        light_color: [f32; 4],
+        world_camera_position: [f32; 4],
         renderer: &mut Renderer,
     ) {
         let target = &renderer
@@ -261,8 +269,15 @@ impl Pipeline {
                 m: entity.model.clone(),
                 v: view,
                 p: projection,
+                world_camera_position,
                 world_light_position,
-                light_color,
+                light_ambient: [0.2, 0.2, 0.2, 1.0],
+                light_diffuse: [0.5, 0.5, 0.5, 1.0],
+                light_specular: [1.0, 1.0, 1.0, 1.0],
+                material_ambient: [1.0, 0.5, 0.31, 1.0],
+                material_diffuse: [1.0, 0.5, 0.31, 1.0],
+                material_specular: [0.5, 0.5, 0.5, 1.0],
+                material_shininess: 16.0,
             };
             let mesh = meshes.get(entity.mesh_handle.clone()).unwrap();
             renderer

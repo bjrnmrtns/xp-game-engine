@@ -11,8 +11,17 @@ uniform Uniforms {
     mat4 model;
     mat4 view;
     mat4 proj;
+    vec4 world_camera_position;
+
     vec4 world_light_position;
-    vec4 light_color;
+    vec4 light_ambient;
+    vec4 light_diffuse;
+    vec4 light_specular;
+
+    vec4 material_ambient;
+    vec4 material_diffuse;
+    vec4 material_specular;
+    float material_shininess;
 };
 
 /*void main() {
@@ -24,15 +33,20 @@ uniform Uniforms {
 void main()
 {
     // ambient calculation
-    float ambient_strength = 0.1;
-    vec3 ambient = ambient_strength * vec3(light_color);
+    vec3 ambient = vec3(light_ambient) * vec3(material_ambient);
 
     // diffuse calculation
     vec3 world_normal = normalize(in_world_normal);
     vec3 world_light_direction = normalize(vec3(world_light_position) - in_world_position);
     float diff = max(dot(world_normal, world_light_direction), 0.0);
-    vec3 diffuse = diff * vec3(light_color);
+    vec3 diffuse = vec3(light_diffuse) * diff * vec3(material_diffuse);
 
-    vec3 result = (diffuse) * in_color;
+    // specular calculation
+    vec3 view_direction = normalize(vec3(world_camera_position) - in_world_position);
+    vec3 reflect_direction = reflect(-world_light_direction, world_normal);
+    float spec = pow(max(dot(view_direction, reflect_direction), 0.0), material_shininess);
+    vec3 specular = vec3(light_specular) * spec * vec3(material_specular);
+
+    vec3 result = (ambient + diffuse + specular) * in_color;
     out_color = vec4(result, 1.0);
 }

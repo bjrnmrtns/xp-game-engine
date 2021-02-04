@@ -13,8 +13,17 @@ uniform Uniforms {
     mat4 model;
     mat4 view;
     mat4 proj;
+    vec4 world_camera_position;
+
     vec4 world_light_position;
-    vec4 light_color;
+    vec4 light_ambient;
+    vec4 light_diffuse;
+    vec4 light_specular;
+
+    vec4 material_ambient;
+    vec4 material_diffuse;
+    vec4 material_specular;
+    float material_shininess;
 };
 
 /*void main() {

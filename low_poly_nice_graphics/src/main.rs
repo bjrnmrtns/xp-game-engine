@@ -32,12 +32,16 @@ fn main() {
         0.1,
         1000.0,
     );
+    let world_camera_position = [60.0, 20.0, 60.0, 1.0];
     let view = nalgebra_glm::look_at(
-        &vec3(60.0, 20.0, 60.0),
+        &vec3(
+            world_camera_position[0],
+            world_camera_position[1],
+            world_camera_position[2],
+        ),
         &vec3(0.0, 0.0, 0.0),
         &vec3(0.0, 1.0, 0.0),
     );
-    let light_color = [1.0, 1.0, 1.0, 1.0];
     let mut meshes = Assets::new();
     let mut terrain = Entity {
         mesh_handle: meshes.add(Mesh::from_shape(
@@ -62,7 +66,7 @@ fn main() {
                     projection,
                     view,
                     [light_position_value, 10.0, light_position_value, 1.0],
-                    light_color,
+                    world_camera_position,
                     &mut renderer,
                 );
             }
