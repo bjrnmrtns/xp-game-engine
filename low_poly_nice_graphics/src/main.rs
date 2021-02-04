@@ -34,9 +34,11 @@ fn main() {
     );
     let view = nalgebra_glm::look_at(
         &vec3(60.0, 10.0, 60.0),
-        &vec3(0.0, 0.0, -1.0),
+        &vec3(0.0, 0.0, 0.0),
         &vec3(0.0, 1.0, 0.0),
     );
+    let world_light_position = [60.0, 10.0, 60.0, 1.0];
+    let light_color = [1.0, 1.0, 1.0, 1.0];
     let mut meshes = Assets::new();
     let terrain = Entity {
         mesh_handle: meshes.add(Mesh::from_shape(
@@ -50,7 +52,15 @@ fn main() {
         *control_flow = winit::event_loop::ControlFlow::Poll;
         match event {
             Event::RedrawRequested(_) => {
-                pipeline.render(&terrain, &meshes, projection, view, &mut renderer);
+                pipeline.render(
+                    &terrain,
+                    &meshes,
+                    projection,
+                    view,
+                    world_light_position,
+                    light_color,
+                    &mut renderer,
+                );
             }
             Event::MainEventsCleared => {
                 window.request_redraw();

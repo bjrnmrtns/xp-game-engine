@@ -116,3 +116,27 @@ impl From<Plane> for Shape {
         Self { vertices }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn check_understanding_normal_calculation_0() {
+        // counter clockwise triangle
+        let p00 = [0.0, 0.0, 0.0];
+        let p01 = [0.0, 0.0, 1.0];
+        let p10 = [1.0, 0.0, 0.0];
+        let normalized_normal: [f32; 3] =
+            nalgebra_glm::triangle_normal(&p00.into(), &p01.into(), &p10.into()).into();
+        assert_eq!([0.0, 1.0, 0.0], normalized_normal);
+    }
+    #[test]
+    fn check_understanding_normal_calculation_1() {
+        // counter clockwise triangle
+        let p00 = [-1.0, 0.0, -1.0];
+        let p01 = [0.0, 0.0, 0.0];
+        let p10 = [0.0, 0.0, -1.0];
+        let normalized_normal: [f32; 3] =
+            nalgebra_glm::triangle_normal(&p00.into(), &p01.into(), &p10.into()).into();
+        assert_eq!([0.0, 1.0, 0.0], normalized_normal);
+    }
+}
