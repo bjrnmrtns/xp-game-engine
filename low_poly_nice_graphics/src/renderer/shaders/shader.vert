@@ -20,6 +20,21 @@ uniform Uniforms {
     vec4 light_diffuse;
     vec4 light_specular;
 
+    vec4 directional_direction;
+    vec4 directional_ambient;
+    vec4 directional_diffuse;
+    vec4 directional_specular;
+
+    vec4 point_position;
+    vec4 point_ambient;
+    vec4 point_diffuse;
+    vec4 point_specular;
+    vec4 constant_linear_specular; // first three components (xyz) represent constant linear and quadratic
+
+    vec4 spot_position;
+    vec4 spot_direction;
+    vec4 cut_off; // first component (x) is cut_off
+
     vec4 material_ambient;
     vec4 material_diffuse;
     vec4 material_specular;

@@ -30,6 +30,21 @@ pub struct Uniforms {
     pub light_diffuse: [f32; 4],
     pub light_specular: [f32; 4],
 
+    pub directional_direction: [f32; 4],
+    pub directional_ambient: [f32; 4],
+    pub directional_diffuse: [f32; 4],
+    pub directional_specular: [f32; 4],
+
+    pub point_position: [f32; 4],
+    pub point_ambient: [f32; 4],
+    pub point_diffuse: [f32; 4],
+    pub point_specular: [f32; 4],
+    pub constant_linear_specular: [f32; 4], // first three components (xyz) represent constant linear and quadratic
+
+    pub spot_position: [f32; 4],
+    pub spot_direction: [f32; 4],
+    pub cut_off: [f32; 4], // first component (x) is cut_off
+
     pub material_ambient: [f32; 4],
     pub material_diffuse: [f32; 4],
     pub material_specular: [f32; 4],
@@ -274,6 +289,28 @@ impl Pipeline {
                 light_ambient: [0.2, 0.2, 0.2, 1.0],
                 light_diffuse: [0.5, 0.5, 0.5, 1.0],
                 light_specular: [1.0, 1.0, 1.0, 1.0],
+                directional_direction: [-0.2, -1.0, -0.3, 1.0],
+                directional_ambient: [0.2, 0.2, 0.2, 1.0],
+                directional_diffuse: [0.5, 0.5, 0.5, 1.0],
+                directional_specular: [1.0, 1.0, 1.0, 1.0],
+                point_position: world_light_position,
+                point_ambient: [0.2, 0.2, 0.2, 1.0],
+                point_diffuse: [0.5, 0.5, 0.5, 1.0],
+                point_specular: [1.0, 1.0, 1.0, 1.0],
+                constant_linear_specular: [1.0, 0.09, 0.032, 1.0],
+                spot_position: world_camera_position,
+                spot_direction: [
+                    -world_camera_position[0],
+                    -world_camera_position[1],
+                    -world_camera_position[2],
+                    world_camera_position[3],
+                ], // looking at 0.0, 0.0, 0.0 for now
+                cut_off: [
+                    (12.5 * (std::f32::consts::FRAC_PI_2 / 360.0)).cos(),
+                    1.0,
+                    1.0,
+                    1.0,
+                ],
                 material_ambient: [1.0, 0.5, 0.31, 1.0],
                 material_diffuse: [1.0, 0.5, 0.31, 1.0],
                 material_specular: [0.5, 0.5, 0.5, 1.0],
