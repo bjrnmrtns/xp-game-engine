@@ -33,13 +33,13 @@ fn main() {
         1000.0,
     );
     let view = nalgebra_glm::look_at(
-        &vec3(60.0, 10.0, 60.0),
+        &vec3(60.0, 20.0, 60.0),
         &vec3(0.0, 0.0, 0.0),
         &vec3(0.0, 1.0, 0.0),
     );
     let light_color = [1.0, 1.0, 1.0, 1.0];
     let mut meshes = Assets::new();
-    let terrain = Entity {
+    let mut terrain = Entity {
         mesh_handle: meshes.add(Mesh::from_shape(
             &renderer,
             Shape::from(Plane::new(100.0, 6, Box::new(Terrain::new()))),
@@ -53,14 +53,15 @@ fn main() {
         match event {
             Event::RedrawRequested(_) => {
                 let time_since_start_secs = (std::time::Instant::now() - start_time).as_secs_f32();
-                let value = time_since_start_secs.sin() * 60.0;
-
+                let light_position_value = time_since_start_secs.sin() * 50.0;
+                let model_rotation_y = time_since_start_secs;
+                terrain.model = nalgebra_glm::rotate_y(&identity(), model_rotation_y);
                 pipeline.render(
                     &terrain,
                     &meshes,
                     projection,
                     view,
-                    [value, 10.0, value, 1.0],
+                    [light_position_value, 10.0, light_position_value, 1.0],
                     light_color,
                     &mut renderer,
                 );
