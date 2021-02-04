@@ -37,7 +37,6 @@ fn main() {
         &vec3(0.0, 0.0, 0.0),
         &vec3(0.0, 1.0, 0.0),
     );
-    let world_light_position = [60.0, 10.0, 60.0, 1.0];
     let light_color = [1.0, 1.0, 1.0, 1.0];
     let mut meshes = Assets::new();
     let terrain = Entity {
@@ -48,16 +47,20 @@ fn main() {
         model: identity(),
     };
 
+    let start_time = std::time::Instant::now();
     event_loop.run(move |event, _, control_flow| {
         *control_flow = winit::event_loop::ControlFlow::Poll;
         match event {
             Event::RedrawRequested(_) => {
+                let time_since_start_secs = (std::time::Instant::now() - start_time).as_secs_f32();
+                let value = time_since_start_secs.sin() * 60.0;
+
                 pipeline.render(
                     &terrain,
                     &meshes,
                     projection,
                     view,
-                    world_light_position,
+                    [value, 10.0, value, 1.0],
                     light_color,
                     &mut renderer,
                 );
