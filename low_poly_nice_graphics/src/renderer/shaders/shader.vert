@@ -17,10 +17,17 @@ struct DirectionalLight
     vec3 diffuse; float p2;
     vec3 specular;
 };
+
 struct SpotLight
 {
     vec3 position; float p0;
-    vec3 direction;
+    vec3 direction; float p1;
+    vec3 ambient; float p2;
+    vec3 diffuse; float p3;
+    vec3 specular;
+    float constant;
+    float linear;
+    float quadratic;
     float cut_off_inner;
     float cut_off_outer;
 };
@@ -41,47 +48,27 @@ uniform Uniforms {
     mat4 model;
     mat4 view;
     mat4 proj;
-    vec4 world_camera_position;
+    vec3 world_camera_position; float p0;
 
-    vec4 world_light_position;
-    vec4 light_ambient;
-    vec4 light_diffuse;
-    vec4 light_specular;
-
-    vec4 directional_direction;
-    vec4 directional_ambient;
-    vec4 directional_diffuse;
-    vec4 directional_specular;
-
-    vec4 point_position;
-    vec4 point_ambient;
-    vec4 point_diffuse;
-    vec4 point_specular;
-    vec4 constant_linear_quadratic; // first three components (xyz) represent constant linear and quadratic
-
-    vec4 spot_position;
-    vec4 spot_direction;
-    vec4 cut_off; // first component (x) is cut_off
-
-    vec4 material_ambient;
-    vec4 material_diffuse;
-    vec4 material_specular;
+    vec3 material_ambient; float p1;
+    vec3 material_diffuse; float p2;
+    vec3 material_specular;
     float material_shininess;
 };
 const uint MAX_NR_OF_DIRECTIONAL_LIGHTS = 1;
-layout(set=1, binding=0)
+layout(set=0, binding=1)
 uniform DirectionalLightBlock {
     DirectionalLight directional_lights[MAX_NR_OF_DIRECTIONAL_LIGHTS];
 };
 
 const uint MAX_NR_OF_SPOT_LIGHTS = 10;
-layout(set=2, binding=0)
+layout(set=0, binding=2)
 uniform SpotLightBlock {
     SpotLight spot_lights[MAX_NR_OF_SPOT_LIGHTS];
 };
 
 const uint MAX_NR_OF_POINT_LIGHTS = 10;
-layout(set=3, binding=0)
+layout(set=0, binding=3)
 uniform PointLightBlock {
     PointLight point_lights[MAX_NR_OF_POINT_LIGHTS];
 };
