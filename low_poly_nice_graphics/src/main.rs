@@ -44,9 +44,14 @@ fn main() {
     );
     let mut meshes = Assets::new();
     let mut lights = Assets::new();
-    lights.add(Light::Directional(DirectionalProperties::default()));
-    lights.add(Light::Spot(SpotProperties::default()));
-    lights.add(Light::Point(PointProperties::default()));
+    lights.add(Light::Directional(DirectionalProperties::new([
+        -0.2, -1.0, -0.3,
+    ])));
+    lights.add(Light::Spot(SpotProperties::new(
+        [0.0, 5.0, 0.0],
+        [0.0, -1.0, 0.0],
+    )));
+    lights.add(Light::Point(PointProperties::new([10.0, 5.0, 10.0])));
     let mut terrain = Entity {
         mesh_handle: meshes.add(Mesh::from_shape(
             &renderer,

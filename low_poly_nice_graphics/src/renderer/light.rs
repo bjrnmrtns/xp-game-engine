@@ -5,10 +5,10 @@ pub struct DirectionalProperties {
     pub specular: [f32; 3],
 }
 
-impl Default for DirectionalProperties {
-    fn default() -> Self {
+impl DirectionalProperties {
+    pub fn new(direction: [f32; 3]) -> Self {
         Self {
-            direction: [-0.2, -1.0, -0.3],
+            direction,
             ambient: [0.2, 0.2, 0.2],
             diffuse: [0.5, 0.5, 0.5],
             specular: [1.0, 1.0, 1.0],
@@ -23,11 +23,11 @@ pub struct SpotProperties {
     pub cut_off_outer: f32,
 }
 
-impl Default for SpotProperties {
-    fn default() -> Self {
+impl SpotProperties {
+    pub fn new(position: [f32; 3], direction: [f32; 3]) -> Self {
         Self {
-            position: [0.0, 5.0, 0.0],
-            direction: [0.0, -1.0, 0.0],
+            position,
+            direction,
             cut_off_inner: (12.5 * (std::f32::consts::FRAC_PI_2 / 360.0)).cos(),
             cut_off_outer: (17.5 * (std::f32::consts::FRAC_PI_2 / 360.0)).cos(),
         }
@@ -44,10 +44,10 @@ pub struct PointProperties {
     pub quadratic: f32,
 }
 
-impl Default for PointProperties {
-    fn default() -> Self {
+impl PointProperties {
+    pub fn new(position: [f32; 3]) -> Self {
         Self {
-            position: [10.0, 5.0, 10.0],
+            position,
             ambient: [0.2, 0.2, 0.2],
             diffuse: [0.5, 0.5, 0.5],
             specular: [1.0, 1.0, 1.0],
