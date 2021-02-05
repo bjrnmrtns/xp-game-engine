@@ -1,3 +1,5 @@
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct DirectionalProperties {
     pub direction: [f32; 3],
     pub ambient: [f32; 3],
@@ -16,6 +18,8 @@ impl DirectionalProperties {
     }
 }
 
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct SpotProperties {
     pub position: [f32; 3],
     pub direction: [f32; 3],
@@ -34,6 +38,8 @@ impl SpotProperties {
     }
 }
 
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct PointProperties {
     pub position: [f32; 3],
     pub ambient: [f32; 3],

@@ -7,6 +7,36 @@ layout(location=2) in vec3 in_color;
 layout(location=0) out vec3 out_world_position;
 layout(location=1) out vec3 out_world_normal;
 layout(location=2) out vec3 out_color;
+// Padding (named p<n> bytes placed for own clarity because of alignment contraints see: https://learnopengl.com/Advanced-OpenGL/Advanced-GLSL
+// alignment is implicit
+struct DirectionalLight
+{
+    vec3 directional; float p0;
+    vec3 ambient; float p1;
+    vec3 diffuse; float p2;
+    vec3 specular; float p3;
+};
+const uint MAX_NR_OF_DIRECTIONAL_LIGHTS = 1;
+struct SpotLight
+{
+    vec3 position; float p0;
+    vec3 direction;
+    float cut_off_inner;
+    float cut_off_outer;
+};
+const uint MAX_NR_OF_SPOT_LIGHTS = 10;
+
+struct PointLight
+{
+    vec3 position; float p0;
+    vec3 ambient; float p1;
+    vec3 diffuse; float p2;
+    vec3 specular;
+    float constant;
+    float linear;
+    float quadratic;
+};
+const uint MAX_NR_OF_POINT_LIGHTS = 10;
 
 layout(set=0, binding=0)
 uniform Uniforms {
@@ -29,7 +59,7 @@ uniform Uniforms {
     vec4 point_ambient;
     vec4 point_diffuse;
     vec4 point_specular;
-    vec4 constant_linear_specular; // first three components (xyz) represent constant linear and quadratic
+    vec4 constant_linear_quadratic; // first three components (xyz) represent constant linear and quadratic
 
     vec4 spot_position;
     vec4 spot_direction;
@@ -39,15 +69,11 @@ uniform Uniforms {
     vec4 material_diffuse;
     vec4 material_specular;
     float material_shininess;
+    DirectionalLight directional_lights[MAX_NR_OF_DIRECTIONAL_LIGHTS];
+    SpotLight spot_lights[MAX_NR_OF_SPOT_LIGHTS];
+    PointLight point_lights[MAX_NR_OF_POINT_LIGHTS];
 };
 
-/*void main() {
-    out_normal = mat3(transpose(inverse(view * model))) * in_normal;
-    out_color = in_color;
-    gl_Position = proj * view * model * vec4(in_position, 1.0);
-    out_position = vec3(view * model * vec4(in_position, 1.0));
-}
-*/
 void main() {
     out_world_position = vec3(model * vec4(in_model_position, 1.0));
     // TODO: doing inverse for every vertex is expensive, this can be done once per mesh on the cpu

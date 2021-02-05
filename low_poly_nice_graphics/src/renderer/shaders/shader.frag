@@ -5,6 +5,38 @@ layout(location=1) in vec3 in_world_normal;
 layout(location=2) in vec3 in_color;
 
 layout(location=0) out vec4 out_color;
+// Padding (named p<n> bytes placed for own clarity because of alignment contraints see: https://learnopengl.com/Advanced-OpenGL/Advanced-GLSL
+// alignment is implicit
+struct DirectionalLight
+{
+    vec3 directional; float p0;
+    vec3 ambient; float p1;
+    vec3 diffuse; float p2;
+    vec3 specular; float p3;
+};
+const uint MAX_NR_OF_DIRECTIONAL_LIGHTS = 1;
+struct SpotLight
+{
+    vec3 position; float p0;
+    vec3 direction;
+    float cut_off_inner;
+    float cut_off_outer;
+    vec3 p1; //align on 16
+};
+const uint MAX_NR_OF_SPOT_LIGHTS = 10;
+
+struct PointLight
+{
+    vec3 position; float p0;
+    vec3 ambient; float p1;
+    vec3 diffuse; float p2;
+    vec3 specular;
+    float constant;
+    float linear;
+    float quadratic;
+    float p3; // allign on 16
+};
+const uint MAX_NR_OF_POINT_LIGHTS = 10;
 
 layout(set=0, binding=0)
 uniform Uniforms {
@@ -31,20 +63,17 @@ uniform Uniforms {
 
     vec4 spot_position;
     vec4 spot_direction;
-    vec4 cut_off; // first component (x) is inner cut_off, second (y) is outer cut_off
+    vec4 cut_off; // first component (x) is cut_off
 
     vec4 material_ambient;
     vec4 material_diffuse;
     vec4 material_specular;
     float material_shininess;
+    DirectionalLight directional_lights[MAX_NR_OF_DIRECTIONAL_LIGHTS];
+    SpotLight spot_lights[MAX_NR_OF_SPOT_LIGHTS];
+    PointLight point_lights[MAX_NR_OF_POINT_LIGHTS];
 };
 
-/*void main() {
-    vec3 view_light = mat3(view) * light;
-    float lum = max(dot(normalize(in_normal), normalize(view_light)), 0.0);
-    out_color = vec4(in_color * (0.2 + 0.8 * lum), 1.0);
-}
-*/
 void main()
 {
     // ambient calculation
