@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct Assets<T> {
-    assets: HashMap<u64, T>,
+    pub assets: HashMap<u64, T>,
     last_id: Option<u64>,
 }
 impl<T> Assets<T> {

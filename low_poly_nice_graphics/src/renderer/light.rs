@@ -73,3 +73,10 @@ pub enum Light {
     Spot(SpotProperties),
     Point(PointProperties),
 }
+
+unsafe impl bytemuck::Pod for DirectionalProperties {}
+unsafe impl bytemuck::Zeroable for DirectionalProperties {}
+unsafe impl bytemuck::Pod for SpotProperties {}
+unsafe impl bytemuck::Zeroable for SpotProperties {}
+unsafe impl bytemuck::Pod for PointProperties {}
+unsafe impl bytemuck::Zeroable for PointProperties {}

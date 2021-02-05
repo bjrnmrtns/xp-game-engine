@@ -50,6 +50,9 @@ unsafe impl bytemuck::Zeroable for Uniforms {}
 
 pub struct Pipeline {
     uniform_buffer: wgpu::Buffer,
+    directional_light_buffer: wgpu::Buffer,
+    spot_light_buffer: wgpu::Buffer,
+    point_light_buffer: wgpu::Buffer,
     uniform_bind_group: wgpu::BindGroup,
     render_pipeline: wgpu::RenderPipeline,
 }
@@ -237,6 +240,9 @@ impl Pipeline {
                 });
         Ok(Self {
             uniform_buffer,
+            directional_light_buffer,
+            spot_light_buffer,
+            point_light_buffer,
             uniform_bind_group,
             render_pipeline,
         })
@@ -320,10 +326,42 @@ impl Pipeline {
                 material_specular: [0.5, 0.5, 0.5, 1.0],
                 material_shininess: 16.0,
             };
-            let mesh = meshes.get(entity.mesh_handle.clone()).unwrap();
+            let mut directional_lights = Vec::new();
+            let mut spot_lights = Vec::new();
+            let mut point_lights = Vec::new();
+            for (_, light) in &lights.assets {
+                match light {
+                    Light::Directional(properties) => {
+                        directional_lights.push(*properties);
+                    }
+                    Light::Spot(properties) => {
+                        spot_lights.push(*properties);
+                    }
+                    Light::Point(properties) => {
+                        point_lights.push(*properties);
+                    }
+                }
+            }
             renderer
                 .queue
                 .write_buffer(&self.uniform_buffer, 0, bytemuck::cast_slice(&[uniforms]));
+            renderer.queue.write_buffer(
+                &self.directional_light_buffer,
+                0,
+                bytemuck::cast_slice(directional_lights.as_slice()),
+            );
+            renderer.queue.write_buffer(
+                &self.spot_light_buffer,
+                0,
+                bytemuck::cast_slice(spot_lights.as_slice()),
+            );
+            renderer.queue.write_buffer(
+                &self.point_light_buffer,
+                0,
+                bytemuck::cast_slice(point_lights.as_slice()),
+            );
+
+            let mesh = meshes.get(entity.mesh_handle.clone()).unwrap();
             render_pass.set_pipeline(&self.render_pipeline);
             render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
             render_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
