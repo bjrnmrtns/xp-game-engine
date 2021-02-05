@@ -6,10 +6,11 @@ mod terrain;
 use crate::{
     assets::Assets,
     entity::Entity,
-    renderer::{Mesh, Plane, Shape},
+    renderer::{Light, Mesh},
     terrain::Terrain,
 };
 use nalgebra_glm::{identity, vec3};
+use renderer::{Plane, Shape};
 use winit::{
     event::{Event, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
@@ -43,6 +44,8 @@ fn main() {
         &vec3(0.0, 1.0, 0.0),
     );
     let mut meshes = Assets::new();
+    let mut lights = Assets::new();
+    lights.add(Light);
     let mut terrain = Entity {
         mesh_handle: meshes.add(Mesh::from_shape(
             &renderer,
