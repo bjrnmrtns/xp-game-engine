@@ -12,7 +12,7 @@ layout(location=2) out vec3 out_color;
 // alignment is implicit
 struct DirectionalLight
 {
-    vec3 directional; float p0;
+    vec3 direction; float p0;
     vec3 ambient; float p1;
     vec3 diffuse; float p2;
     vec3 specular;
