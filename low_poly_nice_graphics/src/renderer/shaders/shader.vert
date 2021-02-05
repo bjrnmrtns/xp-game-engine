@@ -50,6 +50,7 @@ uniform Uniforms {
 */
 void main() {
     out_world_position = vec3(model * vec4(in_model_position, 1.0));
+    // TODO: doing inverse for every vertex is expensive, this can be done once per mesh on the cpu
     out_world_normal = mat3(transpose(inverse(model))) * in_model_normal; // now normal is world coordinates, as a normal vector is only a direction we remove the translation part of the model matrix (mat4 -> mat3, does that)
     //out_world_normal = in_model_normal; // not entirely correct, but because we are using identity matrix for model still, it is fine
     out_color = in_color;
