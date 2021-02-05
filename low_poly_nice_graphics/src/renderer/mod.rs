@@ -7,7 +7,7 @@ mod renderer;
 mod shape;
 mod vertex;
 
-pub use light::Light;
+pub use light::{DirectionalProperties, Light, PointProperties, SpotProperties};
 pub use mesh::Mesh;
 pub use pipeline::Pipeline;
 pub use renderer::Renderer;

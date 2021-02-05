@@ -1,7 +1,7 @@
 use crate::{
     assets::Assets,
     entity::Entity,
-    renderer::{depth_texture::DepthTexture, error::RendererError, Mesh, Renderer, Vertex},
+    renderer::{depth_texture::DepthTexture, error::RendererError, Light, Mesh, Renderer, Vertex},
 };
 use nalgebra_glm::Mat4;
 use std::io::Read;
@@ -177,6 +177,7 @@ impl Pipeline {
         &self,
         entity: &Entity,
         meshes: &Assets<Mesh>,
+        lights: &Assets<Light>,
         projection: Mat4,
         view: Mat4,
         world_light_position: [f32; 4],

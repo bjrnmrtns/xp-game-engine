@@ -6,11 +6,10 @@ mod terrain;
 use crate::{
     assets::Assets,
     entity::Entity,
-    renderer::{Light, Mesh},
+    renderer::{DirectionalProperties, Light, Mesh, Plane, PointProperties, Shape, SpotProperties},
     terrain::Terrain,
 };
 use nalgebra_glm::{identity, vec3};
-use renderer::{Plane, Shape};
 use winit::{
     event::{Event, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
@@ -45,7 +44,9 @@ fn main() {
     );
     let mut meshes = Assets::new();
     let mut lights = Assets::new();
-    lights.add(Light);
+    lights.add(Light::Directional(DirectionalProperties::default()));
+    lights.add(Light::Spot(SpotProperties::default()));
+    lights.add(Light::Point(PointProperties::default()));
     let mut terrain = Entity {
         mesh_handle: meshes.add(Mesh::from_shape(
             &renderer,
@@ -66,6 +67,7 @@ fn main() {
                 pipeline.render(
                     &terrain,
                     &meshes,
+                    &lights,
                     projection,
                     view,
                     [light_position_value, 10.0, light_position_value, 1.0],
