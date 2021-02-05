@@ -1,3 +1,7 @@
+pub const MAX_NR_OF_DIRECTIONAL_LIGHTS: usize = 1;
+pub const MAX_NR_OF_SPOT_LIGHTS: usize = 10;
+pub const MAX_NR_OF_POINT_LIGHTS: usize = 10;
+
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct DirectionalProperties {

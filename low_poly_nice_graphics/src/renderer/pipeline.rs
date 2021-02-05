@@ -1,7 +1,12 @@
 use crate::{
     assets::Assets,
     entity::Entity,
-    renderer::{depth_texture::DepthTexture, error::RendererError, Light, Mesh, Renderer, Vertex},
+    renderer::{
+        depth_texture::DepthTexture,
+        error::RendererError,
+        light::{MAX_NR_OF_DIRECTIONAL_LIGHTS, MAX_NR_OF_POINT_LIGHTS, MAX_NR_OF_SPOT_LIGHTS},
+        DirectionalProperties, Light, Mesh, PointProperties, Renderer, SpotProperties, Vertex,
+    },
 };
 use nalgebra_glm::Mat4;
 use std::io::Read;
@@ -82,19 +87,69 @@ impl Pipeline {
             mapped_at_creation: false,
         });
 
+        let directional_light_buffer = renderer.device.create_buffer(&wgpu::BufferDescriptor {
+            label: None,
+            usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
+            size: (std::mem::size_of::<DirectionalProperties>() * MAX_NR_OF_DIRECTIONAL_LIGHTS)
+                as u64,
+            mapped_at_creation: false,
+        });
+        let spot_light_buffer = renderer.device.create_buffer(&wgpu::BufferDescriptor {
+            label: None,
+            usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
+            size: (std::mem::size_of::<SpotProperties>() * MAX_NR_OF_SPOT_LIGHTS) as u64,
+            mapped_at_creation: false,
+        });
+
+        let point_light_buffer = renderer.device.create_buffer(&wgpu::BufferDescriptor {
+            label: None,
+            usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
+            size: (std::mem::size_of::<PointProperties>() * MAX_NR_OF_POINT_LIGHTS) as u64,
+            mapped_at_creation: false,
+        });
+
         let uniform_bind_group_layout =
             renderer
                 .device
                 .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                    entries: &[wgpu::BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: wgpu::ShaderStage::VERTEX | wgpu::ShaderStage::FRAGMENT,
-                        ty: wgpu::BindingType::UniformBuffer {
-                            dynamic: false,
-                            min_binding_size: None,
+                    entries: &[
+                        wgpu::BindGroupLayoutEntry {
+                            binding: 0,
+                            visibility: wgpu::ShaderStage::VERTEX | wgpu::ShaderStage::FRAGMENT,
+                            ty: wgpu::BindingType::UniformBuffer {
+                                dynamic: false,
+                                min_binding_size: None,
+                            },
+                            count: None,
                         },
-                        count: None,
-                    }],
+                        wgpu::BindGroupLayoutEntry {
+                            binding: 1,
+                            visibility: wgpu::ShaderStage::VERTEX | wgpu::ShaderStage::FRAGMENT,
+                            ty: wgpu::BindingType::UniformBuffer {
+                                dynamic: false,
+                                min_binding_size: None,
+                            },
+                            count: None,
+                        },
+                        wgpu::BindGroupLayoutEntry {
+                            binding: 2,
+                            visibility: wgpu::ShaderStage::VERTEX | wgpu::ShaderStage::FRAGMENT,
+                            ty: wgpu::BindingType::UniformBuffer {
+                                dynamic: false,
+                                min_binding_size: None,
+                            },
+                            count: None,
+                        },
+                        wgpu::BindGroupLayoutEntry {
+                            binding: 3,
+                            visibility: wgpu::ShaderStage::VERTEX | wgpu::ShaderStage::FRAGMENT,
+                            ty: wgpu::BindingType::UniformBuffer {
+                                dynamic: false,
+                                min_binding_size: None,
+                            },
+                            count: None,
+                        },
+                    ],
                     label: None,
                 });
 
@@ -103,10 +158,24 @@ impl Pipeline {
             .create_bind_group(&wgpu::BindGroupDescriptor {
                 label: None,
                 layout: &uniform_bind_group_layout,
-                entries: &[wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::Buffer(uniform_buffer.slice(..)),
-                }],
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: wgpu::BindingResource::Buffer(uniform_buffer.slice(..)),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: wgpu::BindingResource::Buffer(directional_light_buffer.slice(..)),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 2,
+                        resource: wgpu::BindingResource::Buffer(spot_light_buffer.slice(..)),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 3,
+                        resource: wgpu::BindingResource::Buffer(point_light_buffer.slice(..)),
+                    },
+                ],
             });
 
         let render_pipeline_layout =
