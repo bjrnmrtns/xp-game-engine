@@ -342,6 +342,9 @@ impl Pipeline {
                     }
                 }
             }
+            assert!(directional_lights.len() <= MAX_NR_OF_DIRECTIONAL_LIGHTS);
+            assert!(spot_lights.len() <= MAX_NR_OF_SPOT_LIGHTS);
+            assert!(point_lights.len() <= MAX_NR_OF_POINT_LIGHTS);
             renderer
                 .queue
                 .write_buffer(&self.uniform_buffer, 0, bytemuck::cast_slice(&[uniforms]));
