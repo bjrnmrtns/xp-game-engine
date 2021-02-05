@@ -5,6 +5,7 @@ layout(location=1) in vec3 in_world_normal;
 layout(location=2) in vec3 in_color;
 
 layout(location=0) out vec4 out_color;
+
 // Padding (named p<n> bytes placed for own clarity because of alignment contraints see: https://learnopengl.com/Advanced-OpenGL/Advanced-GLSL
 // alignment is implicit
 struct DirectionalLight
@@ -12,18 +13,15 @@ struct DirectionalLight
     vec3 directional; float p0;
     vec3 ambient; float p1;
     vec3 diffuse; float p2;
-    vec3 specular; float p3;
+    vec3 specular;
 };
-const uint MAX_NR_OF_DIRECTIONAL_LIGHTS = 1;
 struct SpotLight
 {
     vec3 position; float p0;
     vec3 direction;
     float cut_off_inner;
     float cut_off_outer;
-    vec3 p1; //align on 16
 };
-const uint MAX_NR_OF_SPOT_LIGHTS = 10;
 
 struct PointLight
 {
@@ -34,9 +32,7 @@ struct PointLight
     float constant;
     float linear;
     float quadratic;
-    float p3; // allign on 16
 };
-const uint MAX_NR_OF_POINT_LIGHTS = 10;
 
 layout(set=0, binding=0)
 uniform Uniforms {
@@ -69,8 +65,22 @@ uniform Uniforms {
     vec4 material_diffuse;
     vec4 material_specular;
     float material_shininess;
+};
+const uint MAX_NR_OF_DIRECTIONAL_LIGHTS = 1;
+layout(set=1, binding=0)
+uniform DirectionalLightBlock {
     DirectionalLight directional_lights[MAX_NR_OF_DIRECTIONAL_LIGHTS];
+};
+
+const uint MAX_NR_OF_SPOT_LIGHTS = 10;
+layout(set=2, binding=0)
+uniform SpotLightBlock {
     SpotLight spot_lights[MAX_NR_OF_SPOT_LIGHTS];
+};
+
+const uint MAX_NR_OF_POINT_LIGHTS = 10;
+layout(set=3, binding=0)
+uniform PointLightBlock {
     PointLight point_lights[MAX_NR_OF_POINT_LIGHTS];
 };
 
