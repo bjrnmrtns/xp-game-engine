@@ -32,7 +32,7 @@ fn main() {
         0.1,
         1000.0,
     );
-    let world_camera_position = [60.0, 5.0, 60.0];
+    let world_camera_position = [60.0, 15.0, 60.0];
     let view = nalgebra_glm::look_at(
         &world_camera_position.into(),
         &vec3(0.0, 0.0, 0.0),
@@ -55,12 +55,13 @@ fn main() {
         )),
         model: identity(),
     };
-
+    let start_time = std::time::Instant::now();
     event_loop.run(move |event, _, control_flow| {
         *control_flow = winit::event_loop::ControlFlow::Poll;
         match event {
             Event::RedrawRequested(_) => {
-                let model_rotation_y = 0.0; //time_since_start_secs;
+                let time_since_start_secs = (std::time::Instant::now() - start_time).as_secs_f32();
+                let model_rotation_y = time_since_start_secs;
                 terrain.model = nalgebra_glm::rotate_y(&identity(), model_rotation_y);
                 pipeline.render(
                     &terrain,

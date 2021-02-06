@@ -8,24 +8,23 @@ layout(location=0) out vec3 out_world_position;
 layout(location=1) out vec3 out_world_normal;
 layout(location=2) out vec3 out_color;
 
-// Padding (named p<n> bytes placed for own clarity because of alignment contraints see: https://learnopengl.com/Advanced-OpenGL/Advanced-GLSL
-// alignment is implicit
+// Alignment rules see: https://learnopengl.com/Advanced-OpenGL/Advanced-GLSL
 struct DirectionalLight
 {
-    vec3 direction; float p0;
-    vec3 ambient; float p1;
-    vec3 diffuse; float p2;
+    vec3 direction;
+    vec3 ambient;
+    vec3 diffuse;
     vec3 specular;
 };
 
 struct SpotLight
 {
-    vec3 position; float p0;
-    vec3 direction; float p1;
-    vec3 ambient; float p2;
-    vec3 diffuse; float p3;
+    vec3 position;
+    vec3 direction;
+    vec3 ambient;
+    vec3 diffuse;
     vec3 specular;
-    float constant;
+    float cons;
     float linear;
     float quadratic;
     float cut_off_inner;
@@ -34,11 +33,11 @@ struct SpotLight
 
 struct PointLight
 {
-    vec3 position; float p0;
-    vec3 ambient; float p1;
-    vec3 diffuse; float p2;
+    vec3 position;
+    vec3 ambient;
+    vec3 diffuse;
     vec3 specular;
-    float constant;
+    float cons;
     float linear;
     float quadratic;
 };
@@ -48,13 +47,14 @@ uniform Uniforms {
     mat4 model;
     mat4 view;
     mat4 proj;
-    vec3 world_camera_position; float p0;
+    vec3 world_camera_position;
 
-    vec3 material_ambient; float p1;
-    vec3 material_diffuse; float p2;
+    vec3 material_ambient;
+    vec3 material_diffuse;
     vec3 material_specular;
     float material_shininess;
 };
+
 const uint MAX_NR_OF_DIRECTIONAL_LIGHTS = 1;
 layout(set=0, binding=1)
 uniform DirectionalLightBlock {
