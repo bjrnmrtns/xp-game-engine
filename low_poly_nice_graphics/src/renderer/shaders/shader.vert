@@ -42,7 +42,7 @@ struct PointLight
     float quadratic;
 };
 
-layout(set=0, binding=0)
+layout(std140, set=0, binding=0)
 uniform Uniforms {
     mat4 model;
     mat4 view;
@@ -52,21 +52,20 @@ uniform Uniforms {
     vec3 material_specular;
     float material_shininess;
 };
-
 const uint MAX_NR_OF_DIRECTIONAL_LIGHTS = 1;
-layout(set=0, binding=1)
+layout(std140, set=0, binding=1)
 uniform DirectionalLightBlock {
     DirectionalLight directional_lights[MAX_NR_OF_DIRECTIONAL_LIGHTS];
 };
 
 const uint MAX_NR_OF_SPOT_LIGHTS = 10;
-layout(set=0, binding=2)
+layout(std140, set=0, binding=2)
 uniform SpotLightBlock {
     SpotLight spot_lights[MAX_NR_OF_SPOT_LIGHTS];
 };
 
 const uint MAX_NR_OF_POINT_LIGHTS = 10;
-layout(set=0, binding=3)
+layout(std140, set=0, binding=3)
 uniform PointLightBlock {
     PointLight point_lights[MAX_NR_OF_POINT_LIGHTS];
 };

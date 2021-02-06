@@ -30,6 +30,7 @@ pub struct SpotProperties {
     pub ambient: [f32; 3],
     pub diffuse: [f32; 3],
     pub specular: [f32; 3],
+    pub padding0: f32, //padding added because glsl alignment after vec3 is wrongly padded
     pub constant: f32,
     pub linear: f32,
     pub quadratic: f32,
@@ -45,6 +46,7 @@ impl SpotProperties {
             ambient: [0.0, 0.0, 0.0],
             diffuse: [1.0, 1.0, 1.0],
             specular: [1.0, 1.0, 1.0],
+            padding0: 0.0,
             constant: 1.0,
             linear: 0.09,
             quadratic: 0.032,
@@ -61,6 +63,7 @@ pub struct PointProperties {
     pub ambient: [f32; 3],
     pub diffuse: [f32; 3],
     pub specular: [f32; 3],
+    pub padding0: f32, //padding added because glsl alignment after vec3 is wrongly padded
     pub constant: f32,
     pub linear: f32,
     pub quadratic: f32,
@@ -73,6 +76,7 @@ impl PointProperties {
             ambient: [0.05, 0.05, 0.05],
             diffuse: [0.8, 0.8, 0.8],
             specular: [1.0, 1.0, 1.0],
+            padding0: 0.0,
             constant: 1.0,
             linear: 0.09,
             quadratic: 0.032,
