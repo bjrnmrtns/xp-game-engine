@@ -47,8 +47,6 @@ uniform Uniforms {
     mat4 proj;
     vec3 world_camera_position;
 
-    vec3 material_ambient;
-    vec3 material_diffuse;
     vec3 material_specular;
     float material_shininess;
 };
@@ -80,11 +78,11 @@ vec3 calculate_directional_light(int i, vec3 normal, vec3 view_direction)
     vec3 reflect_direction = reflect(-light_direction, normal);
     float spec = pow(max(dot(view_direction, reflect_direction), 0.0), material_shininess);
 
-    vec3 ambient  = directional_lights[i].ambient * material_ambient;
-    vec3 diffuse = directional_lights[i].diffuse * diff * material_diffuse;
+    vec3 ambient  = directional_lights[i].ambient * in_color;
+    vec3 diffuse = directional_lights[i].diffuse * diff * in_color;
     vec3 specular = directional_lights[i].specular * spec * material_specular;
 
-    return ambient + diffuse + specular;
+    return ambient + diffuse;// + specular;
 }
 
 vec3 calculate_spot_light(int i, vec3 normal, vec3 frag_position, vec3 view_direction)
@@ -102,8 +100,8 @@ vec3 calculate_spot_light(int i, vec3 normal, vec3 frag_position, vec3 view_dire
     float theta = dot(light_direction, normalize(-spot_lights[i].direction));
     float epsilon = spot_lights[i].cut_off_inner - spot_lights[i].cut_off_outer;
     float intensity = clamp ((theta -spot_lights[i].cut_off_outer) / epsilon, 0.0, 1.0);
-    vec3 ambient = spot_lights[i].ambient * material_ambient * attenuation * intensity;
-    vec3 diffuse = spot_lights[i].diffuse * diff * material_diffuse * attenuation * intensity;
+    vec3 ambient = spot_lights[i].ambient * in_color * attenuation * intensity;
+    vec3 diffuse = spot_lights[i].diffuse * diff * in_color * attenuation * intensity;
     vec3 specular = spot_lights[i].specular * spec * material_specular * attenuation * intensity;
     return ambient + diffuse + specular;
 }
@@ -119,8 +117,8 @@ vec3 calculate_point_light(int i, vec3 normal, vec3 frag_position, vec3 view_dir
     // attenuation
     float distance = length(point_lights[i].position - frag_position);
     float attenuation = 1.0 / (point_lights[i].cons + point_lights[i].linear * distance + point_lights[i].quadratic * (distance * distance));
-    vec3 ambient = point_lights[i].ambient * material_ambient * attenuation;
-    vec3 diffuse = point_lights[i].diffuse * diff * material_diffuse * attenuation;
+    vec3 ambient = point_lights[i].ambient * in_color * attenuation;
+    vec3 diffuse = point_lights[i].diffuse * diff * in_color * attenuation;
     vec3 specular = point_lights[i].specular * spec * material_specular * attenuation;
     return ambient + diffuse + specular;
 }
@@ -141,5 +139,5 @@ void main()
     //for(int i = 0; i < 1; i++) {
     //    result += calculate_point_light(i, normal, in_world_position, view_direction);
     //}
-    out_color = vec4(result * in_color, 1.0);
+    out_color = vec4(result, 1.0);
 }

@@ -49,8 +49,6 @@ uniform Uniforms {
     mat4 proj;
     vec3 world_camera_position;
 
-    vec3 material_ambient;
-    vec3 material_diffuse;
     vec3 material_specular;
     float material_shininess;
 };

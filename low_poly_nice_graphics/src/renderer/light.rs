@@ -15,9 +15,9 @@ impl DirectionalProperties {
     pub fn new(direction: [f32; 3]) -> Self {
         Self {
             direction,
-            ambient: [0.2, 0.2, 0.2],
-            diffuse: [0.5, 0.5, 0.5],
-            specular: [1.0, 1.0, 1.0],
+            ambient: [0.05, 0.05, 0.05],
+            diffuse: [0.4, 0.4, 0.4],
+            specular: [0.5, 0.5, 0.5],
         }
     }
 }
@@ -42,14 +42,14 @@ impl SpotProperties {
         Self {
             position,
             direction,
-            ambient: [0.2, 0.2, 0.2],
-            diffuse: [0.5, 0.5, 0.5],
+            ambient: [0.0, 0.0, 0.0],
+            diffuse: [1.0, 1.0, 1.0],
             specular: [1.0, 1.0, 1.0],
             constant: 1.0,
             linear: 0.09,
             quadratic: 0.032,
             cut_off_inner: (12.5 * (std::f32::consts::FRAC_PI_2 / 360.0)).cos(),
-            cut_off_outer: (17.5 * (std::f32::consts::FRAC_PI_2 / 360.0)).cos(),
+            cut_off_outer: (15.0 * (std::f32::consts::FRAC_PI_2 / 360.0)).cos(),
         }
     }
 }
@@ -70,8 +70,8 @@ impl PointProperties {
     pub fn new(position: [f32; 3]) -> Self {
         Self {
             position,
-            ambient: [0.2, 0.2, 0.2],
-            diffuse: [0.5, 0.5, 0.5],
+            ambient: [0.05, 0.05, 0.05],
+            diffuse: [0.8, 0.8, 0.8],
             specular: [1.0, 1.0, 1.0],
             constant: 1.0,
             linear: 0.09,

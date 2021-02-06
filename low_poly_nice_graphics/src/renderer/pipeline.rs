@@ -19,8 +19,6 @@ pub struct Uniforms {
     pub p: Mat4,
     pub world_camera_position: [f32; 3],
 
-    pub material_ambient: [f32; 3],
-    pub material_diffuse: [f32; 3],
     pub material_specular: [f32; 3],
     pub material_shininess: f32,
 }
@@ -279,8 +277,6 @@ impl Pipeline {
                 v: view,
                 p: projection,
                 world_camera_position,
-                material_ambient: [1.0, 0.5, 0.31],
-                material_diffuse: [1.0, 0.5, 0.31],
                 material_specular: [0.5, 0.5, 0.5],
                 material_shininess: 16.0,
             };

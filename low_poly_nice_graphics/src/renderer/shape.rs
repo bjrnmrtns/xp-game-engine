@@ -83,32 +83,32 @@ impl From<Plane> for Shape {
                     Vertex {
                         position: p00,
                         normal: n0,
-                        color: [0.0, 0.0, 1.0],
+                        color: [0.86, 0.86, 0.86],
                     },
                     Vertex {
                         position: p01,
                         normal: n0,
-                        color: [0.0, 0.0, 1.0],
+                        color: [0.86, 0.86, 0.86],
                     },
                     Vertex {
                         position: p11,
                         normal: n0,
-                        color: [0.0, 0.0, 1.0],
+                        color: [0.86, 0.86, 0.86],
                     },
                     Vertex {
                         position: p00,
                         normal: n1,
-                        color: [0.0, 0.0, 1.0],
+                        color: [0.86, 0.86, 0.86],
                     },
                     Vertex {
                         position: p11,
                         normal: n1,
-                        color: [0.0, 0.0, 1.0],
+                        color: [0.86, 0.86, 0.86],
                     },
                     Vertex {
                         position: p10,
                         normal: n1,
-                        color: [0.0, 0.0, 1.0],
+                        color: [0.86, 0.86, 0.86],
                     },
                 ]);
             }
