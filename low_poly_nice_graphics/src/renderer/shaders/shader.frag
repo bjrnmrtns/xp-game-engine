@@ -133,9 +133,9 @@ void main()
     for(int i = 0; i < 1; i++) {
         result += calculate_directional_light(i, normal, view_direction);
     }
-    //for(int i = 0; i < 1; i++) {
-    //    result += calculate_spot_light(i, normal, in_world_position, view_direction);
-    //}
+    for(int i = 0; i < 1; i++) {
+        result += calculate_spot_light(i, normal, in_world_position, view_direction);
+    }
     //for(int i = 0; i < 1; i++) {
     //    result += calculate_point_light(i, normal, in_world_position, view_direction);
     //}
