@@ -11,19 +11,19 @@ layout(location=2) out vec3 out_color;
 // Alignment rules see: https://learnopengl.com/Advanced-OpenGL/Advanced-GLSL
 struct DirectionalLight
 {
-    vec3 direction;
-    vec3 ambient;
-    vec3 diffuse;
-    vec3 specular;
+    vec4 direction;
+    vec4 ambient;
+    vec4 diffuse;
+    vec4 specular;
 };
 
 struct SpotLight
 {
-    vec3 position;
-    vec3 direction;
-    vec3 ambient;
-    vec3 diffuse;
-    vec3 specular;
+    vec4 position;
+    vec4 direction;
+    vec4 ambient;
+    vec4 diffuse;
+    vec4 specular;
     float cons;
     float linear;
     float quadratic;
@@ -33,10 +33,10 @@ struct SpotLight
 
 struct PointLight
 {
-    vec3 position;
-    vec3 ambient;
-    vec3 diffuse;
-    vec3 specular;
+    vec4 position;
+    vec4 ambient;
+    vec4 diffuse;
+    vec4 specular;
     float cons;
     float linear;
     float quadratic;
@@ -47,9 +47,9 @@ uniform Uniforms {
     mat4 model;
     mat4 view;
     mat4 proj;
-    vec3 world_camera_position;
+    vec4 world_camera_position;
 
-    vec3 material_specular;
+    vec4 material_specular;
     float material_shininess;
 };
 const uint MAX_NR_OF_DIRECTIONAL_LIGHTS = 1;

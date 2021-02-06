@@ -17,9 +17,8 @@ pub struct Uniforms {
     pub m: Mat4,
     pub v: Mat4,
     pub p: Mat4,
-    pub world_camera_position: [f32; 3],
-    pub material_specular: [f32; 3],
-    pub padding0: f32, //padding added because glsl alignment after vec3 is wrongly padded
+    pub world_camera_position: [f32; 4],
+    pub material_specular: [f32; 4],
     pub material_shininess: f32,
 }
 
@@ -233,7 +232,7 @@ impl Pipeline {
         lights: &Assets<Light>,
         projection: Mat4,
         view: Mat4,
-        world_camera_position: [f32; 3],
+        world_camera_position: [f32; 4],
         renderer: &mut Renderer,
     ) {
         let target = &renderer
@@ -277,8 +276,7 @@ impl Pipeline {
                 v: view,
                 p: projection,
                 world_camera_position,
-                material_specular: [0.5, 0.5, 0.5],
-                padding0: 0.0,
+                material_specular: [0.5, 0.5, 0.5, 1.0],
                 material_shininess: 16.0,
             };
             let mut directional_lights = Vec::new();

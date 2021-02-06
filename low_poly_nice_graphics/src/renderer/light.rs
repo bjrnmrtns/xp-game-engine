@@ -5,19 +5,19 @@ pub const MAX_NR_OF_POINT_LIGHTS: usize = 10;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct DirectionalProperties {
-    pub direction: [f32; 3],
-    pub ambient: [f32; 3],
-    pub diffuse: [f32; 3],
-    pub specular: [f32; 3],
+    pub direction: [f32; 4],
+    pub ambient: [f32; 4],
+    pub diffuse: [f32; 4],
+    pub specular: [f32; 4],
 }
 
 impl DirectionalProperties {
-    pub fn new(direction: [f32; 3]) -> Self {
+    pub fn new(direction: [f32; 4]) -> Self {
         Self {
             direction,
-            ambient: [0.05, 0.05, 0.05],
-            diffuse: [0.4, 0.4, 0.4],
-            specular: [0.5, 0.5, 0.5],
+            ambient: [0.05, 0.05, 0.05, 1.0],
+            diffuse: [0.4, 0.4, 0.4, 1.0],
+            specular: [0.5, 0.5, 0.5, 1.0],
         }
     }
 }
@@ -25,12 +25,11 @@ impl DirectionalProperties {
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct SpotProperties {
-    pub position: [f32; 3],
-    pub direction: [f32; 3],
-    pub ambient: [f32; 3],
-    pub diffuse: [f32; 3],
-    pub specular: [f32; 3],
-    pub padding0: f32, //padding added because glsl alignment after vec3 is wrongly padded
+    pub position: [f32; 4],
+    pub direction: [f32; 4],
+    pub ambient: [f32; 4],
+    pub diffuse: [f32; 4],
+    pub specular: [f32; 4],
     pub constant: f32,
     pub linear: f32,
     pub quadratic: f32,
@@ -39,14 +38,13 @@ pub struct SpotProperties {
 }
 
 impl SpotProperties {
-    pub fn new(position: [f32; 3], direction: [f32; 3]) -> Self {
+    pub fn new(position: [f32; 4], direction: [f32; 4]) -> Self {
         Self {
             position,
             direction,
-            ambient: [0.0, 0.0, 0.0],
-            diffuse: [1.0, 1.0, 1.0],
-            specular: [1.0, 1.0, 1.0],
-            padding0: 0.0,
+            ambient: [0.0, 0.0, 0.0, 1.0],
+            diffuse: [1.0, 1.0, 1.0, 1.0],
+            specular: [1.0, 1.0, 1.0, 1.0],
             constant: 1.0,
             linear: 0.09,
             quadratic: 0.032,
@@ -59,24 +57,22 @@ impl SpotProperties {
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct PointProperties {
-    pub position: [f32; 3],
-    pub ambient: [f32; 3],
-    pub diffuse: [f32; 3],
-    pub specular: [f32; 3],
-    pub padding0: f32, //padding added because glsl alignment after vec3 is wrongly padded
+    pub position: [f32; 4],
+    pub ambient: [f32; 4],
+    pub diffuse: [f32; 4],
+    pub specular: [f32; 4],
     pub constant: f32,
     pub linear: f32,
     pub quadratic: f32,
 }
 
 impl PointProperties {
-    pub fn new(position: [f32; 3]) -> Self {
+    pub fn new(position: [f32; 4]) -> Self {
         Self {
             position,
-            ambient: [0.05, 0.05, 0.05],
-            diffuse: [0.8, 0.8, 0.8],
-            specular: [1.0, 1.0, 1.0],
-            padding0: 0.0,
+            ambient: [0.05, 0.05, 0.05, 1.0],
+            diffuse: [0.8, 0.8, 0.8, 1.0],
+            specular: [1.0, 1.0, 1.0, 1.0],
             constant: 1.0,
             linear: 0.09,
             quadratic: 0.032,

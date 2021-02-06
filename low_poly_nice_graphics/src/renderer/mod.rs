@@ -11,5 +11,5 @@ pub use light::{DirectionalProperties, Light, PointProperties, SpotProperties};
 pub use mesh::Mesh;
 pub use pipeline::Pipeline;
 pub use renderer::Renderer;
-pub use shape::{Height, Plane, Shape};
+pub use shape::{Height, Plane, Shape, Zero};
 pub use vertex::Vertex;
