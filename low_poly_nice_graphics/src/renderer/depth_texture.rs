@@ -25,7 +25,7 @@ impl DepthTexture {
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
             format: Self::DEPTH_FORMAT,
-            usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT // 3.
+            usage: wgpu::TextureUsage::RENDER_ATTACHMENT // 3.
                 | wgpu::TextureUsage::SAMPLED
                 | wgpu::TextureUsage::COPY_SRC,
         };
@@ -45,6 +45,7 @@ impl DepthTexture {
             lod_max_clamp: 100.0,
             compare: Some(wgpu::CompareFunction::LessEqual), // 5.
             anisotropy_clamp: None,
+            border_color: None,
         });
 
         Self {

@@ -16,7 +16,7 @@ impl Renderer {
         let surface = unsafe { instance.create_surface(window) };
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
-                power_preference: wgpu::PowerPreference::Default,
+                power_preference: Default::default(),
                 compatible_surface: Some(&surface),
             })
             .await;
@@ -29,9 +29,9 @@ impl Renderer {
         let (device, queue) = adapter
             .request_device(
                 &wgpu::DeviceDescriptor {
+                    label: None,
                     features: Default::default(),
                     limits: Default::default(),
-                    shader_validation: false,
                 },
                 None,
             )
@@ -39,7 +39,7 @@ impl Renderer {
             .unwrap();
 
         let swap_chain_descriptor = wgpu::SwapChainDescriptor {
-            usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
+            usage: wgpu::TextureUsage::RENDER_ATTACHMENT,
             format: wgpu::TextureFormat::Bgra8UnormSrgb,
             width: window.inner_size().width,
             height: window.inner_size().height,

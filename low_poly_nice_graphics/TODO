@@ -2,6 +2,7 @@ DONE 1: Create window (winit) add gameloop and render triangle, with fixed camer
 DONE 3: Add Asset implementation so meshes have handles and can be assigned to entities.
 DONE 4: Add Entity implementation
 DONE 2: Generate simple noisy terrain still with fixed camera
+DONE 9: Update to wgpu 0.7
 TODO 7: Start lighting implementation to have good looking low poly graphics
 [x] implement basic spot / directional / point with specular/diffuse/amient (light and material)
 [x] define a light in rust which automatically uploads to gpu (uniform buffer array)
@@ -10,7 +11,6 @@ TODO 7: Start lighting implementation to have good looking low poly graphics
 TODO 10: advanced light rendering
 [] more advanced light rendering
 [] shadow mapping
-TODO 9: Update to wgpu 0.7
 TODO 8: Move model data to instance data and add instance data to gpu (instances rendering)
 TODO 5: Add transform implementation and can be added to entities
 TODO 6: Add Graph so entities can have parent child relation
