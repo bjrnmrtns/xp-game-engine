@@ -48,8 +48,8 @@ impl SpotProperties {
             constant: 1.0,
             linear: 0.09,
             quadratic: 0.032,
-            cut_off_inner: (12.5 * (std::f32::consts::FRAC_PI_2 / 360.0)).cos(),
-            cut_off_outer: (15.0 * (std::f32::consts::FRAC_PI_2 / 360.0)).cos(),
+            cut_off_inner: (12.5 * (std::f32::consts::PI / 180.0)).cos(),
+            cut_off_outer: (15.0 * (std::f32::consts::PI / 180.0)).cos(),
         }
     }
 }

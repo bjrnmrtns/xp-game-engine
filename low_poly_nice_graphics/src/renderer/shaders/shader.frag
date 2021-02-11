@@ -88,6 +88,7 @@ vec3 calculate_directional_light(int i, vec3 normal, vec3 view_direction)
 vec3 calculate_spot_light(int i, vec3 normal, vec3 frag_position, vec3 view_direction)
 {
     vec3 light_direction = normalize(spot_lights[i].position.xyz - frag_position);
+
     // diffuse
     float diff = max(dot(normal, light_direction), 0.0);
     // specular
@@ -95,7 +96,8 @@ vec3 calculate_spot_light(int i, vec3 normal, vec3 frag_position, vec3 view_dire
     float spec = pow(max(dot(view_direction, reflect_direction), 0.0), material_shininess);
     // attenuation
     float distance = length(spot_lights[i].position.xyz - frag_position);
-    float attenuation = 1.0 / (spot_lights[i].cons + spot_lights[i].linear * distance + spot_lights[i].quadratic * (distance * distance));
+    //float attenuation = 1.0 / (spot_lights[i].cons + spot_lights[i].linear * distance + spot_lights[i].quadratic * (distance * distance));
+    float attenuation = 1.0 / (1.0 + 0.09 * distance + 0.032 * (distance * distance));
     // spotlight intensity
     float theta = dot(light_direction, normalize(-spot_lights[i].direction.xyz));
     float epsilon = spot_lights[i].cut_off_inner - spot_lights[i].cut_off_outer;

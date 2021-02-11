@@ -44,7 +44,7 @@ fn main() {
         -0.2, -1.0, -0.3, 1.0,
     ])));
     lights.add(Light::Spot(SpotProperties::new(
-        [0.0, 5.0, 0.0, 1.0],
+        [0.0, 15.0, 0.0, 1.0],
         [0.0, -1.0, 0.0, 1.0],
     )));
     lights.add(Light::Point(PointProperties::new([30.0, 10.0, 30.0, 1.0])));
@@ -52,6 +52,7 @@ fn main() {
         mesh_handle: meshes.add(Mesh::from_shape(
             &renderer,
             Shape::from(Plane::new(100.0, 6, Box::new(renderer::Zero {}))),
+            //            Shape::from(Plane::new(100.0, 6, Box::new(Terrain::new()))),
         )),
         model: identity(),
     };
