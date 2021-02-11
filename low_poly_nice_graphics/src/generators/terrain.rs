@@ -1,11 +1,11 @@
-use crate::renderer::Height;
+use crate::generators::Height;
 use noise::NoiseFn;
 
-pub struct Terrain {
+pub struct Noise {
     noise: noise::Fbm,
 }
 
-impl Terrain {
+impl Noise {
     pub fn new() -> Self {
         Self {
             noise: noise::Fbm::new(),
@@ -13,8 +13,16 @@ impl Terrain {
     }
 }
 
-impl Height for Terrain {
+impl Height for Noise {
     fn height(&self, x: f32, y: f32) -> f32 {
         self.noise.get([x as f64, y as f64]) as f32 * 2.0
+    }
+}
+
+pub struct SineCosine;
+
+impl Height for SineCosine {
+    fn height(&self, x: f32, y: f32) -> f32 {
+        x.sin() + y.cos()
     }
 }

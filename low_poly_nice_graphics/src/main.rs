@@ -1,13 +1,12 @@
 mod assets;
 mod entity;
+mod generators;
 mod renderer;
-mod terrain;
 
 use crate::{
     assets::Assets,
     entity::Entity,
     renderer::{DirectionalProperties, Light, Mesh, Plane, PointProperties, Shape, SpotProperties},
-    terrain::Terrain,
 };
 use nalgebra_glm::{identity, vec3};
 use winit::{
@@ -51,7 +50,7 @@ fn main() {
     let mut terrain = Entity {
         mesh_handle: meshes.add(Mesh::from_shape(
             &renderer,
-            Shape::from(Plane::new(100.0, 6, Box::new(renderer::Zero {}))),
+            Shape::from(Plane::new(100.0, 8, Box::new(generators::SineCosine {}))),
             //            Shape::from(Plane::new(100.0, 6, Box::new(Terrain::new()))),
         )),
         model: identity(),
@@ -62,7 +61,7 @@ fn main() {
         match event {
             Event::RedrawRequested(_) => {
                 let time_since_start_secs = (std::time::Instant::now() - start_time).as_secs_f32();
-                let model_rotation_y = time_since_start_secs;
+                let model_rotation_y = 0.0; //time_since_start_secs;
                 terrain.model = nalgebra_glm::rotate_y(&identity(), model_rotation_y);
                 pipeline.render(
                     &terrain,
