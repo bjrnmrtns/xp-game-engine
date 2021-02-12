@@ -2,41 +2,17 @@ use crate::{
     assets::Assets,
     entity::Entity,
     renderer::{
-        depth_texture::DepthTexture,
-        error::RendererError,
-        light::{MAX_NR_OF_DIRECTIONAL_LIGHTS, MAX_NR_OF_POINT_LIGHTS, MAX_NR_OF_SPOT_LIGHTS},
-        DirectionalProperties, Light, Mesh, PointProperties, Renderer, SpotProperties, Vertex,
+        depth_texture::DepthTexture, error::RendererError, Mesh, Renderer, Uniforms, Vertex,
     },
 };
-use nalgebra_glm::Mat4;
 use std::io::Read;
-use wgpu::ShaderModuleDescriptor;
-
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct Uniforms {
-    pub m: Mat4,
-    pub v: Mat4,
-    pub p: Mat4,
-    pub world_camera_position: [f32; 4],
-    pub material_specular: [f32; 4],
-    pub material_shininess: f32,
-}
-
-unsafe impl bytemuck::Pod for Uniforms {}
-unsafe impl bytemuck::Zeroable for Uniforms {}
 
 pub struct Pipeline {
-    uniform_buffer: wgpu::Buffer,
-    directional_light_buffer: wgpu::Buffer,
-    spot_light_buffer: wgpu::Buffer,
-    point_light_buffer: wgpu::Buffer,
-    uniform_bind_group: wgpu::BindGroup,
     render_pipeline: wgpu::RenderPipeline,
 }
 
 impl Pipeline {
-    pub async fn new(renderer: &Renderer) -> Result<Self, RendererError> {
+    pub async fn new(renderer: &Renderer, uniforms: &Uniforms) -> Result<Self, RendererError> {
         let (mut spirv_vs_bytes, mut spirv_fs_bytes) = (Vec::new(), Vec::new());
         match glsl_to_spirv::compile(
             include_str!("shaders/shader.vert"),
@@ -72,115 +48,12 @@ impl Pipeline {
                 source: fs_module_source,
                 flags: Default::default(),
             });
-
-        let uniform_buffer = renderer.device.create_buffer(&wgpu::BufferDescriptor {
-            label: None,
-            usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
-            size: (std::mem::size_of::<Uniforms>()) as u64,
-            mapped_at_creation: false,
-        });
-
-        let directional_light_buffer = renderer.device.create_buffer(&wgpu::BufferDescriptor {
-            label: None,
-            usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
-            size: (std::mem::size_of::<DirectionalProperties>() * MAX_NR_OF_DIRECTIONAL_LIGHTS)
-                as u64,
-            mapped_at_creation: false,
-        });
-        let spot_light_buffer = renderer.device.create_buffer(&wgpu::BufferDescriptor {
-            label: None,
-            usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
-            size: (std::mem::size_of::<SpotProperties>() * MAX_NR_OF_SPOT_LIGHTS) as u64,
-            mapped_at_creation: false,
-        });
-
-        let point_light_buffer = renderer.device.create_buffer(&wgpu::BufferDescriptor {
-            label: None,
-            usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
-            size: (std::mem::size_of::<PointProperties>() * MAX_NR_OF_POINT_LIGHTS) as u64,
-            mapped_at_creation: false,
-        });
-
-        let uniform_bind_group_layout =
-            renderer
-                .device
-                .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                    entries: &[
-                        wgpu::BindGroupLayoutEntry {
-                            binding: 0,
-                            visibility: wgpu::ShaderStage::VERTEX | wgpu::ShaderStage::FRAGMENT,
-                            ty: wgpu::BindingType::Buffer {
-                                ty: wgpu::BufferBindingType::Uniform,
-                                min_binding_size: None,
-                                has_dynamic_offset: false,
-                            },
-                            count: None,
-                        },
-                        wgpu::BindGroupLayoutEntry {
-                            binding: 1,
-                            visibility: wgpu::ShaderStage::VERTEX | wgpu::ShaderStage::FRAGMENT,
-                            ty: wgpu::BindingType::Buffer {
-                                ty: wgpu::BufferBindingType::Uniform,
-                                min_binding_size: None,
-                                has_dynamic_offset: false,
-                            },
-                            count: None,
-                        },
-                        wgpu::BindGroupLayoutEntry {
-                            binding: 2,
-                            visibility: wgpu::ShaderStage::VERTEX | wgpu::ShaderStage::FRAGMENT,
-                            ty: wgpu::BindingType::Buffer {
-                                ty: wgpu::BufferBindingType::Uniform,
-                                min_binding_size: None,
-                                has_dynamic_offset: false,
-                            },
-                            count: None,
-                        },
-                        wgpu::BindGroupLayoutEntry {
-                            binding: 3,
-                            visibility: wgpu::ShaderStage::VERTEX | wgpu::ShaderStage::FRAGMENT,
-                            ty: wgpu::BindingType::Buffer {
-                                ty: wgpu::BufferBindingType::Uniform,
-                                min_binding_size: None,
-                                has_dynamic_offset: false,
-                            },
-                            count: None,
-                        },
-                    ],
-                    label: None,
-                });
-
-        let uniform_bind_group = renderer
-            .device
-            .create_bind_group(&wgpu::BindGroupDescriptor {
-                label: None,
-                layout: &uniform_bind_group_layout,
-                entries: &[
-                    wgpu::BindGroupEntry {
-                        binding: 0,
-                        resource: uniform_buffer.as_entire_binding(),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 1,
-                        resource: directional_light_buffer.as_entire_binding(),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 2,
-                        resource: spot_light_buffer.as_entire_binding(),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 3,
-                        resource: point_light_buffer.as_entire_binding(),
-                    },
-                ],
-            });
-
         let render_pipeline_layout =
             renderer
                 .device
                 .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                     label: None,
-                    bind_group_layouts: &[&uniform_bind_group_layout],
+                    bind_group_layouts: &[&uniforms.bind_group_layout],
                     push_constant_ranges: &[],
                 });
 
@@ -226,24 +99,14 @@ impl Pipeline {
                         targets: &[renderer.swap_chain_descriptor.format.into()],
                     }),
                 });
-        Ok(Self {
-            uniform_buffer,
-            directional_light_buffer,
-            spot_light_buffer,
-            point_light_buffer,
-            uniform_bind_group,
-            render_pipeline,
-        })
+        Ok(Self { render_pipeline })
     }
 
     pub fn render(
         &self,
         entity: &Entity,
         meshes: &Assets<Mesh>,
-        lights: &Assets<Light>,
-        projection: Mat4,
-        view: Mat4,
-        world_camera_position: [f32; 4],
+        uniforms: &Uniforms,
         renderer: &mut Renderer,
     ) {
         let target = &renderer
@@ -283,56 +146,11 @@ impl Pipeline {
                     }),
                 }),
             });
-            let uniforms = Uniforms {
-                m: entity.model.clone(),
-                v: view,
-                p: projection,
-                world_camera_position,
-                material_specular: [0.5, 0.5, 0.5, 1.0],
-                material_shininess: 16.0,
-            };
-            let mut directional_lights = Vec::new();
-            let mut spot_lights = Vec::new();
-            let mut point_lights = Vec::new();
-            for (_, light) in &lights.assets {
-                match light {
-                    Light::Directional(properties) => {
-                        directional_lights.push(*properties);
-                    }
-                    Light::Spot(properties) => {
-                        spot_lights.push(*properties);
-                    }
-                    Light::Point(properties) => {
-                        point_lights.push(*properties);
-                    }
-                }
-            }
-            assert!(directional_lights.len() <= MAX_NR_OF_DIRECTIONAL_LIGHTS);
-            assert!(spot_lights.len() <= MAX_NR_OF_SPOT_LIGHTS);
-            assert!(point_lights.len() <= MAX_NR_OF_POINT_LIGHTS);
-            renderer
-                .queue
-                .write_buffer(&self.uniform_buffer, 0, bytemuck::cast_slice(&[uniforms]));
-            renderer.queue.write_buffer(
-                &self.directional_light_buffer,
-                0,
-                bytemuck::cast_slice(directional_lights.as_slice()),
-            );
-            renderer.queue.write_buffer(
-                &self.spot_light_buffer,
-                0,
-                bytemuck::cast_slice(spot_lights.as_slice()),
-            );
-            renderer.queue.write_buffer(
-                &self.point_light_buffer,
-                0,
-                bytemuck::cast_slice(point_lights.as_slice()),
-            );
 
             let mesh = meshes.get(entity.mesh_handle.clone()).unwrap();
             render_pass.set_pipeline(&self.render_pipeline);
             render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
-            render_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
+            render_pass.set_bind_group(0, &uniforms.bind_group, &[]);
             render_pass.draw(0..mesh.len, 0..1);
         }
         renderer.queue.submit(std::iter::once(encoder.finish()));

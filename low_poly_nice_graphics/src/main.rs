@@ -6,7 +6,9 @@ mod renderer;
 use crate::{
     assets::Assets,
     entity::Entity,
-    renderer::{DirectionalProperties, Light, Mesh, Plane, PointProperties, Shape, SpotProperties},
+    renderer::{
+        DirectionalProperties, Light, Mesh, Plane, PointProperties, Shape, SpotProperties, Uniforms,
+    },
 };
 use nalgebra_glm::{identity, vec3};
 use winit::{
@@ -22,7 +24,8 @@ fn main() {
         .expect("Could not create window");
     let mut renderer = futures::executor::block_on(renderer::Renderer::new(&window))
         .expect("Could not create renderer");
-    let pipeline = futures::executor::block_on(renderer::Pipeline::new(&renderer))
+    let uniforms = Uniforms::new(&renderer);
+    let pipeline = futures::executor::block_on(renderer::Pipeline::new(&renderer, &uniforms))
         .expect("Could not create pipeline");
 
     let projection = nalgebra_glm::perspective(
@@ -63,9 +66,9 @@ fn main() {
                 let time_since_start_secs = (std::time::Instant::now() - start_time).as_secs_f32();
                 let model_rotation_y = 0.0; //time_since_start_secs;
                 terrain.model = nalgebra_glm::rotate_y(&identity(), model_rotation_y);
-                pipeline.render(
+                uniforms.update(
+                    &renderer,
                     &terrain,
-                    &meshes,
                     &lights,
                     projection,
                     view,
@@ -75,8 +78,8 @@ fn main() {
                         world_camera_position[2],
                         1.0,
                     ],
-                    &mut renderer,
                 );
+                pipeline.render(&terrain, &meshes, &uniforms, &mut renderer);
             }
             Event::MainEventsCleared => {
                 window.request_redraw();
