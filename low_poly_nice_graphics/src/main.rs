@@ -75,11 +75,13 @@ fn main() {
         match event {
             Event::RedrawRequested(_) => {
                 let time_since_start_secs = (std::time::Instant::now() - start_time).as_secs_f32();
-                let model_rotation_y = 0.0; //time_since_start_secs;
+                let model_rotation_y = time_since_start_secs;
                 terrain.model = nalgebra_glm::rotate_y(&identity(), model_rotation_y);
-                pipeline_bindgroup.update_instance(
+
+                let transforms = &[renderer::Transform { m: terrain.model }];
+
+                pipeline_bindgroup.update_view_projection(
                     &renderer,
-                    terrain.model,
                     projection,
                     view,
                     [
@@ -88,7 +90,10 @@ fn main() {
                         world_camera_position[2],
                         1.0,
                     ],
+                    [0.5, 0.5, 0.5, 1.0],
+                    16.0,
                 );
+                pipeline_bindgroup.update_instance(&renderer, transforms);
                 pipeline_bindgroup.update_lights(&renderer, &lights);
                 let target = &renderer
                     .swap_chain

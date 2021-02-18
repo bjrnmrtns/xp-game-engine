@@ -6,12 +6,14 @@ DONE 9: Update to wgpu 0.7
 DONE 7: Start lighting implementation to have good looking low poly graphics
 [x] implement basic spot / directional / point with specular/diffuse/amient (light and material)
 [x] define a light in rust which automatically uploads to gpu (uniform buffer array)
-TODO 11: Implement seperate pipeline for rendering the lights
+DONE 11: Implement seperate pipeline for rendering the lights
 [x] finish mesh from cube which represents the lights
-[] move model matrix to instance data
-[] finish seperate pipeline implementation
-[] render multiple lights
-[] render lights using instanced rendering
+[x] move model matrix to instance data
+[x] finish seperate pipeline implementation
+[x] render multiple lights
+[x] render lights using instanced rendering
+TODO 11: Refactor instanced rendering and light / entities
+[] make adding entities and lights awesome
 TODO 10: advanced light rendering
 [] more advanced light rendering
 [] shadow mapping

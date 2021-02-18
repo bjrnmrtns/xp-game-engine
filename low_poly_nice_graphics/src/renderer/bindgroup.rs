@@ -8,10 +8,11 @@ use crate::{
 };
 use nalgebra_glm::Mat4;
 
+const MAX_NR_OF_INSTANCES: usize = 100;
+
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct Transform {
-    pub m: Mat4,
+pub struct ViewProjection {
     pub v: Mat4,
     pub p: Mat4,
     pub world_camera_position: [f32; 4],
@@ -19,10 +20,20 @@ pub struct Transform {
     pub material_shininess: f32,
 }
 
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct Transform {
+    pub m: Mat4,
+}
+
+unsafe impl bytemuck::Pod for ViewProjection {}
+unsafe impl bytemuck::Zeroable for ViewProjection {}
+
 unsafe impl bytemuck::Pod for Transform {}
 unsafe impl bytemuck::Zeroable for Transform {}
 
 pub struct BindGroup {
+    pub view_projection: wgpu::Buffer,
     pub transforms: wgpu::Buffer,
     pub directional_lights: wgpu::Buffer,
     pub spot_lights: wgpu::Buffer,
@@ -33,10 +44,10 @@ pub struct BindGroup {
 
 impl BindGroup {
     pub fn new(renderer: &Renderer) -> Self {
-        let transforms = renderer.device.create_buffer(&wgpu::BufferDescriptor {
+        let view_projection = renderer.device.create_buffer(&wgpu::BufferDescriptor {
             label: None,
             usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
-            size: (std::mem::size_of::<Transform>()) as u64,
+            size: (std::mem::size_of::<ViewProjection>()) as u64,
             mapped_at_creation: false,
         });
 
@@ -58,6 +69,13 @@ impl BindGroup {
             label: None,
             usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
             size: (std::mem::size_of::<PointProperties>() * MAX_NR_OF_POINT_LIGHTS) as u64,
+            mapped_at_creation: false,
+        });
+
+        let transforms = renderer.device.create_buffer(&wgpu::BufferDescriptor {
+            label: None,
+            usage: wgpu::BufferUsage::STORAGE | wgpu::BufferUsage::COPY_DST,
+            size: (std::mem::size_of::<Transform>() * MAX_NR_OF_INSTANCES) as u64,
             mapped_at_creation: false,
         });
 
@@ -106,6 +124,16 @@ impl BindGroup {
                             },
                             count: None,
                         },
+                        wgpu::BindGroupLayoutEntry {
+                            binding: 4,
+                            visibility: wgpu::ShaderStage::VERTEX | wgpu::ShaderStage::FRAGMENT,
+                            ty: wgpu::BindingType::Buffer {
+                                ty: wgpu::BufferBindingType::Storage { read_only: true },
+                                min_binding_size: None,
+                                has_dynamic_offset: false,
+                            },
+                            count: None,
+                        },
                     ],
                     label: None,
                 });
@@ -118,7 +146,7 @@ impl BindGroup {
                 entries: &[
                     wgpu::BindGroupEntry {
                         binding: 0,
-                        resource: transforms.as_entire_binding(),
+                        resource: view_projection.as_entire_binding(),
                     },
                     wgpu::BindGroupEntry {
                         binding: 1,
@@ -132,9 +160,14 @@ impl BindGroup {
                         binding: 3,
                         resource: point_lights.as_entire_binding(),
                     },
+                    wgpu::BindGroupEntry {
+                        binding: 4,
+                        resource: transforms.as_entire_binding(),
+                    },
                 ],
             });
         Self {
+            view_projection,
             transforms,
             directional_lights,
             spot_lights,
@@ -144,25 +177,33 @@ impl BindGroup {
         }
     }
 
-    pub fn update_instance(
+    pub fn update_view_projection(
         &self,
         renderer: &Renderer,
-        model: Mat4,
         projection: Mat4,
         view: Mat4,
         world_camera_position: [f32; 4],
+        material_specular: [f32; 4],
+        material_shininess: f32,
     ) {
-        let transforms = Transform {
-            m: model,
+        let view_projection = ViewProjection {
             v: view,
             p: projection,
             world_camera_position,
-            material_specular: [0.5, 0.5, 0.5, 1.0],
-            material_shininess: 16.0,
+            material_specular,
+            material_shininess,
         };
+        renderer.queue.write_buffer(
+            &self.view_projection,
+            0,
+            bytemuck::cast_slice(&[view_projection]),
+        );
+    }
+
+    pub fn update_instance(&self, renderer: &Renderer, transforms: &[Transform]) {
         renderer
             .queue
-            .write_buffer(&self.transforms, 0, bytemuck::cast_slice(&[transforms]));
+            .write_buffer(&self.transforms, 0, bytemuck::cast_slice(transforms));
     }
 
     pub fn update_lights(&self, renderer: &Renderer, lights: &Assets<Light>) {

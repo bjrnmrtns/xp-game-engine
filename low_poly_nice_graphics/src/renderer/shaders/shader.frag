@@ -42,11 +42,9 @@ struct PointLight
 
 layout(std140, set=0, binding=0)
 uniform Uniforms {
-    mat4 model;
     mat4 view;
     mat4 proj;
     vec4 world_camera_position;
-
     vec4 material_specular;
     float material_shininess;
 };
@@ -66,6 +64,11 @@ const uint MAX_NR_OF_POINT_LIGHTS = 10;
 layout(std140, set=0, binding=3)
 uniform PointLightBlock {
     PointLight point_lights[MAX_NR_OF_POINT_LIGHTS];
+};
+
+layout(std140, set=0, binding=4)
+buffer Transforms {
+    mat4 models[];
 };
 
 vec3 calculate_directional_light(int i, vec3 normal, vec3 view_direction)

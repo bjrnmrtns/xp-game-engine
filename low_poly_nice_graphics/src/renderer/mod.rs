@@ -10,7 +10,7 @@ mod renderer;
 mod shape;
 mod vertex;
 
-pub use bindgroup::BindGroup;
+pub use bindgroup::{BindGroup, Transform};
 pub use light::{DirectionalProperties, Light, PointProperties, SpotProperties};
 pub use light_bindgroup::LightBindGroup;
 pub use light_pipeline::LightPipeline;
