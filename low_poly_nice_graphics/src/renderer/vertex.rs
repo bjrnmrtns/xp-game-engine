@@ -7,6 +7,16 @@ pub struct Vertex {
 }
 
 impl Vertex {
+    pub fn new(position: [f32; 3], normal: [f32; 3], color: [f32; 3]) -> Self {
+        Self {
+            position,
+            normal,
+            color,
+        }
+    }
+}
+
+impl Vertex {
     pub fn desc<'a>() -> wgpu::VertexBufferLayout<'a> {
         use std::mem;
         wgpu::VertexBufferLayout {

@@ -7,7 +7,8 @@ use crate::{
     assets::Assets,
     entity::Entity,
     renderer::{
-        DirectionalProperties, Light, Mesh, Plane, PointProperties, Shape, SpotProperties, Uniforms,
+        Cube, DirectionalProperties, Light, Mesh, Plane, PointProperties, Shape, SpotProperties,
+        Uniforms,
     },
 };
 use nalgebra_glm::{identity, vec3};
@@ -27,6 +28,9 @@ fn main() {
     let uniforms = Uniforms::new(&renderer);
     let pipeline = futures::executor::block_on(renderer::Pipeline::new(&renderer, &uniforms))
         .expect("Could not create pipeline");
+    let pipeline_light =
+        futures::executor::block_on(renderer::PipelineLight::new(&renderer, &uniforms))
+            .expect("Could not create pipeline light");
 
     let projection = nalgebra_glm::perspective(
         renderer.swap_chain_descriptor.width as f32 / renderer.swap_chain_descriptor.height as f32,
@@ -34,7 +38,7 @@ fn main() {
         0.1,
         1000.0,
     );
-    let world_camera_position = [60.0, 15.0, 60.0];
+    let world_camera_position = [60.0, 50.0, 60.0];
     let view = nalgebra_glm::look_at(
         &world_camera_position.into(),
         &vec3(0.0, 0.0, 0.0),
@@ -50,11 +54,14 @@ fn main() {
         [0.0, -1.0, 0.0, 1.0],
     )));
     lights.add(Light::Point(PointProperties::new([30.0, 10.0, 30.0, 1.0])));
+
+    let light_mesh_handle = meshes.add(Mesh::from_shape(&renderer, Shape::from(Cube::new(1.0))));
     let mut terrain = Entity {
         mesh_handle: meshes.add(Mesh::from_shape(
             &renderer,
-            Shape::from(Plane::new(100.0, 8, Box::new(generators::SineCosine {}))),
+            //Shape::from(Plane::new(100.0, 8, Box::new(generators::SineCosine {}))),
             //            Shape::from(Plane::new(100.0, 6, Box::new(Terrain::new()))),
+            Shape::from(Cube::new(30.0)),
         )),
         model: identity(),
     };
@@ -80,6 +87,13 @@ fn main() {
                     ],
                 );
                 pipeline.render(&terrain, &meshes, &uniforms, &mut renderer);
+                /*pipeline_light.render(
+                    &light_mesh_handle,
+                    &meshes,
+                    &lights,
+                    &uniforms,
+                    &mut renderer,
+                );*/
             }
             Event::MainEventsCleared => {
                 window.request_redraw();

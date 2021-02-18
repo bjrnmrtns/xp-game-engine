@@ -3,11 +3,14 @@ DONE 3: Add Asset implementation so meshes have handles and can be assigned to e
 DONE 4: Add Entity implementation
 DONE 2: Generate simple noisy terrain still with fixed camera
 DONE 9: Update to wgpu 0.7
-TODO 7: Start lighting implementation to have good looking low poly graphics
+DONE 7: Start lighting implementation to have good looking low poly graphics
 [x] implement basic spot / directional / point with specular/diffuse/amient (light and material)
 [x] define a light in rust which automatically uploads to gpu (uniform buffer array)
-[] render the lights in the scene in seperate pass
+TODO 11: Implement seperate pipeline for rendering the lights
+[] finish mesh from cube which represents the lights
+[] finish seperate pipeline implementation
 [] render multiple lights
+[] render lights using instanced rendering
 TODO 10: advanced light rendering
 [] more advanced light rendering
 [] shadow mapping
