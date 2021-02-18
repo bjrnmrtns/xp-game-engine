@@ -73,10 +73,9 @@ fn main() {
                 let time_since_start_secs = (std::time::Instant::now() - start_time).as_secs_f32();
                 let model_rotation_y = 0.0; //time_since_start_secs;
                 terrain.model = nalgebra_glm::rotate_y(&identity(), model_rotation_y);
-                uniforms.update(
+                uniforms.update_instance(
                     &renderer,
                     &terrain,
-                    &lights,
                     projection,
                     view,
                     [
@@ -86,6 +85,7 @@ fn main() {
                         1.0,
                     ],
                 );
+                uniforms.update_lights(&renderer, &lights);
                 let target = &renderer
                     .swap_chain
                     .get_current_frame()

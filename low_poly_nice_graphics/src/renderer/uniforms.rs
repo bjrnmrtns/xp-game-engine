@@ -144,11 +144,10 @@ impl Uniforms {
         }
     }
 
-    pub fn update(
+    pub fn update_instance(
         &self,
         renderer: &Renderer,
         entity: &Entity,
-        lights: &Assets<Light>,
         projection: Mat4,
         view: Mat4,
         world_camera_position: [f32; 4],
@@ -161,6 +160,12 @@ impl Uniforms {
             material_specular: [0.5, 0.5, 0.5, 1.0],
             material_shininess: 16.0,
         };
+        renderer
+            .queue
+            .write_buffer(&self.transforms, 0, bytemuck::cast_slice(&[transforms]));
+    }
+
+    pub fn update_lights(&self, renderer: &Renderer, lights: &Assets<Light>) {
         let mut directional_lights = Vec::new();
         let mut spot_lights = Vec::new();
         let mut point_lights = Vec::new();
@@ -180,9 +185,6 @@ impl Uniforms {
         assert!(directional_lights.len() <= MAX_NR_OF_DIRECTIONAL_LIGHTS);
         assert!(spot_lights.len() <= MAX_NR_OF_SPOT_LIGHTS);
         assert!(point_lights.len() <= MAX_NR_OF_POINT_LIGHTS);
-        renderer
-            .queue
-            .write_buffer(&self.transforms, 0, bytemuck::cast_slice(&[transforms]));
         renderer.queue.write_buffer(
             &self.directional_lights,
             0,

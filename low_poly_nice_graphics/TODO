@@ -7,7 +7,8 @@ DONE 7: Start lighting implementation to have good looking low poly graphics
 [x] implement basic spot / directional / point with specular/diffuse/amient (light and material)
 [x] define a light in rust which automatically uploads to gpu (uniform buffer array)
 TODO 11: Implement seperate pipeline for rendering the lights
-[] finish mesh from cube which represents the lights
+[x] finish mesh from cube which represents the lights
+[] move model matrix to instance data
 [] finish seperate pipeline implementation
 [] render multiple lights
 [] render lights using instanced rendering
