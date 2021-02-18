@@ -7,8 +7,8 @@ use crate::{
     assets::Assets,
     entity::Entity,
     renderer::{
-        Cube, DirectionalProperties, Light, Mesh, PipelineBindGroup, Plane, PointProperties, Shape,
-        SpotProperties,
+        BindGroup, Cube, DirectionalProperties, Light, LightBindGroup, Mesh, Plane,
+        PointProperties, Shape, SpotProperties,
     },
 };
 use nalgebra_glm::{identity, vec3};
@@ -25,12 +25,16 @@ fn main() {
         .expect("Could not create window");
     let mut renderer = futures::executor::block_on(renderer::Renderer::new(&window))
         .expect("Could not create renderer");
-    let uniforms = PipelineBindGroup::new(&renderer);
-    let pipeline = futures::executor::block_on(renderer::Pipeline::new(&renderer, &uniforms))
-        .expect("Could not create pipeline");
-    let pipeline_light =
-        futures::executor::block_on(renderer::LightPipeline::new(&renderer, &uniforms))
-            .expect("Could not create pipeline light");
+    let pipeline_bindgroup = BindGroup::new(&renderer);
+    let pipeline =
+        futures::executor::block_on(renderer::Pipeline::new(&renderer, &pipeline_bindgroup))
+            .expect("Could not create pipeline");
+    let light_pipeline_bindgroup = LightBindGroup::new(&renderer);
+    let pipeline_light = futures::executor::block_on(renderer::LightPipeline::new(
+        &renderer,
+        &light_pipeline_bindgroup,
+    ))
+    .expect("Could not create pipeline light");
 
     let projection = nalgebra_glm::perspective(
         renderer.swap_chain_descriptor.width as f32 / renderer.swap_chain_descriptor.height as f32,
@@ -73,7 +77,7 @@ fn main() {
                 let time_since_start_secs = (std::time::Instant::now() - start_time).as_secs_f32();
                 let model_rotation_y = 0.0; //time_since_start_secs;
                 terrain.model = nalgebra_glm::rotate_y(&identity(), model_rotation_y);
-                uniforms.update_instance(
+                pipeline_bindgroup.update_instance(
                     &renderer,
                     terrain.model,
                     projection,
@@ -85,64 +89,29 @@ fn main() {
                         1.0,
                     ],
                 );
-                uniforms.update_lights(&renderer, &lights);
+                pipeline_bindgroup.update_lights(&renderer, &lights);
                 let target = &renderer
                     .swap_chain
                     .get_current_frame()
                     .expect("Could not get next frame texture_view")
                     .output
                     .view;
-                pipeline.render(&terrain, &meshes, &uniforms, &mut renderer, target);
-
-                for (_, light) in &lights.assets {
-                    match light {
-                        Light::Spot(properties) => {
-                            uniforms.update_instance(
-                                &renderer,
-                                nalgebra_glm::translation(&vec3(
-                                    properties.position[0],
-                                    properties.position[1],
-                                    properties.position[2],
-                                )),
-                                projection,
-                                view,
-                                [
-                                    world_camera_position[0],
-                                    world_camera_position[1],
-                                    world_camera_position[2],
-                                    1.0,
-                                ],
-                            );
-                        }
-                        Light::Point(properties) => {
-                            uniforms.update_instance(
-                                &renderer,
-                                nalgebra_glm::translation(&vec3(
-                                    properties.position[0],
-                                    properties.position[1],
-                                    properties.position[2],
-                                )),
-                                projection,
-                                view,
-                                [
-                                    world_camera_position[0],
-                                    world_camera_position[1],
-                                    world_camera_position[2],
-                                    1.0,
-                                ],
-                            );
-                        }
-                        _ => (),
-                    }
-                    pipeline_light.render(
-                        &light_mesh_handle,
-                        &meshes,
-                        &lights,
-                        &uniforms,
-                        &mut renderer,
-                        target,
-                    );
-                }
+                pipeline.render(
+                    &terrain,
+                    &meshes,
+                    &pipeline_bindgroup,
+                    &mut renderer,
+                    target,
+                );
+                light_pipeline_bindgroup.update_view_projection(&renderer, projection, view);
+                pipeline_light.render(
+                    &light_mesh_handle,
+                    &meshes,
+                    &lights,
+                    &light_pipeline_bindgroup,
+                    &mut renderer,
+                    target,
+                );
             }
             Event::MainEventsCleared => {
                 window.request_redraw();

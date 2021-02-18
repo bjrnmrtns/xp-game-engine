@@ -22,7 +22,7 @@ pub struct Transform {
 unsafe impl bytemuck::Pod for Transform {}
 unsafe impl bytemuck::Zeroable for Transform {}
 
-pub struct PipelineBindGroup {
+pub struct BindGroup {
     pub transforms: wgpu::Buffer,
     pub directional_lights: wgpu::Buffer,
     pub spot_lights: wgpu::Buffer,
@@ -31,7 +31,7 @@ pub struct PipelineBindGroup {
     pub bind_group: wgpu::BindGroup,
 }
 
-impl PipelineBindGroup {
+impl BindGroup {
     pub fn new(renderer: &Renderer) -> Self {
         let transforms = renderer.device.create_buffer(&wgpu::BufferDescriptor {
             label: None,

@@ -2,8 +2,7 @@ use crate::{
     assets::Assets,
     entity::Entity,
     renderer::{
-        depth_texture::DepthTexture, error::RendererError, Mesh, PipelineBindGroup, Renderer,
-        Vertex,
+        depth_texture::DepthTexture, error::RendererError, BindGroup, Mesh, Renderer, Vertex,
     },
 };
 use std::io::Read;
@@ -13,10 +12,7 @@ pub struct Pipeline {
 }
 
 impl Pipeline {
-    pub async fn new(
-        renderer: &Renderer,
-        uniforms: &PipelineBindGroup,
-    ) -> Result<Self, RendererError> {
+    pub async fn new(renderer: &Renderer, bind_group: &BindGroup) -> Result<Self, RendererError> {
         let (mut spirv_vs_bytes, mut spirv_fs_bytes) = (Vec::new(), Vec::new());
         match glsl_to_spirv::compile(
             include_str!("shaders/shader.vert"),
@@ -57,7 +53,7 @@ impl Pipeline {
                 .device
                 .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                     label: None,
-                    bind_group_layouts: &[&uniforms.bind_group_layout],
+                    bind_group_layouts: &[&bind_group.bind_group_layout],
                     push_constant_ranges: &[],
                 });
 
@@ -110,7 +106,7 @@ impl Pipeline {
         &self,
         entity: &Entity,
         meshes: &Assets<Mesh>,
-        uniforms: &PipelineBindGroup,
+        uniforms: &BindGroup,
         renderer: &mut Renderer,
         target: &wgpu::TextureView,
     ) {

@@ -1,10 +1,11 @@
 use crate::{
     assets::{Assets, Handle},
     renderer::{
-        depth_texture::DepthTexture, error::RendererError, Light, Mesh, PipelineBindGroup,
-        Renderer, Vertex,
+        depth_texture::DepthTexture, error::RendererError, light_bindgroup::Transform, BindGroup,
+        Light, LightBindGroup, Mesh, Renderer, Vertex,
     },
 };
+use nalgebra_glm::{vec3, Mat4};
 use std::io::Read;
 
 pub struct LightPipeline {
@@ -14,7 +15,7 @@ pub struct LightPipeline {
 impl LightPipeline {
     pub async fn new(
         renderer: &Renderer,
-        uniforms: &PipelineBindGroup,
+        bind_group: &LightBindGroup,
     ) -> Result<Self, RendererError> {
         let (mut spirv_vs_bytes, mut spirv_fs_bytes) = (Vec::new(), Vec::new());
         match glsl_to_spirv::compile(
@@ -56,7 +57,7 @@ impl LightPipeline {
                 .device
                 .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                     label: None,
-                    bind_group_layouts: &[&uniforms.bind_group_layout],
+                    bind_group_layouts: &[&bind_group.bind_group_layout],
                     push_constant_ranges: &[],
                 });
 
@@ -110,7 +111,7 @@ impl LightPipeline {
         light_handle: &Handle<Mesh>,
         meshes: &Assets<Mesh>,
         lights: &Assets<Light>,
-        uniforms: &PipelineBindGroup,
+        light_pipeline_bindgroup: &LightBindGroup,
         renderer: &mut Renderer,
         target: &wgpu::TextureView,
     ) {
@@ -137,12 +138,36 @@ impl LightPipeline {
                     stencil_ops: None,
                 }),
             });
-
+            let mut transforms = Vec::new();
+            for (_, light) in &lights.assets {
+                match light {
+                    Light::Spot(properties) => {
+                        transforms.push(Transform {
+                            m: nalgebra_glm::translation(&vec3(
+                                properties.position[0],
+                                properties.position[1],
+                                properties.position[2],
+                            )),
+                        });
+                    }
+                    Light::Point(properties) => {
+                        transforms.push(Transform {
+                            m: nalgebra_glm::translation(&vec3(
+                                properties.position[0],
+                                properties.position[1],
+                                properties.position[2],
+                            )),
+                        });
+                    }
+                    _ => (),
+                }
+            }
+            light_pipeline_bindgroup.update_instance(&renderer, transforms.as_slice());
             let mesh = meshes.get(light_handle.clone()).unwrap();
             render_pass.set_pipeline(&self.render_pipeline);
             render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
-            render_pass.set_bind_group(0, &uniforms.bind_group, &[]);
-            render_pass.draw(0..mesh.len, 0..1);
+            render_pass.set_bind_group(0, &light_pipeline_bindgroup.bind_group, &[]);
+            render_pass.draw(0..mesh.len, 0..transforms.len() as u32);
         }
         renderer.queue.submit(std::iter::once(encoder.finish()));
     }
