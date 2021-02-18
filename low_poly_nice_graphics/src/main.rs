@@ -55,13 +55,13 @@ fn main() {
     )));
     lights.add(Light::Point(PointProperties::new([30.0, 10.0, 30.0, 1.0])));
 
-    let light_mesh_handle = meshes.add(Mesh::from_shape(&renderer, Shape::from(Cube::new(1.0))));
+    let light_mesh_handle = meshes.add(Mesh::from_shape(&renderer, Shape::from(Cube::new(10.0))));
     let mut terrain = Entity {
         mesh_handle: meshes.add(Mesh::from_shape(
             &renderer,
-            //Shape::from(Plane::new(100.0, 8, Box::new(generators::SineCosine {}))),
-            //            Shape::from(Plane::new(100.0, 6, Box::new(Terrain::new()))),
-            Shape::from(Cube::new(30.0)),
+            Shape::from(Plane::new(100.0, 8, Box::new(generators::SineCosine {}))),
+            //Shape::from(Plane::new(100.0, 6, Box::new(Terrain::new()))),
+            //Shape::from(Cube::new(30.0)),
         )),
         model: identity(),
     };
@@ -86,14 +86,21 @@ fn main() {
                         1.0,
                     ],
                 );
-                pipeline.render(&terrain, &meshes, &uniforms, &mut renderer);
-                /*pipeline_light.render(
+                let target = &renderer
+                    .swap_chain
+                    .get_current_frame()
+                    .expect("Could not get next frame texture_view")
+                    .output
+                    .view;
+                pipeline.render(&terrain, &meshes, &uniforms, &mut renderer, target);
+                pipeline_light.render(
                     &light_mesh_handle,
                     &meshes,
                     &lights,
                     &uniforms,
                     &mut renderer,
-                );*/
+                    target,
+                );
             }
             Event::MainEventsCleared => {
                 window.request_redraw();

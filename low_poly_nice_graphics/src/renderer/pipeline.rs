@@ -108,13 +108,8 @@ impl Pipeline {
         meshes: &Assets<Mesh>,
         uniforms: &Uniforms,
         renderer: &mut Renderer,
+        target: &wgpu::TextureView,
     ) {
-        let target = &renderer
-            .swap_chain
-            .get_current_frame()
-            .expect("Could not get next frame texture_view")
-            .output
-            .view;
         let mut encoder = renderer
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
@@ -140,10 +135,7 @@ impl Pipeline {
                         load: wgpu::LoadOp::Clear(1.0),
                         store: true,
                     }),
-                    stencil_ops: Some(wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(0),
-                        store: true,
-                    }),
+                    stencil_ops: None,
                 }),
             });
 
