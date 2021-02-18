@@ -1,18 +1,21 @@
 use crate::{
     assets::{Assets, Handle},
-    entity::Entity,
     renderer::{
-        depth_texture::DepthTexture, error::RendererError, Light, Mesh, Renderer, Uniforms, Vertex,
+        depth_texture::DepthTexture, error::RendererError, Light, Mesh, PipelineBindGroup,
+        Renderer, Vertex,
     },
 };
 use std::io::Read;
 
-pub struct PipelineLight {
+pub struct LightPipeline {
     render_pipeline: wgpu::RenderPipeline,
 }
 
-impl PipelineLight {
-    pub async fn new(renderer: &Renderer, uniforms: &Uniforms) -> Result<Self, RendererError> {
+impl LightPipeline {
+    pub async fn new(
+        renderer: &Renderer,
+        uniforms: &PipelineBindGroup,
+    ) -> Result<Self, RendererError> {
         let (mut spirv_vs_bytes, mut spirv_fs_bytes) = (Vec::new(), Vec::new());
         match glsl_to_spirv::compile(
             include_str!("shaders/light_shader.vert"),
@@ -107,7 +110,7 @@ impl PipelineLight {
         light_handle: &Handle<Mesh>,
         meshes: &Assets<Mesh>,
         lights: &Assets<Light>,
-        uniforms: &Uniforms,
+        uniforms: &PipelineBindGroup,
         renderer: &mut Renderer,
         target: &wgpu::TextureView,
     ) {

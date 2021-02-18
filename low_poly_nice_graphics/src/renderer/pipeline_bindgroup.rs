@@ -22,7 +22,7 @@ pub struct Transform {
 unsafe impl bytemuck::Pod for Transform {}
 unsafe impl bytemuck::Zeroable for Transform {}
 
-pub struct Uniforms {
+pub struct PipelineBindGroup {
     pub transforms: wgpu::Buffer,
     pub directional_lights: wgpu::Buffer,
     pub spot_lights: wgpu::Buffer,
@@ -31,7 +31,7 @@ pub struct Uniforms {
     pub bind_group: wgpu::BindGroup,
 }
 
-impl Uniforms {
+impl PipelineBindGroup {
     pub fn new(renderer: &Renderer) -> Self {
         let transforms = renderer.device.create_buffer(&wgpu::BufferDescriptor {
             label: None,
@@ -147,13 +147,13 @@ impl Uniforms {
     pub fn update_instance(
         &self,
         renderer: &Renderer,
-        entity: &Entity,
+        model: Mat4,
         projection: Mat4,
         view: Mat4,
         world_camera_position: [f32; 4],
     ) {
         let transforms = Transform {
-            m: entity.model.clone(),
+            m: model,
             v: view,
             p: projection,
             world_camera_position,

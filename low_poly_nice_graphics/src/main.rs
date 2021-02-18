@@ -7,8 +7,8 @@ use crate::{
     assets::Assets,
     entity::Entity,
     renderer::{
-        Cube, DirectionalProperties, Light, Mesh, Plane, PointProperties, Shape, SpotProperties,
-        Uniforms,
+        Cube, DirectionalProperties, Light, Mesh, PipelineBindGroup, Plane, PointProperties, Shape,
+        SpotProperties,
     },
 };
 use nalgebra_glm::{identity, vec3};
@@ -25,11 +25,11 @@ fn main() {
         .expect("Could not create window");
     let mut renderer = futures::executor::block_on(renderer::Renderer::new(&window))
         .expect("Could not create renderer");
-    let uniforms = Uniforms::new(&renderer);
+    let uniforms = PipelineBindGroup::new(&renderer);
     let pipeline = futures::executor::block_on(renderer::Pipeline::new(&renderer, &uniforms))
         .expect("Could not create pipeline");
     let pipeline_light =
-        futures::executor::block_on(renderer::PipelineLight::new(&renderer, &uniforms))
+        futures::executor::block_on(renderer::LightPipeline::new(&renderer, &uniforms))
             .expect("Could not create pipeline light");
 
     let projection = nalgebra_glm::perspective(
@@ -46,6 +46,7 @@ fn main() {
     );
     let mut meshes = Assets::new();
     let mut lights = Assets::new();
+    let light_mesh_handle = meshes.add(Mesh::from_shape(&renderer, Shape::from(Cube::new(1.0))));
     lights.add(Light::Directional(DirectionalProperties::new([
         -0.2, -1.0, -0.3, 1.0,
     ])));
@@ -55,12 +56,11 @@ fn main() {
     )));
     lights.add(Light::Point(PointProperties::new([30.0, 10.0, 30.0, 1.0])));
 
-    let light_mesh_handle = meshes.add(Mesh::from_shape(&renderer, Shape::from(Cube::new(10.0))));
     let mut terrain = Entity {
         mesh_handle: meshes.add(Mesh::from_shape(
             &renderer,
-            Shape::from(Plane::new(100.0, 8, Box::new(generators::SineCosine {}))),
-            //Shape::from(Plane::new(100.0, 6, Box::new(Terrain::new()))),
+            //Shape::from(Plane::new(100.0, 8, Box::new(generators::SineCosine {}))),
+            Shape::from(Plane::new(100.0, 6, Box::new(generators::Zero))),
             //Shape::from(Cube::new(30.0)),
         )),
         model: identity(),
@@ -75,7 +75,7 @@ fn main() {
                 terrain.model = nalgebra_glm::rotate_y(&identity(), model_rotation_y);
                 uniforms.update_instance(
                     &renderer,
-                    &terrain,
+                    terrain.model,
                     projection,
                     view,
                     [
@@ -93,14 +93,56 @@ fn main() {
                     .output
                     .view;
                 pipeline.render(&terrain, &meshes, &uniforms, &mut renderer, target);
-                pipeline_light.render(
-                    &light_mesh_handle,
-                    &meshes,
-                    &lights,
-                    &uniforms,
-                    &mut renderer,
-                    target,
-                );
+
+                for (_, light) in &lights.assets {
+                    match light {
+                        Light::Spot(properties) => {
+                            uniforms.update_instance(
+                                &renderer,
+                                nalgebra_glm::translation(&vec3(
+                                    properties.position[0],
+                                    properties.position[1],
+                                    properties.position[2],
+                                )),
+                                projection,
+                                view,
+                                [
+                                    world_camera_position[0],
+                                    world_camera_position[1],
+                                    world_camera_position[2],
+                                    1.0,
+                                ],
+                            );
+                        }
+                        Light::Point(properties) => {
+                            uniforms.update_instance(
+                                &renderer,
+                                nalgebra_glm::translation(&vec3(
+                                    properties.position[0],
+                                    properties.position[1],
+                                    properties.position[2],
+                                )),
+                                projection,
+                                view,
+                                [
+                                    world_camera_position[0],
+                                    world_camera_position[1],
+                                    world_camera_position[2],
+                                    1.0,
+                                ],
+                            );
+                        }
+                        _ => (),
+                    }
+                    pipeline_light.render(
+                        &light_mesh_handle,
+                        &meshes,
+                        &lights,
+                        &uniforms,
+                        &mut renderer,
+                        target,
+                    );
+                }
             }
             Event::MainEventsCleared => {
                 window.request_redraw();
