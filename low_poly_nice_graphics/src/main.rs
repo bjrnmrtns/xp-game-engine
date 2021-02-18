@@ -1,11 +1,11 @@
-mod assets;
 mod entity;
 mod generators;
+mod registry;
 mod renderer;
 
 use crate::{
-    assets::Assets,
     entity::Entity,
+    registry::Registry,
     renderer::{
         BindGroup, Cube, DirectionalProperties, Light, LightBindGroup, Mesh, Plane,
         PointProperties, Shape, SpotProperties,
@@ -48,8 +48,8 @@ fn main() {
         &vec3(0.0, 0.0, 0.0),
         &vec3(0.0, 1.0, 0.0),
     );
-    let mut meshes = Assets::new();
-    let mut lights = Assets::new();
+    let mut meshes = Registry::new();
+    let mut lights = Registry::new();
     let light_mesh_handle = meshes.add(Mesh::from_shape(&renderer, Shape::from(Cube::new(1.0))));
     lights.add(Light::Directional(DirectionalProperties::new([
         -0.2, -1.0, -0.3, 1.0,

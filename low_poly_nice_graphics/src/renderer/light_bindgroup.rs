@@ -1,6 +1,6 @@
 use crate::{
-    assets::Assets,
     entity::Entity,
+    registry::Registry,
     renderer::{
         light::{MAX_NR_OF_DIRECTIONAL_LIGHTS, MAX_NR_OF_POINT_LIGHTS, MAX_NR_OF_SPOT_LIGHTS},
         DirectionalProperties, Light, PointProperties, Renderer, SpotProperties,

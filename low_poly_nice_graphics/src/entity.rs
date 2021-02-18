@@ -1,4 +1,4 @@
-use crate::{assets::Handle, renderer::Mesh};
+use crate::{registry::Handle, renderer::Mesh};
 use nalgebra_glm::Mat4;
 
 pub struct Entity {

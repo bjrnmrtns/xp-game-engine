@@ -1,15 +1,15 @@
-use crate::assets::handle::Handle;
+use crate::registry::handle::Handle;
 use std::collections::HashMap;
 
 #[derive(Debug)]
-pub struct Assets<T> {
-    pub assets: HashMap<u64, T>,
+pub struct Registry<T> {
+    pub registry: HashMap<u64, T>,
     last_id: Option<u64>,
 }
-impl<T> Assets<T> {
+impl<T> Registry<T> {
     pub fn new() -> Self {
-        Assets {
-            assets: HashMap::default(),
+        Registry {
+            registry: HashMap::default(),
             last_id: None,
         }
     }
@@ -21,11 +21,11 @@ impl<T> Assets<T> {
             0u64
         };
         self.last_id = Some(id);
-        self.assets.insert(id, asset);
+        self.registry.insert(id, asset);
         Handle::new(id)
     }
 
     pub fn get(&self, handle: Handle<T>) -> Option<&T> {
-        self.assets.get(&handle.id)
+        self.registry.get(&handle.id)
     }
 }

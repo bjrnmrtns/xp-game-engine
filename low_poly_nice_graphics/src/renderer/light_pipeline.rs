@@ -1,5 +1,5 @@
 use crate::{
-    assets::{Assets, Handle},
+    registry::{Handle, Registry},
     renderer::{
         depth_texture::DepthTexture, error::RendererError, light_bindgroup::Transform, BindGroup,
         Light, LightBindGroup, Mesh, Renderer, Vertex,
@@ -109,8 +109,8 @@ impl LightPipeline {
     pub fn render(
         &self,
         light_handle: &Handle<Mesh>,
-        meshes: &Assets<Mesh>,
-        lights: &Assets<Light>,
+        meshes: &Registry<Mesh>,
+        lights: &Registry<Light>,
         light_pipeline_bindgroup: &LightBindGroup,
         renderer: &mut Renderer,
         target: &wgpu::TextureView,
@@ -139,7 +139,7 @@ impl LightPipeline {
                 }),
             });
             let mut transforms = Vec::new();
-            for (_, light) in &lights.assets {
+            for (_, light) in &lights.registry {
                 match light {
                     Light::Spot(properties) => {
                         transforms.push(Transform {

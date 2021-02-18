@@ -1,6 +1,6 @@
 use crate::{
-    assets::Assets,
     entity::Entity,
+    registry::Registry,
     renderer::{
         depth_texture::DepthTexture, error::RendererError, BindGroup, Mesh, Renderer, Vertex,
     },
@@ -105,7 +105,7 @@ impl Pipeline {
     pub fn render(
         &self,
         entity: &Entity,
-        meshes: &Assets<Mesh>,
+        meshes: &Registry<Mesh>,
         uniforms: &BindGroup,
         renderer: &mut Renderer,
         target: &wgpu::TextureView,

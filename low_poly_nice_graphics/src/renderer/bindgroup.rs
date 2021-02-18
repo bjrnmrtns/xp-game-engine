@@ -1,6 +1,6 @@
 use crate::{
-    assets::Assets,
     entity::Entity,
+    registry::Registry,
     renderer::{
         light::{MAX_NR_OF_DIRECTIONAL_LIGHTS, MAX_NR_OF_POINT_LIGHTS, MAX_NR_OF_SPOT_LIGHTS},
         DirectionalProperties, Light, PointProperties, Renderer, SpotProperties,
@@ -206,11 +206,11 @@ impl BindGroup {
             .write_buffer(&self.transforms, 0, bytemuck::cast_slice(transforms));
     }
 
-    pub fn update_lights(&self, renderer: &Renderer, lights: &Assets<Light>) {
+    pub fn update_lights(&self, renderer: &Renderer, lights: &Registry<Light>) {
         let mut directional_lights = Vec::new();
         let mut spot_lights = Vec::new();
         let mut point_lights = Vec::new();
-        for (_, light) in &lights.assets {
+        for (_, light) in &lights.registry {
             match light {
                 Light::Directional(properties) => {
                     directional_lights.push(*properties);
