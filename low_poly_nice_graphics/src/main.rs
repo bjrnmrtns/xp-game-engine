@@ -50,6 +50,7 @@ fn main() {
     );
     let mut meshes = Registry::new();
     let mut lights = Registry::new();
+    let mut entities = Registry::new();
     let light_mesh_handle = meshes.add(Mesh::from_shape(&renderer, Shape::from(Cube::new(1.0))));
     lights.add(Light::Directional(DirectionalProperties::new([
         -0.2, -1.0, -0.3, 1.0,
@@ -60,7 +61,7 @@ fn main() {
     )));
     lights.add(Light::Point(PointProperties::new([30.0, 10.0, 30.0, 1.0])));
 
-    let mut terrain = Entity {
+    let terrain = entities.add(Entity {
         mesh_handle: meshes.add(Mesh::from_shape(
             &renderer,
             //Shape::from(Plane::new(100.0, 8, Box::new(generators::SineCosine {}))),
@@ -68,7 +69,7 @@ fn main() {
             //Shape::from(Cube::new(30.0)),
         )),
         model: identity(),
-    };
+    });
     let start_time = std::time::Instant::now();
     event_loop.run(move |event, _, control_flow| {
         *control_flow = winit::event_loop::ControlFlow::Poll;
@@ -76,9 +77,12 @@ fn main() {
             Event::RedrawRequested(_) => {
                 let time_since_start_secs = (std::time::Instant::now() - start_time).as_secs_f32();
                 let model_rotation_y = time_since_start_secs;
-                terrain.model = nalgebra_glm::rotate_y(&identity(), model_rotation_y);
+                entities.get_mut(terrain.clone()).unwrap().model =
+                    nalgebra_glm::rotate_y(&identity(), model_rotation_y);
 
-                let transforms = &[renderer::Transform { m: terrain.model }];
+                let transforms = &[renderer::Transform {
+                    m: entities.get(terrain.clone()).unwrap().model.clone(),
+                }];
 
                 pipeline_bindgroup.update_view_projection(
                     &renderer,
@@ -102,7 +106,8 @@ fn main() {
                     .output
                     .view;
                 pipeline.render(
-                    &terrain,
+                    terrain.clone(),
+                    &entities,
                     &meshes,
                     &pipeline_bindgroup,
                     &mut renderer,

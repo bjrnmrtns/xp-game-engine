@@ -1,11 +1,11 @@
 use crate::{
     registry::{Handle, Registry},
     renderer::{
-        depth_texture::DepthTexture, error::RendererError, light_bindgroup::Transform, BindGroup,
-        Light, LightBindGroup, Mesh, Renderer, Vertex,
+        depth_texture::DepthTexture, error::RendererError, light_bindgroup::Transform, Light,
+        LightBindGroup, Mesh, Renderer, Vertex,
     },
 };
-use nalgebra_glm::{vec3, Mat4};
+use nalgebra_glm::vec3;
 use std::io::Read;
 
 pub struct LightPipeline {

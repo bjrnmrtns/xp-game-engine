@@ -1,6 +1,6 @@
 use crate::{
     entity::Entity,
-    registry::Registry,
+    registry::{Handle, Registry},
     renderer::{
         depth_texture::DepthTexture, error::RendererError, BindGroup, Mesh, Renderer, Vertex,
     },
@@ -104,9 +104,10 @@ impl Pipeline {
 
     pub fn render(
         &self,
-        entity: &Entity,
+        entity: Handle<Entity>,
+        entities: &Registry<Entity>,
         meshes: &Registry<Mesh>,
-        uniforms: &BindGroup,
+        bindgroup: &BindGroup,
         renderer: &mut Renderer,
         target: &wgpu::TextureView,
     ) {
@@ -139,10 +140,12 @@ impl Pipeline {
                 }),
             });
 
-            let mesh = meshes.get(entity.mesh_handle.clone()).unwrap();
+            let mesh = meshes
+                .get(entities.get(entity).unwrap().mesh_handle.clone())
+                .unwrap();
             render_pass.set_pipeline(&self.render_pipeline);
             render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
-            render_pass.set_bind_group(0, &uniforms.bind_group, &[]);
+            render_pass.set_bind_group(0, &bindgroup.bind_group, &[]);
             render_pass.draw(0..mesh.len, 0..1);
         }
         renderer.queue.submit(std::iter::once(encoder.finish()));

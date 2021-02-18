@@ -1,5 +1,6 @@
 use std::marker::PhantomData;
 
+#[derive(Copy)]
 pub struct Handle<T> {
     pub id: u64,
     marker: PhantomData<T>,
