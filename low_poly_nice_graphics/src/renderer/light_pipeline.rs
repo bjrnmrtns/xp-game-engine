@@ -116,7 +116,7 @@ impl LightPipeline {
         renderer: &mut Renderer,
         target: &wgpu::TextureView,
     ) {
-        bindgroup.update_view_projection(&renderer, camera.get_projection(), camera.get_view());
+        bindgroup.update_uniforms(&renderer, camera);
         let mut encoder = renderer
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
@@ -164,7 +164,7 @@ impl LightPipeline {
                     _ => (),
                 }
             }
-            bindgroup.update_instance(&renderer, transforms.as_slice());
+            bindgroup.update_instances(&renderer, transforms.as_slice());
             let mesh = meshes.get(light_handle.clone()).unwrap();
             render_pass.set_pipeline(&self.render_pipeline);
             render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));

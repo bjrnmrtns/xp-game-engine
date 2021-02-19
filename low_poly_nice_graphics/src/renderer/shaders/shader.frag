@@ -49,6 +49,9 @@ uniform Uniforms {
     vec4 world_camera_position;
     vec4 material_specular;
     float material_shininess;
+    uint nr_of_directional_lights;
+    uint nr_of_spot_lights;
+    uint nr_of_point_lights;
 };
 const uint MAX_NR_OF_DIRECTIONAL_LIGHTS = 1;
 layout(std140, set=0, binding=1)
@@ -73,7 +76,7 @@ buffer Transforms {
     mat4 models[];
 };
 
-vec3 calculate_directional_light(int i, vec3 normal, vec3 view_direction)
+vec3 calculate_directional_light(uint i, vec3 normal, vec3 view_direction)
 {
     // negate light direction -> we want direction towards light
     vec3 light_direction = normalize(-directional_lights[i].direction.xyz);
@@ -90,7 +93,7 @@ vec3 calculate_directional_light(int i, vec3 normal, vec3 view_direction)
     return ambient + diffuse + specular;
 }
 
-vec3 calculate_spot_light(int i, vec3 normal, vec3 frag_position, vec3 view_direction)
+vec3 calculate_spot_light(uint i, vec3 normal, vec3 frag_position, vec3 view_direction)
 {
     vec3 light_direction = normalize(spot_lights[i].position.xyz - frag_position);
 
@@ -112,7 +115,7 @@ vec3 calculate_spot_light(int i, vec3 normal, vec3 frag_position, vec3 view_dire
     return ambient + diffuse + specular;
 }
 
-vec3 calculate_point_light(int i, vec3 normal, vec3 frag_position, vec3 view_direction)
+vec3 calculate_point_light(uint i, vec3 normal, vec3 frag_position, vec3 view_direction)
 {
     vec3 light_direction = normalize(point_lights[i].position.xyz - frag_position);
     // diffuse
@@ -137,13 +140,13 @@ void main()
 
     vec3 result = vec3(0.0, 0.0, 0.0);
 
-    for(int i = 0; i < 1; i++) {
+    for(uint i = 0; i < nr_of_directional_lights; i++) {
         result += calculate_directional_light(i, normal, view_direction);
     }
-    for(int i = 0; i < 2; i++) {
+    for(uint i = 0; i < nr_of_spot_lights; i++) {
         result += calculate_spot_light(i, normal, in_world_position, view_direction);
     }
-    for(int i = 0; i < 1; i++) {
+    for(uint i = 0; i < nr_of_point_lights; i++) {
         result += calculate_point_light(i, normal, in_world_position, view_direction);
     }
     out_color = vec4(result, 1.0);

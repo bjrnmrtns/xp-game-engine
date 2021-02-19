@@ -49,6 +49,11 @@ uniform Uniforms {
     mat4 view;
     mat4 proj;
     vec4 world_camera_position;
+    vec4 material_specular;
+    float material_shininess;
+    uint nr_of_directional_lights;
+    uint nr_of_spot_lights;
+    uint nr_of_point_lights;
 };
 const uint MAX_NR_OF_DIRECTIONAL_LIGHTS = 1;
 layout(std140, set=0, binding=1)

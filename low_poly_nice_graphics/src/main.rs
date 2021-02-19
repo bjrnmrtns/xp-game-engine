@@ -52,7 +52,7 @@ fn main() {
         -0.2, -1.0, -0.3, 1.0,
     ])));
     lights.add(Light::Spot(SpotProperties::new(
-        [0.0, 15.0, 0.0, 1.0],
+        [0.0, 7.0, 0.0, 1.0],
         [0.0, -1.0, 0.0, 1.0],
     )));
     lights.add(Light::Spot(SpotProperties::new(
@@ -60,8 +60,9 @@ fn main() {
         [0.0, -1.0, 0.0, 1.0],
     )));
     lights.add(Light::Point(PointProperties::new([30.0, 10.0, 30.0, 1.0])));
+    lights.add(Light::Point(PointProperties::new([-30.0, 10.0, 30.0, 1.0])));
 
-    let terrain = entities.add(Entity {
+    let ground = entities.add(Entity {
         mesh_handle: meshes.add(Mesh::from_shape(
             &renderer,
             //Shape::from(Plane::new(100.0, 8, Box::new(generators::SineCosine {}))),
@@ -70,6 +71,10 @@ fn main() {
         )),
         model: identity(),
     });
+    entities.add(Entity {
+        mesh_handle: meshes.add(Mesh::from_shape(&renderer, Shape::from(Cube::new(5.0)))),
+        model: nalgebra_glm::identity(),
+    });
     let start_time = std::time::Instant::now();
     event_loop.run(move |event, _, control_flow| {
         *control_flow = winit::event_loop::ControlFlow::Poll;
@@ -77,7 +82,7 @@ fn main() {
             Event::RedrawRequested(_) => {
                 let time_since_start_secs = (std::time::Instant::now() - start_time).as_secs_f32();
                 let model_rotation_y = time_since_start_secs;
-                entities.get_mut(terrain.clone()).unwrap().model =
+                entities.get_mut(ground.clone()).unwrap().model =
                     nalgebra_glm::rotate_y(&identity(), model_rotation_y);
 
                 let target = &renderer

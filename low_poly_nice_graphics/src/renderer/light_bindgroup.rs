@@ -1,6 +1,6 @@
 use crate::renderer::{
     light::{MAX_NR_OF_POINT_LIGHTS, MAX_NR_OF_SPOT_LIGHTS},
-    Renderer,
+    Camera, Renderer,
 };
 use nalgebra_glm::Mat4;
 
@@ -101,10 +101,10 @@ impl LightBindGroup {
         }
     }
 
-    pub fn update_view_projection(&self, renderer: &Renderer, projection: Mat4, view: Mat4) {
+    pub fn update_uniforms(&self, renderer: &Renderer, camera: &dyn Camera) {
         let view_projection = ViewProjection {
-            v: view,
-            p: projection,
+            v: camera.get_view(),
+            p: camera.get_projection(),
         };
         renderer.queue.write_buffer(
             &self.view_projection,
@@ -113,7 +113,7 @@ impl LightBindGroup {
         );
     }
 
-    pub fn update_instance(&self, renderer: &Renderer, transforms: &[Transform]) {
+    pub fn update_instances(&self, renderer: &Renderer, transforms: &[Transform]) {
         renderer
             .queue
             .write_buffer(&self.transforms, 0, bytemuck::cast_slice(transforms));

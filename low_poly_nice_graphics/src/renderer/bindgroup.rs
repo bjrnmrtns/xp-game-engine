@@ -2,7 +2,7 @@ use crate::{
     registry::Registry,
     renderer::{
         light::{MAX_NR_OF_DIRECTIONAL_LIGHTS, MAX_NR_OF_POINT_LIGHTS, MAX_NR_OF_SPOT_LIGHTS},
-        DirectionalProperties, Light, PointProperties, Renderer, SpotProperties,
+        Camera, DirectionalProperties, Light, PointProperties, Renderer, SpotProperties,
     },
 };
 use nalgebra_glm::Mat4;
@@ -17,6 +17,9 @@ pub struct ViewProjection {
     pub world_camera_position: [f32; 4],
     pub material_specular: [f32; 4],
     pub material_shininess: f32,
+    pub nr_of_directional_lights: u32,
+    pub nr_of_spot_lights: u32,
+    pub nr_of_point_lights: u32,
 }
 
 #[repr(C)]
@@ -176,36 +179,18 @@ impl BindGroup {
         }
     }
 
-    pub fn update_view_projection(
-        &self,
-        renderer: &Renderer,
-        projection: Mat4,
-        view: Mat4,
-        world_camera_position: [f32; 4],
-        material_specular: [f32; 4],
-        material_shininess: f32,
-    ) {
-        let view_projection = ViewProjection {
-            v: view,
-            p: projection,
-            world_camera_position,
-            material_specular,
-            material_shininess,
-        };
-        renderer.queue.write_buffer(
-            &self.view_projection,
-            0,
-            bytemuck::cast_slice(&[view_projection]),
-        );
-    }
-
-    pub fn update_instance(&self, renderer: &Renderer, transforms: &[Transform]) {
+    pub fn update_instances(&self, renderer: &Renderer, transforms: &[Transform]) {
         renderer
             .queue
             .write_buffer(&self.transforms, 0, bytemuck::cast_slice(transforms));
     }
 
-    pub fn update_lights(&self, renderer: &Renderer, lights: &Registry<Light>) {
+    pub fn update_uniforms(
+        &self,
+        renderer: &Renderer,
+        lights: &Registry<Light>,
+        camera: &dyn Camera,
+    ) {
         let mut directional_lights = Vec::new();
         let mut spot_lights = Vec::new();
         let mut point_lights = Vec::new();
@@ -225,6 +210,28 @@ impl BindGroup {
         assert!(directional_lights.len() <= MAX_NR_OF_DIRECTIONAL_LIGHTS);
         assert!(spot_lights.len() <= MAX_NR_OF_SPOT_LIGHTS);
         assert!(point_lights.len() <= MAX_NR_OF_POINT_LIGHTS);
+
+        let view_projection = ViewProjection {
+            v: camera.get_view(),
+            p: camera.get_projection(),
+            world_camera_position: [
+                camera.get_position().x,
+                camera.get_position().y,
+                camera.get_position().z,
+                1.0,
+            ],
+            material_specular: [0.5, 0.5, 0.5, 1.0],
+            material_shininess: 16.0,
+            nr_of_directional_lights: directional_lights.len() as u32,
+            nr_of_spot_lights: spot_lights.len() as u32,
+            nr_of_point_lights: point_lights.len() as u32,
+        };
+        renderer.queue.write_buffer(
+            &self.view_projection,
+            0,
+            bytemuck::cast_slice(&[view_projection]),
+        );
+
         renderer.queue.write_buffer(
             &self.directional_lights,
             0,

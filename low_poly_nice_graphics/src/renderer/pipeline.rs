@@ -113,20 +113,7 @@ impl Pipeline {
         renderer: &mut Renderer,
         target: &wgpu::TextureView,
     ) {
-        bindgroup.update_view_projection(
-            &renderer,
-            camera.get_projection(),
-            camera.get_view(),
-            [
-                camera.get_position().x,
-                camera.get_position().y,
-                camera.get_position().z,
-                1.0,
-            ],
-            [0.5, 0.5, 0.5, 1.0],
-            16.0,
-        );
-        bindgroup.update_lights(&renderer, &lights);
+        bindgroup.update_uniforms(&renderer, &lights, camera);
         let mut encoder = renderer
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
@@ -168,7 +155,7 @@ impl Pipeline {
                         }
                     })
                     .collect::<Vec<_>>();
-                bindgroup.update_instance(&renderer, transforms.as_slice());
+                bindgroup.update_instances(&renderer, transforms.as_slice());
                 if transforms.len() > 0 {
                     render_pass.set_pipeline(&self.render_pipeline);
                     render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
