@@ -13,8 +13,9 @@ use crate::{
         PointProperties, Shape, SpotProperties,
     },
     static_camera::StaticCamera,
+    transform::Transform,
 };
-use glam::{Mat4, Vec3};
+use glam::{Quat, Vec3};
 use winit::{
     event::{Event, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
@@ -70,11 +71,11 @@ fn main() {
             Shape::from(Plane::new(100.0, 6, Box::new(generators::Zero))),
             //Shape::from(Cube::new(30.0)),
         )),
-        model: Mat4::identity(),
+        transform: Transform::identity(),
     });
     entities.add(Entity {
         mesh_handle: meshes.add(Mesh::from_shape(&renderer, Shape::from(Cube::new(5.0)))),
-        model: Mat4::identity(),
+        transform: Transform::identity(),
     });
     let start_time = std::time::Instant::now();
     event_loop.run(move |event, _, control_flow| {
@@ -83,8 +84,8 @@ fn main() {
             Event::RedrawRequested(_) => {
                 let time_since_start_secs = (std::time::Instant::now() - start_time).as_secs_f32();
                 let model_rotation_y = time_since_start_secs;
-                entities.get_mut(ground.clone()).unwrap().model =
-                    Mat4::from_rotation_y(model_rotation_y);
+                entities.get_mut(ground.clone()).unwrap().transform.rotation =
+                    Quat::from_rotation_y(model_rotation_y);
 
                 let target = &renderer
                     .swap_chain

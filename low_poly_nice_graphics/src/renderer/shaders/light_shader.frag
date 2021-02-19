@@ -7,13 +7,13 @@ layout(location=2) in vec3 in_color;
 layout(location=0) out vec4 out_color;
 
 layout(std140, set=0, binding=0)
-uniform Uniforms {
+uniform Uniform {
     mat4 view;
     mat4 proj;
 };
 
 layout(std140, set=0, binding=1)
-buffer Transforms {
+buffer Instance {
     mat4 models[];
 };
 

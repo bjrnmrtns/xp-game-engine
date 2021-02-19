@@ -1,7 +1,7 @@
 use crate::{
     registry::{Handle, Registry},
     renderer::{
-        depth_texture::DepthTexture, error::RendererError, light_bindgroup::Transform, Camera,
+        depth_texture::DepthTexture, error::RendererError, light_bindgroup::Instance, Camera,
         Light, LightBindGroup, Mesh, Renderer, Vertex,
     },
 };
@@ -121,7 +121,7 @@ impl LightPipeline {
         for (_, light) in &lights.registry {
             match light {
                 Light::Spot(properties) => {
-                    transforms.push(Transform {
+                    transforms.push(Instance {
                         m: Mat4::from_translation(Vec3::new(
                             properties.position[0],
                             properties.position[1],
@@ -130,7 +130,7 @@ impl LightPipeline {
                     });
                 }
                 Light::Point(properties) => {
-                    transforms.push(Transform {
+                    transforms.push(Instance {
                         m: Mat4::from_translation(Vec3::new(
                             properties.position[0],
                             properties.position[1],

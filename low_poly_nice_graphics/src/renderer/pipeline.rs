@@ -2,7 +2,7 @@ use crate::{
     entity::Entity,
     registry::{Handle, Registry},
     renderer::{
-        bindgroup::Transform, depth_texture::DepthTexture, error::RendererError, BindGroup, Camera,
+        bindgroup::Instance, depth_texture::DepthTexture, error::RendererError, BindGroup, Camera,
         Light, Mesh, Renderer, Vertex,
     },
 };
@@ -124,7 +124,9 @@ impl Pipeline {
                     .iter()
                     .filter_map(|(_, v)| {
                         if v.mesh_handle.id == *id {
-                            Some(Transform { m: v.model.clone() })
+                            Some(Instance {
+                                m: v.transform.to_matrix(),
+                            })
                         } else {
                             None
                         }

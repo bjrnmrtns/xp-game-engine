@@ -45,7 +45,7 @@ struct PointLight
 };
 
 layout(std140, set=0, binding=0)
-uniform Uniforms {
+uniform Uniform {
     mat4 view;
     mat4 proj;
     vec4 world_camera_position;
@@ -73,7 +73,7 @@ uniform PointLightBlock {
     PointLight point_lights[MAX_NR_OF_POINT_LIGHTS];
 };
 
-struct Transform {
+struct Instance {
     mat4 model;
     vec4 material_specular;
     float material_shininess;

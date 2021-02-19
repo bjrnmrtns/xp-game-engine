@@ -11,7 +11,7 @@ mod renderer;
 mod shape;
 mod vertex;
 
-pub use bindgroup::{BindGroup, Transform};
+pub use bindgroup::{BindGroup, Instance};
 pub use camera::Camera;
 pub use light::{DirectionalProperties, Light, PointProperties, SpotProperties};
 pub use light_bindgroup::LightBindGroup;
