@@ -2,6 +2,7 @@ mod entity;
 mod generators;
 mod registry;
 mod renderer;
+mod static_camera;
 
 use crate::{
     entity::Entity,
@@ -10,6 +11,7 @@ use crate::{
         BindGroup, Cube, DirectionalProperties, Light, LightBindGroup, Mesh, Plane,
         PointProperties, Shape, SpotProperties,
     },
+    static_camera::StaticCamera,
 };
 use nalgebra_glm::{identity, vec3};
 use winit::{
@@ -36,18 +38,12 @@ fn main() {
     ))
     .expect("Could not create pipeline light");
 
-    let projection = nalgebra_glm::perspective(
+    let mut camera = StaticCamera::new(
+        vec3(60.0, 50.0, 60.0),
+        vec3(0.0, 0.0, 0.0),
         renderer.swap_chain_descriptor.width as f32 / renderer.swap_chain_descriptor.height as f32,
-        45.0,
-        0.1,
-        1000.0,
     );
-    let world_camera_position = [60.0, 50.0, 60.0];
-    let view = nalgebra_glm::look_at(
-        &world_camera_position.into(),
-        &vec3(0.0, 0.0, 0.0),
-        &vec3(0.0, 1.0, 0.0),
-    );
+
     let mut meshes = Registry::new();
     let mut lights = Registry::new();
     let mut entities = Registry::new();
@@ -80,25 +76,6 @@ fn main() {
                 entities.get_mut(terrain.clone()).unwrap().model =
                     nalgebra_glm::rotate_y(&identity(), model_rotation_y);
 
-                let transforms = &[renderer::Transform {
-                    m: entities.get(terrain.clone()).unwrap().model.clone(),
-                }];
-
-                pipeline_bindgroup.update_view_projection(
-                    &renderer,
-                    projection,
-                    view,
-                    [
-                        world_camera_position[0],
-                        world_camera_position[1],
-                        world_camera_position[2],
-                        1.0,
-                    ],
-                    [0.5, 0.5, 0.5, 1.0],
-                    16.0,
-                );
-                pipeline_bindgroup.update_instance(&renderer, transforms);
-                pipeline_bindgroup.update_lights(&renderer, &lights);
                 let target = &renderer
                     .swap_chain
                     .get_current_frame()
@@ -106,19 +83,20 @@ fn main() {
                     .output
                     .view;
                 pipeline.render(
-                    terrain.clone(),
                     &entities,
                     &meshes,
+                    &lights,
                     &pipeline_bindgroup,
+                    &camera,
                     &mut renderer,
                     target,
                 );
-                light_pipeline_bindgroup.update_view_projection(&renderer, projection, view);
                 pipeline_light.render(
                     &light_mesh_handle,
                     &meshes,
                     &lights,
                     &light_pipeline_bindgroup,
+                    &camera,
                     &mut renderer,
                     target,
                 );
@@ -131,9 +109,13 @@ fn main() {
                 window_id,
             } if window_id == window.id() => match event {
                 WindowEvent::Resized(size) => {
+                    camera.set_aspect_ratio(size.width as f32 / size.height as f32);
                     futures::executor::block_on(renderer.resize(size.width, size.height));
                 }
                 WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
+                    camera.set_aspect_ratio(
+                        new_inner_size.width as f32 / new_inner_size.height as f32,
+                    );
                     futures::executor::block_on(
                         renderer.resize(new_inner_size.width, new_inner_size.height),
                     );

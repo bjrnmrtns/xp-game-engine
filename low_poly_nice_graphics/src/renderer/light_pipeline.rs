@@ -1,8 +1,8 @@
 use crate::{
     registry::{Handle, Registry},
     renderer::{
-        depth_texture::DepthTexture, error::RendererError, light_bindgroup::Transform, Light,
-        LightBindGroup, Mesh, Renderer, Vertex,
+        depth_texture::DepthTexture, error::RendererError, light_bindgroup::Transform, Camera,
+        Light, LightBindGroup, Mesh, Renderer, Vertex,
     },
 };
 use nalgebra_glm::vec3;
@@ -111,10 +111,12 @@ impl LightPipeline {
         light_handle: &Handle<Mesh>,
         meshes: &Registry<Mesh>,
         lights: &Registry<Light>,
-        light_pipeline_bindgroup: &LightBindGroup,
+        bindgroup: &LightBindGroup,
+        camera: &dyn Camera,
         renderer: &mut Renderer,
         target: &wgpu::TextureView,
     ) {
+        bindgroup.update_view_projection(&renderer, camera.get_projection(), camera.get_view());
         let mut encoder = renderer
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
@@ -162,11 +164,11 @@ impl LightPipeline {
                     _ => (),
                 }
             }
-            light_pipeline_bindgroup.update_instance(&renderer, transforms.as_slice());
+            bindgroup.update_instance(&renderer, transforms.as_slice());
             let mesh = meshes.get(light_handle.clone()).unwrap();
             render_pass.set_pipeline(&self.render_pipeline);
             render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
-            render_pass.set_bind_group(0, &light_pipeline_bindgroup.bind_group, &[]);
+            render_pass.set_bind_group(0, &bindgroup.bind_group, &[]);
             render_pass.draw(0..mesh.len, 0..transforms.len() as u32);
         }
         renderer.queue.submit(std::iter::once(encoder.finish()));

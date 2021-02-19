@@ -1,8 +1,9 @@
 use crate::{
     entity::Entity,
-    registry::{Handle, Registry},
+    registry::Registry,
     renderer::{
-        depth_texture::DepthTexture, error::RendererError, BindGroup, Mesh, Renderer, Vertex,
+        bindgroup::Transform, depth_texture::DepthTexture, error::RendererError, BindGroup, Camera,
+        Light, Mesh, Renderer, Vertex,
     },
 };
 use std::io::Read;
@@ -104,13 +105,27 @@ impl Pipeline {
 
     pub fn render(
         &self,
-        entity: Handle<Entity>,
         entities: &Registry<Entity>,
         meshes: &Registry<Mesh>,
+        lights: &Registry<Light>,
         bindgroup: &BindGroup,
+        camera: &dyn Camera,
         renderer: &mut Renderer,
         target: &wgpu::TextureView,
     ) {
+        bindgroup.update_view_projection(
+            &renderer,
+            camera.get_projection(),
+            camera.get_view(),
+            [
+                camera.get_position().x,
+                camera.get_position().y,
+                camera.get_position().z,
+                1.0,
+            ],
+            [0.5, 0.5, 0.5, 1.0],
+            16.0,
+        );
         let mut encoder = renderer
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
@@ -139,14 +154,28 @@ impl Pipeline {
                     stencil_ops: None,
                 }),
             });
+            bindgroup.update_lights(&renderer, &lights);
 
-            let mesh = meshes
-                .get(entities.get(entity).unwrap().mesh_handle.clone())
-                .unwrap();
-            render_pass.set_pipeline(&self.render_pipeline);
-            render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
-            render_pass.set_bind_group(0, &bindgroup.bind_group, &[]);
-            render_pass.draw(0..mesh.len, 0..1);
+            for (id, mesh) in &meshes.registry {
+                let transforms = entities
+                    .registry
+                    .iter()
+                    .filter_map(|(_, v)| {
+                        if v.mesh_handle.id == *id {
+                            Some(Transform { m: v.model.clone() })
+                        } else {
+                            None
+                        }
+                    })
+                    .collect::<Vec<_>>();
+                bindgroup.update_instance(&renderer, transforms.as_slice());
+                if transforms.len() > 0 {
+                    render_pass.set_pipeline(&self.render_pipeline);
+                    render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
+                    render_pass.set_bind_group(0, &bindgroup.bind_group, &[]);
+                    render_pass.draw(0..mesh.len, 0..transforms.len() as u32);
+                }
+            }
         }
         renderer.queue.submit(std::iter::once(encoder.finish()));
     }
