@@ -29,6 +29,7 @@ struct SpotLight
     float quadratic;
     float cut_off_inner;
     float cut_off_outer;
+    float p0, p1, p2;
 };
 
 struct PointLight
@@ -40,6 +41,7 @@ struct PointLight
     float cons;
     float linear;
     float quadratic;
+    float p0;
 };
 
 layout(std140, set=0, binding=0)

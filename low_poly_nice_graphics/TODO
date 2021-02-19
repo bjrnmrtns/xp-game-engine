@@ -13,6 +13,7 @@ DONE 11: Implement seperate pipeline for rendering the lights
 [x] render multiple lights
 [x] render lights using instanced rendering
 TODO 11: Refactor instanced rendering and light / entities
+[] variable multiple lights
 [] make adding entities and lights awesome
 TODO 10: advanced light rendering
 [] more advanced light rendering

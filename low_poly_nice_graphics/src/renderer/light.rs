@@ -35,6 +35,9 @@ pub struct SpotProperties {
     pub quadratic: f32,
     pub cut_off_inner: f32,
     pub cut_off_outer: f32,
+    pub p0: f32,
+    pub p1: f32,
+    pub p2: f32,
 }
 
 impl SpotProperties {
@@ -50,6 +53,9 @@ impl SpotProperties {
             quadratic: 0.032,
             cut_off_inner: (12.5 * (std::f32::consts::PI / 180.0)).cos(),
             cut_off_outer: (15.0 * (std::f32::consts::PI / 180.0)).cos(),
+            p0: 0.0,
+            p1: 0.0,
+            p2: 0.0,
         }
     }
 }
@@ -64,6 +70,7 @@ pub struct PointProperties {
     pub constant: f32,
     pub linear: f32,
     pub quadratic: f32,
+    pub p0: f32,
 }
 
 impl PointProperties {
@@ -76,6 +83,7 @@ impl PointProperties {
             constant: 1.0,
             linear: 0.09,
             quadratic: 0.032,
+            p0: 0.0,
         }
     }
 }

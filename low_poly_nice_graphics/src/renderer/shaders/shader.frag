@@ -27,6 +27,7 @@ struct SpotLight
     float quadratic;
     float cut_off_inner;
     float cut_off_outer;
+    float p0, p1, p2;
 };
 
 struct PointLight
@@ -38,6 +39,7 @@ struct PointLight
     float cons;
     float linear;
     float quadratic;
+    float p0;
 };
 
 layout(std140, set=0, binding=0)
@@ -98,9 +100,8 @@ vec3 calculate_spot_light(int i, vec3 normal, vec3 frag_position, vec3 view_dire
     vec3 reflect_direction = reflect(-light_direction, normal);
     float spec = pow(max(dot(view_direction, reflect_direction), 0.0), material_shininess);
     // attenuation
-    float distance = length(spot_lights[i].position.xyz - frag_position);
-    //float attenuation = 1.0 / (spot_lights[i].cons + spot_lights[i].linear * distance + spot_lights[i].quadratic * (distance * distance));
-    float attenuation = 1.0 / (1.0 + 0.09 * distance + 0.032 * (distance * distance));
+    float distance = distance(spot_lights[i].position.xyz, frag_position);
+    float attenuation = 1.0 / (spot_lights[i].cons + spot_lights[i].linear * distance + spot_lights[i].quadratic * (distance * distance));
     // spotlight intensity
     float theta = dot(light_direction, normalize(-spot_lights[i].direction.xyz));
     float epsilon = spot_lights[i].cut_off_inner - spot_lights[i].cut_off_outer;
@@ -120,7 +121,7 @@ vec3 calculate_point_light(int i, vec3 normal, vec3 frag_position, vec3 view_dir
     vec3 reflect_direction = reflect(-light_direction, normal);
     float spec = pow(max(dot(view_direction, reflect_direction), 0.0), material_shininess);
     // attenuation
-    float distance = length(point_lights[i].position.xyz - frag_position);
+    float distance = distance(point_lights[i].position.xyz, frag_position);
     float attenuation = 1.0 / (point_lights[i].cons + point_lights[i].linear * distance + point_lights[i].quadratic * (distance * distance));
 
     vec3 ambient = point_lights[i].ambient.xyz * in_color * attenuation;
@@ -139,7 +140,7 @@ void main()
     for(int i = 0; i < 1; i++) {
         result += calculate_directional_light(i, normal, view_direction);
     }
-    for(int i = 0; i < 1; i++) {
+    for(int i = 0; i < 2; i++) {
         result += calculate_spot_light(i, normal, in_world_position, view_direction);
     }
     for(int i = 0; i < 1; i++) {

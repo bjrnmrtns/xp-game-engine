@@ -39,7 +39,7 @@ fn main() {
     .expect("Could not create pipeline light");
 
     let mut camera = StaticCamera::new(
-        vec3(60.0, 50.0, 60.0),
+        vec3(0.0, 50.0, 60.0),
         vec3(0.0, 0.0, 0.0),
         renderer.swap_chain_descriptor.width as f32 / renderer.swap_chain_descriptor.height as f32,
     );
@@ -53,6 +53,10 @@ fn main() {
     ])));
     lights.add(Light::Spot(SpotProperties::new(
         [0.0, 15.0, 0.0, 1.0],
+        [0.0, -1.0, 0.0, 1.0],
+    )));
+    lights.add(Light::Spot(SpotProperties::new(
+        [30.0, 15.0, 0.0, 1.0],
         [0.0, -1.0, 0.0, 1.0],
     )));
     lights.add(Light::Point(PointProperties::new([30.0, 10.0, 30.0, 1.0])));

@@ -126,6 +126,7 @@ impl Pipeline {
             [0.5, 0.5, 0.5, 1.0],
             16.0,
         );
+        bindgroup.update_lights(&renderer, &lights);
         let mut encoder = renderer
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
@@ -154,7 +155,6 @@ impl Pipeline {
                     stencil_ops: None,
                 }),
             });
-            bindgroup.update_lights(&renderer, &lights);
 
             for (id, mesh) in &meshes.registry {
                 let transforms = entities
