@@ -117,6 +117,31 @@ impl LightPipeline {
         target: &wgpu::TextureView,
     ) {
         bindgroup.update_uniforms(&renderer, camera);
+        let mut transforms = Vec::new();
+        for (_, light) in &lights.registry {
+            match light {
+                Light::Spot(properties) => {
+                    transforms.push(Transform {
+                        m: nalgebra_glm::translation(&vec3(
+                            properties.position[0],
+                            properties.position[1],
+                            properties.position[2],
+                        )),
+                    });
+                }
+                Light::Point(properties) => {
+                    transforms.push(Transform {
+                        m: nalgebra_glm::translation(&vec3(
+                            properties.position[0],
+                            properties.position[1],
+                            properties.position[2],
+                        )),
+                    });
+                }
+                _ => (),
+            }
+        }
+        bindgroup.update_instances(&renderer, transforms.as_slice());
         let mut encoder = renderer
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
@@ -140,31 +165,6 @@ impl LightPipeline {
                     stencil_ops: None,
                 }),
             });
-            let mut transforms = Vec::new();
-            for (_, light) in &lights.registry {
-                match light {
-                    Light::Spot(properties) => {
-                        transforms.push(Transform {
-                            m: nalgebra_glm::translation(&vec3(
-                                properties.position[0],
-                                properties.position[1],
-                                properties.position[2],
-                            )),
-                        });
-                    }
-                    Light::Point(properties) => {
-                        transforms.push(Transform {
-                            m: nalgebra_glm::translation(&vec3(
-                                properties.position[0],
-                                properties.position[1],
-                                properties.position[2],
-                            )),
-                        });
-                    }
-                    _ => (),
-                }
-            }
-            bindgroup.update_instances(&renderer, transforms.as_slice());
             let mesh = meshes.get(light_handle.clone()).unwrap();
             render_pass.set_pipeline(&self.render_pipeline);
             render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));

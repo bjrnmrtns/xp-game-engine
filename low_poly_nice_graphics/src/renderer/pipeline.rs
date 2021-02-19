@@ -1,6 +1,6 @@
 use crate::{
     entity::Entity,
-    registry::Registry,
+    registry::{Handle, Registry},
     renderer::{
         bindgroup::Transform, depth_texture::DepthTexture, error::RendererError, BindGroup, Camera,
         Light, Mesh, Renderer, Vertex,
@@ -114,6 +114,28 @@ impl Pipeline {
         target: &wgpu::TextureView,
     ) {
         bindgroup.update_uniforms(&renderer, &lights, camera);
+        let mut instance_map = Vec::new();
+        let mut start_range = 0;
+        let mut transforms = Vec::new();
+        for (id, _) in &meshes.registry {
+            transforms.extend_from_slice(
+                entities
+                    .registry
+                    .iter()
+                    .filter_map(|(_, v)| {
+                        if v.mesh_handle.id == *id {
+                            Some(Transform { m: v.model.clone() })
+                        } else {
+                            None
+                        }
+                    })
+                    .collect::<Vec<_>>()
+                    .as_slice(),
+            );
+            instance_map.push((Handle::new(*id), start_range..transforms.len() as u32));
+            start_range = transforms.len() as u32;
+        }
+        bindgroup.update_instances(&renderer, transforms.as_slice());
         let mut encoder = renderer
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
@@ -143,24 +165,13 @@ impl Pipeline {
                 }),
             });
 
-            for (id, mesh) in &meshes.registry {
-                let transforms = entities
-                    .registry
-                    .iter()
-                    .filter_map(|(_, v)| {
-                        if v.mesh_handle.id == *id {
-                            Some(Transform { m: v.model.clone() })
-                        } else {
-                            None
-                        }
-                    })
-                    .collect::<Vec<_>>();
-                bindgroup.update_instances(&renderer, transforms.as_slice());
-                if transforms.len() > 0 {
+            for (mesh_handle, instance_range) in instance_map {
+                if !instance_range.is_empty() {
+                    let mesh = meshes.get(mesh_handle).unwrap();
                     render_pass.set_pipeline(&self.render_pipeline);
                     render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
                     render_pass.set_bind_group(0, &bindgroup.bind_group, &[]);
-                    render_pass.draw(0..mesh.len, 0..transforms.len() as u32);
+                    render_pass.draw(0..mesh.len, instance_range);
                 }
             }
         }
