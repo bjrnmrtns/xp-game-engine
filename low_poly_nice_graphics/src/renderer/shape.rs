@@ -2,6 +2,7 @@ use crate::{
     generators::{Height, Zero},
     renderer::Vertex,
 };
+use glam::Vec3;
 
 pub struct Shape {
     pub vertices: Vec<Vertex>,
@@ -29,6 +30,12 @@ impl Plane {
             height_function: Box::new(Zero),
         }
     }
+}
+
+fn triangle_normal(p0: [f32; 3], p1: [f32; 3], p2: [f32; 3]) -> [f32; 3] {
+    let edge0 = Vec3::from(p2) - Vec3::from(p0);
+    let edge1 = Vec3::from(p1) - Vec3::from(p0);
+    edge1.cross(edge0).into()
 }
 
 impl From<Plane> for Shape {
@@ -67,10 +74,8 @@ impl From<Plane> for Shape {
                     (z + 1.0) * increment,
                 ];
 
-                let n0 =
-                    nalgebra_glm::triangle_normal(&p00.into(), &p01.into(), &p11.into()).into();
-                let n1 =
-                    nalgebra_glm::triangle_normal(&p00.into(), &p11.into(), &p10.into()).into();
+                let n0 = triangle_normal(p00, p01, p11);
+                let n1 = triangle_normal(p00, p11, p10);
                 vertices.extend_from_slice(&[
                     Vertex {
                         position: p00,
@@ -181,14 +186,15 @@ impl From<Cube> for Shape {
 
 #[cfg(test)]
 mod tests {
+    use crate::renderer::shape::triangle_normal;
+
     #[test]
     fn check_understanding_normal_calculation_0() {
         // counter clockwise triangle
         let p00 = [0.0, 0.0, 0.0];
         let p01 = [0.0, 0.0, 1.0];
         let p10 = [1.0, 0.0, 0.0];
-        let normalized_normal: [f32; 3] =
-            nalgebra_glm::triangle_normal(&p00.into(), &p01.into(), &p10.into()).into();
+        let normalized_normal: [f32; 3] = triangle_normal(p00, p01, p10);
         assert_eq!([0.0, 1.0, 0.0], normalized_normal);
     }
     #[test]
@@ -197,8 +203,7 @@ mod tests {
         let p00 = [-1.0, 0.0, -1.0];
         let p01 = [0.0, 0.0, 0.0];
         let p10 = [0.0, 0.0, -1.0];
-        let normalized_normal: [f32; 3] =
-            nalgebra_glm::triangle_normal(&p00.into(), &p01.into(), &p10.into()).into();
+        let normalized_normal: [f32; 3] = triangle_normal(p00, p01, p10);
         assert_eq!([0.0, 1.0, 0.0], normalized_normal);
     }
 }
