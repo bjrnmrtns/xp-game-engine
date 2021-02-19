@@ -3,6 +3,7 @@ mod generators;
 mod registry;
 mod renderer;
 mod static_camera;
+mod transform;
 
 use crate::{
     entity::Entity,
