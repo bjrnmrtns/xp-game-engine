@@ -5,7 +5,7 @@ use crate::{
         Light, LightBindGroup, Mesh, Renderer, Vertex,
     },
 };
-use nalgebra_glm::vec3;
+use glam::{Mat4, Vec3};
 use std::io::Read;
 
 pub struct LightPipeline {
@@ -122,7 +122,7 @@ impl LightPipeline {
             match light {
                 Light::Spot(properties) => {
                     transforms.push(Transform {
-                        m: nalgebra_glm::translation(&vec3(
+                        m: Mat4::from_translation(Vec3::new(
                             properties.position[0],
                             properties.position[1],
                             properties.position[2],
@@ -131,7 +131,7 @@ impl LightPipeline {
                 }
                 Light::Point(properties) => {
                     transforms.push(Transform {
-                        m: nalgebra_glm::translation(&vec3(
+                        m: Mat4::from_translation(Vec3::new(
                             properties.position[0],
                             properties.position[1],
                             properties.position[2],

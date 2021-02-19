@@ -14,7 +14,7 @@ use crate::{
     },
     static_camera::StaticCamera,
 };
-use nalgebra_glm::{identity, vec3};
+use glam::{Mat4, Vec3};
 use winit::{
     event::{Event, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
@@ -40,8 +40,8 @@ fn main() {
     .expect("Could not create pipeline light");
 
     let mut camera = StaticCamera::new(
-        vec3(0.0, 50.0, 60.0),
-        vec3(0.0, 0.0, 0.0),
+        Vec3::new(60.0, 50.0, 60.0),
+        Vec3::new(0.0, 0.0, 0.0),
         renderer.swap_chain_descriptor.width as f32 / renderer.swap_chain_descriptor.height as f32,
     );
 
@@ -70,11 +70,11 @@ fn main() {
             Shape::from(Plane::new(100.0, 6, Box::new(generators::Zero))),
             //Shape::from(Cube::new(30.0)),
         )),
-        model: identity(),
+        model: Mat4::identity(),
     });
     entities.add(Entity {
         mesh_handle: meshes.add(Mesh::from_shape(&renderer, Shape::from(Cube::new(5.0)))),
-        model: nalgebra_glm::identity(),
+        model: Mat4::identity(),
     });
     let start_time = std::time::Instant::now();
     event_loop.run(move |event, _, control_flow| {
@@ -84,7 +84,7 @@ fn main() {
                 let time_since_start_secs = (std::time::Instant::now() - start_time).as_secs_f32();
                 let model_rotation_y = time_since_start_secs;
                 entities.get_mut(ground.clone()).unwrap().model =
-                    nalgebra_glm::rotate_y(&identity(), model_rotation_y);
+                    Mat4::from_rotation_y(model_rotation_y);
 
                 let target = &renderer
                     .swap_chain

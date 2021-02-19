@@ -5,7 +5,7 @@ use crate::{
         Camera, DirectionalProperties, Light, PointProperties, Renderer, SpotProperties,
     },
 };
-use nalgebra_glm::Mat4;
+use glam::Mat4;
 
 const MAX_NR_OF_INSTANCES: usize = 100;
 

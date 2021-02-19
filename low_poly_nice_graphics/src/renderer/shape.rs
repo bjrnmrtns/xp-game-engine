@@ -66,6 +66,7 @@ impl From<Plane> for Shape {
                         .height((x + 1.0) * increment, (z + 1.0) * increment),
                     (z + 1.0) * increment,
                 ];
+
                 let n0 =
                     nalgebra_glm::triangle_normal(&p00.into(), &p01.into(), &p11.into()).into();
                 let n1 =

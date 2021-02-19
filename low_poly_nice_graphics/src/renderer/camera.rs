@@ -1,4 +1,4 @@
-use nalgebra_glm::{Mat4, Vec3};
+use glam::{Mat4, Vec3};
 
 pub trait Camera {
     fn get_position(&self) -> Vec3;

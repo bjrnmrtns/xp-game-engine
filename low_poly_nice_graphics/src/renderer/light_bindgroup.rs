@@ -2,7 +2,7 @@ use crate::renderer::{
     light::{MAX_NR_OF_POINT_LIGHTS, MAX_NR_OF_SPOT_LIGHTS},
     Camera, Renderer,
 };
-use nalgebra_glm::Mat4;
+use glam::Mat4;
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
