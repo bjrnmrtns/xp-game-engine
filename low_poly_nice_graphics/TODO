@@ -17,9 +17,12 @@ DONE 11: Refactor instanced rendering and light / entities
 [x] make adding entities and lights awesome
 DONE 8: Move model data to instance data and add instance data to gpu (instances rendering)
 DONE 11: Move from nalgebra_glm to glam
-TODO 10: advanced light rendering
+DONE 10: advanced light rendering
 [x] add blinn-phong
-[] add gamma correction
-[] shadow mapping
+[x] add gamma correction
+TODO 12: Advanced light rendering shadow mapping
+[] render depth buffer of camera
+[] render depth buffer of light
+[] use depth buffer of light for shadow mapping
 TODO 5: Add transform implementation and can be added to entities
 TODO 6: Add Graph so entities can have parent child relation

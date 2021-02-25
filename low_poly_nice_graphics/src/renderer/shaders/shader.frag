@@ -149,5 +149,7 @@ void main()
     for(uint i = 0; i < nr_of_point_lights; i++) {
         result += calculate_point_light(i, normal, in_world_position, view_direction);
     }
-    out_color = vec4(result, 1.0);
+    // gamma correction
+    float gamma = 2.2;
+    out_color = vec4(pow(result, vec3(1.0 / gamma)), 1.0);
 }

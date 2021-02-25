@@ -21,5 +21,7 @@ void main()
 {
     vec3 normal = normalize(in_world_normal);
     vec3 result = vec3(1.0, 1.0, 1.0);
-    out_color = vec4(result, 1.0);
+    // gamma correction
+    float gamma = 2.2;
+    out_color = vec4(pow(result, vec3(1.0 / gamma)), 1.0);
 }
