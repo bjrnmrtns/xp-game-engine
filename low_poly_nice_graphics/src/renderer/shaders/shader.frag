@@ -83,8 +83,8 @@ vec3 calculate_directional_light(uint i, vec3 normal, vec3 view_direction)
     // diffuse
     float diff = max(dot(normal, light_direction), 0.0);
     // specular
-    vec3 reflect_direction = reflect(-light_direction, normal);
-    float spec = pow(max(dot(view_direction, reflect_direction), 0.0), material_shininess);
+    vec3 halfway_direction = normalize(light_direction + view_direction);
+    float spec = pow(max(dot(view_direction, halfway_direction), 0.0), material_shininess);
 
     vec3 ambient  = directional_lights[i].ambient.xyz * in_color;
     vec3 diffuse = directional_lights[i].diffuse.xyz * diff * in_color;
@@ -100,8 +100,8 @@ vec3 calculate_spot_light(uint i, vec3 normal, vec3 frag_position, vec3 view_dir
     // diffuse
     float diff = max(dot(normal, light_direction), 0.0);
     // specular
-    vec3 reflect_direction = reflect(-light_direction, normal);
-    float spec = pow(max(dot(view_direction, reflect_direction), 0.0), material_shininess);
+    vec3 halfway_direction = normalize(light_direction + view_direction);
+    float spec = pow(max(dot(view_direction, halfway_direction), 0.0), material_shininess);
     // attenuation
     float distance = distance(spot_lights[i].position.xyz, frag_position);
     float attenuation = 1.0 / (spot_lights[i].cons + spot_lights[i].linear * distance + spot_lights[i].quadratic * (distance * distance));
@@ -121,8 +121,8 @@ vec3 calculate_point_light(uint i, vec3 normal, vec3 frag_position, vec3 view_di
     // diffuse
     float diff = max(dot(normal, light_direction), 0.0);
     // specular
-    vec3 reflect_direction = reflect(-light_direction, normal);
-    float spec = pow(max(dot(view_direction, reflect_direction), 0.0), material_shininess);
+    vec3 halfway_direction = normalize(light_direction + view_direction);
+    float spec = pow(max(dot(view_direction, halfway_direction), 0.0), material_shininess);
     // attenuation
     float distance = distance(point_lights[i].position.xyz, frag_position);
     float attenuation = 1.0 / (point_lights[i].cons + point_lights[i].linear * distance + point_lights[i].quadratic * (distance * distance));

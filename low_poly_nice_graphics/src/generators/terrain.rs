@@ -23,6 +23,6 @@ pub struct SineCosine;
 
 impl Height for SineCosine {
     fn height(&self, x: f32, y: f32) -> f32 {
-        x.sin() + y.cos()
+        (x.sin() + y).cos()
     }
 }

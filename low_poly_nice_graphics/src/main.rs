@@ -67,7 +67,7 @@ fn main() {
     let ground = entities.add(Entity {
         mesh_handle: meshes.add(Mesh::from_shape(
             &renderer,
-            Shape::from(Plane::new(100.0, 5, Box::new(generators::Noise::new()))),
+            Shape::from(Plane::new(100.0, 5, Box::new(generators::SineCosine))),
             //Shape::from(Plane::new(100.0, 6, Box::new(generators::Zero))),
             //Shape::from(Cube::new(30.0)),
         )),
