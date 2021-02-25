@@ -20,6 +20,13 @@ DONE 11: Move from nalgebra_glm to glam
 DONE 10: advanced light rendering
 [x] add blinn-phong
 [x] add gamma correction
+TODO 14: Unit which moves through the world
+[] wasd keys move unit
+TODO 13: Implement camera follow/rotate around/zoom/change angle unit
+[] follow
+[] rotate around using x of mouse with ctrl
+[] zoom using scroll wheel
+[] change angle y of mouse with ctrl
 TODO 12: Advanced light rendering shadow mapping
 [] render depth buffer of camera
 [] render depth buffer of light
