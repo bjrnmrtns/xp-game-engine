@@ -9,8 +9,9 @@ mod transform;
 mod winit_impl;
 
 use crate::{
+    controllers::CharacterController,
     entity::Entity,
-    input::KeyCode,
+    input::{InputState, KeyCode},
     registry::Registry,
     renderer::{
         BindGroup, Cube, DirectionalProperties, Light, LightBindGroup, Mesh, Plane,
@@ -82,12 +83,14 @@ fn main() {
         mesh_handle: meshes.add(Mesh::from_shape(&renderer, Shape::from(Cube::new(5.0)))),
         transform: Transform::identity(),
     });
-    let mut input_state = input::InputState::default();
+    let mut input_state = InputState::default();
+    let mut character_controller = CharacterController::default();
     let start_time = std::time::Instant::now();
     event_loop.run(move |event, _, control_flow| {
         *control_flow = winit::event_loop::ControlFlow::Poll;
         match event {
             Event::RedrawRequested(_) => {
+                character_controller.keyboard(&input_state.keyboard);
                 let time_since_start_secs = (std::time::Instant::now() - start_time).as_secs_f32();
                 let model_rotation_y = 0.0;
                 entities.get_mut(ground.clone()).unwrap().transform.rotation =

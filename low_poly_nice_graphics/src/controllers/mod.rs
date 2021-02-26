@@ -1,3 +1,3 @@
 mod character_controller;
-mod controller;
-mod keyboard_controller;
+
+pub use character_controller::CharacterController;
