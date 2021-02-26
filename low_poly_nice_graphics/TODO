@@ -33,3 +33,4 @@ TODO 12: Advanced light rendering shadow mapping
 [] use depth buffer of light for shadow mapping
 TODO 5: Add transform implementation and can be added to entities
 TODO 6: Add Graph so entities can have parent child relation
+TODO 15: Terrain generation using blue noise (can be implemented using poison disc sampling, use blue noise texture from noise-test) voronoi redblobgames

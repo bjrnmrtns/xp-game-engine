@@ -1,12 +1,16 @@
+mod controllers;
 mod entity;
 mod generators;
+mod input;
 mod registry;
 mod renderer;
 mod static_camera;
 mod transform;
+mod winit_impl;
 
 use crate::{
     entity::Entity,
+    input::KeyCode,
     registry::Registry,
     renderer::{
         BindGroup, Cube, DirectionalProperties, Light, LightBindGroup, Mesh, Plane,
@@ -74,10 +78,11 @@ fn main() {
         )),
         transform: Transform::identity(),
     });
-    entities.add(Entity {
+    let character = entities.add(Entity {
         mesh_handle: meshes.add(Mesh::from_shape(&renderer, Shape::from(Cube::new(5.0)))),
         transform: Transform::identity(),
     });
+    let mut input_state = input::InputState::default();
     let start_time = std::time::Instant::now();
     event_loop.run(move |event, _, control_flow| {
         *control_flow = winit::event_loop::ControlFlow::Poll;
@@ -134,6 +139,9 @@ fn main() {
                 }
                 WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
                 _ => (),
+                WindowEvent::KeyboardInput { ref input, .. } => {
+                    winit_impl::keyboard_handler(&mut input_state.keyboard, input)
+                }
             },
             _ => (),
         }
