@@ -6,20 +6,20 @@ use winit::{event::WindowEvent, event_loop::EventLoop};
 
 pub fn keyboard_handler(
     keyboard_input_state: &mut Input<KeyCode>,
-    event: &winit::event::KeyboardInput,
+    input: &winit::event::KeyboardInput,
 ) {
-    if let winit::event::KeyboardInput {
+    if let &winit::event::KeyboardInput {
         virtual_keycode: Some(virtual_keycode),
         state,
         ..
-    } = event
+    } = input
     {
         match state {
             winit::event::ElementState::Pressed => {
-                keyboard_input_state.press(convert_virtual_keycode(*virtual_keycode))
+                keyboard_input_state.press(convert_virtual_keycode(virtual_keycode))
             }
             winit::event::ElementState::Released => {
-                keyboard_input_state.release(convert_virtual_keycode(*virtual_keycode))
+                keyboard_input_state.release(convert_virtual_keycode(virtual_keycode))
             }
         }
     }

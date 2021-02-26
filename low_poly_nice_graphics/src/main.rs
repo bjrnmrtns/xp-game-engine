@@ -91,6 +91,11 @@ fn main() {
         match event {
             Event::RedrawRequested(_) => {
                 character_controller.keyboard(&input_state.keyboard);
+                if let Some(velocity) = character_controller.velocity {
+                    let entity = entities.get_mut(character.clone()).unwrap();
+                    entity.transform.set_rotation(velocity);
+                    entity.transform.translation += entity.transform.forward() * 0.1;
+                }
                 let time_since_start_secs = (std::time::Instant::now() - start_time).as_secs_f32();
                 let model_rotation_y = 0.0;
                 entities.get_mut(ground.clone()).unwrap().transform.rotation =
@@ -141,10 +146,10 @@ fn main() {
                     );
                 }
                 WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
-                _ => (),
                 WindowEvent::KeyboardInput { ref input, .. } => {
-                    winit_impl::keyboard_handler(&mut input_state.keyboard, input)
+                    winit_impl::keyboard_handler(&mut input_state.keyboard, input);
                 }
+                _ => (),
             },
             _ => (),
         }

@@ -21,7 +21,8 @@ DONE 10: advanced light rendering
 [x] add blinn-phong
 [x] add gamma correction
 TODO 14: Unit which moves through the world
-[] wasd keys move unit
+[x] wasd keys move unit
+[] fix bug a and d both go to positive x
 TODO 13: Implement camera follow/rotate around/zoom/change angle unit
 [] follow
 [] rotate around using x of mouse with ctrl
