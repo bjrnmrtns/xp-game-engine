@@ -91,11 +91,11 @@ fn main() {
         match event {
             Event::RedrawRequested(_) => {
                 character_controller.keyboard(&input_state.keyboard);
-                if let Some(velocity) = character_controller.velocity {
-                    let entity = entities.get_mut(character.clone()).unwrap();
-                    entity.transform.set_rotation(velocity);
-                    entity.transform.translation += entity.transform.forward() * 0.1;
-                }
+                let entity = entities.get_mut(character.clone()).unwrap();
+                entity.transform.rotation *=
+                    Quat::from_rotation_y(-character_controller.rotate * 0.02);
+                entity.transform.translation +=
+                    entity.transform.forward() * character_controller.forward * 0.1;
                 let time_since_start_secs = (std::time::Instant::now() - start_time).as_secs_f32();
                 let model_rotation_y = 0.0;
                 entities.get_mut(ground.clone()).unwrap().transform.rotation =

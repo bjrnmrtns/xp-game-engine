@@ -20,9 +20,9 @@ DONE 11: Move from nalgebra_glm to glam
 DONE 10: advanced light rendering
 [x] add blinn-phong
 [x] add gamma correction
-TODO 14: Unit which moves through the world
+DONE 14: Unit which moves through the world
 [x] wasd keys move unit
-[] fix bug a and d both go to positive x
+[x] fix bug a and d both go to positive x
 TODO 13: Implement camera follow/rotate around/zoom/change angle unit
 [] follow
 [] rotate around using x of mouse with ctrl
