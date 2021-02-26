@@ -51,8 +51,9 @@ fn main() {
     let mut entities = Registry::new();
     let light_mesh_handle = meshes.add(Mesh::from_shape(&renderer, Shape::from(Cube::new(1.0))));
     lights.add(Light::Directional(DirectionalProperties::new([
-        -0.2, -1.0, -0.3, 1.0,
+        -1.0, -0.5, -1.0, 1.0,
     ])));
+
     lights.add(Light::Spot(SpotProperties::new(
         [0.0, 7.0, 0.0, 1.0],
         [0.0, -1.0, 0.0, 1.0],
@@ -67,7 +68,7 @@ fn main() {
     let ground = entities.add(Entity {
         mesh_handle: meshes.add(Mesh::from_shape(
             &renderer,
-            Shape::from(Plane::new(100.0, 5, Box::new(generators::SineCosine))),
+            Shape::from(Plane::new(100.0, 4, Box::new(generators::Noise::new()))),
             //Shape::from(Plane::new(100.0, 6, Box::new(generators::Zero))),
             //Shape::from(Cube::new(30.0)),
         )),
@@ -83,7 +84,7 @@ fn main() {
         match event {
             Event::RedrawRequested(_) => {
                 let time_since_start_secs = (std::time::Instant::now() - start_time).as_secs_f32();
-                let model_rotation_y = time_since_start_secs;
+                let model_rotation_y = 0.0;
                 entities.get_mut(ground.clone()).unwrap().transform.rotation =
                     Quat::from_rotation_y(model_rotation_y);
 
