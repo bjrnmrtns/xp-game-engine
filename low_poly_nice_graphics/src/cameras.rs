@@ -78,9 +78,6 @@ impl Camera for FollowCamera {
             rotation: Quat::from_rotation_x(-std::f32::consts::FRAC_PI_4),
             ..Default::default()
         };
-        self.follow
-            .to_matrix()
-            .mul_mat4(&transform.to_matrix())
-            .inverse()
+        self.follow.mul_transform(transform).to_matrix().inverse()
     }
 }

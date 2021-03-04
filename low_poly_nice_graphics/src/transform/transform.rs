@@ -37,6 +37,21 @@ impl Transform {
         }
     }
 
+    pub fn mul_transform(&self, transform: Transform) -> Transform {
+        Transform {
+            translation: self.mul_vec3(transform.translation),
+            rotation: self.rotation * transform.rotation,
+            scale: self.scale * transform.scale,
+        }
+    }
+
+    pub fn mul_vec3(&self, mut value: Vec3) -> Vec3 {
+        value = self.rotation * value;
+        value = self.scale * value;
+        value += self.translation;
+        value
+    }
+
     pub fn forward(&self) -> Vec3 {
         self.rotation * Vec3::unit_z()
     }
