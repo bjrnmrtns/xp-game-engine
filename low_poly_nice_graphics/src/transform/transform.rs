@@ -1,5 +1,6 @@
 use glam::{Mat4, Quat, Vec3};
 
+#[derive(Clone)]
 pub struct Transform {
     pub translation: Vec3,
     pub rotation: Quat,

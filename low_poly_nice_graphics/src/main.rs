@@ -1,14 +1,15 @@
+mod cameras;
 mod controllers;
 mod entity;
 mod generators;
 mod input;
 mod registry;
 mod renderer;
-mod static_camera;
 mod transform;
 mod winit_impl;
 
 use crate::{
+    cameras::{FollowCamera, StaticCamera},
     controllers::CharacterController,
     entity::Entity,
     input::InputState,
@@ -17,7 +18,6 @@ use crate::{
         BindGroup, Cube, DirectionalProperties, IcoSphere, Light, LightBindGroup, Mesh, Plane,
         PointProperties, Shape, SpotProperties,
     },
-    static_camera::StaticCamera,
     transform::Transform,
 };
 use glam::{Mat4, Quat, Vec3};
@@ -44,12 +44,6 @@ fn main() {
         &light_pipeline_bindgroup,
     ))
     .expect("Could not create pipeline light");
-
-    let mut camera = StaticCamera::new(
-        Vec3::new(20.0, 20.0, 20.0),
-        Vec3::new(0.0, 0.0, 0.0),
-        renderer.swap_chain_descriptor.width as f32 / renderer.swap_chain_descriptor.height as f32,
-    );
 
     let mut meshes = Registry::new();
     let mut lights = Registry::new();
@@ -92,6 +86,18 @@ fn main() {
         )),
         transform: Transform::from_translation(Vec3::new(0.0, 1.0, 0.0)),
     });
+
+    let mut static_camera = StaticCamera::new(
+        Vec3::new(20.0, 20.0, 20.0),
+        Vec3::new(0.0, 0.0, 0.0),
+        renderer.swap_chain_descriptor.width as f32 / renderer.swap_chain_descriptor.height as f32,
+    );
+
+    let mut follow_camera = FollowCamera::new(
+        entities.get(character.clone()).unwrap().transform.clone(),
+        renderer.swap_chain_descriptor.width as f32 / renderer.swap_chain_descriptor.height as f32,
+    );
+
     let mut input_state = InputState::default();
     let mut character_controller = CharacterController::default();
     let start_time = std::time::Instant::now();
@@ -105,6 +111,7 @@ fn main() {
                     Quat::from_rotation_y(-character_controller.rotate * 0.02);
                 entity.transform.translation +=
                     entity.transform.forward() * character_controller.forward * 0.1;
+                follow_camera.follow(entity.transform.clone());
                 let time_since_start_secs = (std::time::Instant::now() - start_time).as_secs_f32();
                 let model_rotation_y = 0.0;
                 entities.get_mut(ground.clone()).unwrap().transform.rotation =
@@ -121,7 +128,7 @@ fn main() {
                     &meshes,
                     &lights,
                     &pipeline_bindgroup,
-                    &camera,
+                    &follow_camera,
                     &mut renderer,
                     target,
                 );
@@ -130,7 +137,7 @@ fn main() {
                     &meshes,
                     &lights,
                     &light_pipeline_bindgroup,
-                    &camera,
+                    &follow_camera,
                     &mut renderer,
                     target,
                 );
@@ -143,11 +150,11 @@ fn main() {
                 window_id,
             } if window_id == window.id() => match event {
                 WindowEvent::Resized(size) => {
-                    camera.set_aspect_ratio(size.width as f32 / size.height as f32);
+                    follow_camera.set_aspect_ratio(size.width as f32 / size.height as f32);
                     futures::executor::block_on(renderer.resize(size.width, size.height));
                 }
                 WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
-                    camera.set_aspect_ratio(
+                    follow_camera.set_aspect_ratio(
                         new_inner_size.width as f32 / new_inner_size.height as f32,
                     );
                     futures::executor::block_on(

@@ -24,19 +24,17 @@ DONE 14: Unit which moves through the world
 [x] wasd keys move unit
 [x] fix bug a and d both go to positive x
 DONE 16: IcoSphere (icosahedron) mesh implementation
+DONE 5: Add transform implementation and can be added to entities
 TODO 13: Implement camera follow/rotate around/zoom/change angle unit
-[] follow
-[] rotate around using x of mouse with ctrl
+[x] follow
 [] zoom using scroll wheel
 [] change angle y of mouse with ctrl
 TODO 12: Advanced light rendering shadow mapping
 [] render depth buffer of camera
 [] render depth buffer of light
 [] use depth buffer of light for shadow mapping
-TODO 5: Add transform implementation and can be added to entities
 TODO 6: Add Graph so entities can have parent child relation
 TODO 15: Terrain generation using blue noise (can be implemented using poison disc sampling, use blue noise texture from noise-test) voronoi redblobgames
 TODO 17: Basic physics, walking around with sphere and hitting cubes and sliding off
-[] add cube to world
+[] add cube and player sphere to physics world
 [] detect collision with cube and player sphere
-TODO 18: Add camera like in 3d tool to move around and rotate
