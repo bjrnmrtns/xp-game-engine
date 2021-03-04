@@ -1,5 +1,4 @@
 use crate::input::{Input, KeyCode};
-use glam::Vec3;
 
 #[derive(Default)]
 pub struct CharacterController {

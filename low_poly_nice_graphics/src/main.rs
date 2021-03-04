@@ -11,7 +11,7 @@ mod winit_impl;
 use crate::{
     controllers::CharacterController,
     entity::Entity,
-    input::{InputState, KeyCode},
+    input::InputState,
     registry::Registry,
     renderer::{
         BindGroup, Cube, DirectionalProperties, Light, LightBindGroup, Mesh, Plane,

@@ -31,10 +31,6 @@ where
         self.pressed.contains(&input)
     }
 
-    pub fn any_pressed(&self, inputs: &[T]) -> bool {
-        inputs.into_iter().any(|input| self.pressed(*input))
-    }
-
     pub fn release(&mut self, input: T) {
         self.pressed.remove(&input);
         self.just_released.insert(input);

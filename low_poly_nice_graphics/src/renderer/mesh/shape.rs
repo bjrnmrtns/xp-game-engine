@@ -184,6 +184,24 @@ impl From<Cube> for Shape {
     }
 }
 
+pub struct IcoSphere {
+    radius: f32,
+    subdivisions: usize,
+}
+
+impl IcoSphere {
+    pub fn new(radius: f32) -> Self {
+        Self {
+            radius,
+            subdivisions: 5,
+        }
+    }
+}
+
+//impl From<IcoSphere> for Shape {
+//    fn from(sphere: IcoSphere) -> Self {}
+//}
+
 #[cfg(test)]
 mod tests {
     use crate::renderer::shape::triangle_normal;

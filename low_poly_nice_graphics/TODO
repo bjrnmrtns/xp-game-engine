@@ -35,3 +35,5 @@ TODO 12: Advanced light rendering shadow mapping
 TODO 5: Add transform implementation and can be added to entities
 TODO 6: Add Graph so entities can have parent child relation
 TODO 15: Terrain generation using blue noise (can be implemented using poison disc sampling, use blue noise texture from noise-test) voronoi redblobgames
+TODO 16: Sphere mesh implementation
+TODO 17: Basic physics, walking around with sphere and hitting cubes and sliding off

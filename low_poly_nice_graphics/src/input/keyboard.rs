@@ -1,5 +1,3 @@
-use crate::input::Input;
-
 // this is just a copy of winit KeyCode
 #[derive(Debug, Hash, Ord, PartialOrd, PartialEq, Eq, Clone, Copy)]
 #[repr(u32)]

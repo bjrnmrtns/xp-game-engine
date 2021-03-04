@@ -2,7 +2,7 @@ use crate::{
     input::{Input, KeyCode},
     winit_impl::converters::convert_virtual_keycode,
 };
-use winit::{event::WindowEvent, event_loop::EventLoop};
+use winit::event_loop::EventLoop;
 
 pub fn keyboard_handler(
     keyboard_input_state: &mut Input<KeyCode>,
