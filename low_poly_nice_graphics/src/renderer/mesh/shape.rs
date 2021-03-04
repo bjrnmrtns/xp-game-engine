@@ -198,13 +198,68 @@ impl IcoSphere {
     }
 }
 
-//impl From<IcoSphere> for Shape {
-//    fn from(sphere: IcoSphere) -> Self {}
-//}
+impl From<IcoSphere> for Shape {
+    fn from(sphere: IcoSphere) -> Self {
+        let X: f32 = 0.525731112119133606 * sphere.radius;
+        let Z: f32 = 0.850650808352039932 * sphere.radius;
+        let N: f32 = 0.0;
+
+        let color = [1.0, 0.0, 0.0];
+
+        let VERTICES: [[f32; 3]; 12] = [
+            [-X, N, Z],
+            [X, N, Z],
+            [-X, N, -Z],
+            [X, N, -Z],
+            [N, Z, X],
+            [N, Z, -X],
+            [N, -Z, X],
+            [N, -Z, -X],
+            [Z, X, N],
+            [-Z, X, N],
+            [Z, -X, N],
+            [-Z, -X, N],
+        ];
+        let TRIANGLES: [[usize; 3]; 20] = [
+            [0, 1, 4],
+            [0, 4, 9],
+            [9, 4, 5],
+            [4, 8, 5],
+            [4, 1, 8],
+            [8, 1, 10],
+            [8, 10, 3],
+            [5, 8, 3],
+            [5, 3, 2],
+            [2, 3, 7],
+            [7, 3, 10],
+            [7, 10, 6],
+            [7, 6, 11],
+            [11, 6, 0],
+            [0, 6, 1],
+            [6, 10, 1],
+            [9, 11, 0],
+            [9, 2, 11],
+            [9, 5, 2],
+            [7, 11, 2],
+        ];
+        let mut vertices = Vec::new();
+        for triangle in &TRIANGLES {
+            let normal = triangle_normal(
+                VERTICES[triangle[0]],
+                VERTICES[triangle[1]],
+                VERTICES[triangle[2]],
+            );
+            vertices.push(Vertex::new(VERTICES[triangle[0]], normal, color));
+            vertices.push(Vertex::new(VERTICES[triangle[1]], normal, color));
+            vertices.push(Vertex::new(VERTICES[triangle[2]], normal, color));
+        }
+        Self { vertices }
+    }
+}
 
 #[cfg(test)]
 mod tests {
-    use crate::renderer::shape::triangle_normal;
+    use crate::renderer::{mesh::shape::triangle_normal, shape::triangle_normal};
 
     #[test]
     fn check_understanding_normal_calculation_0() {

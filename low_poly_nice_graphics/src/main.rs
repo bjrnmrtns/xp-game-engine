@@ -14,7 +14,7 @@ use crate::{
     input::InputState,
     registry::Registry,
     renderer::{
-        BindGroup, Cube, DirectionalProperties, Light, LightBindGroup, Mesh, Plane,
+        BindGroup, Cube, DirectionalProperties, IcoSphere, Light, LightBindGroup, Mesh, Plane,
         PointProperties, Shape, SpotProperties,
     },
     static_camera::StaticCamera,
@@ -46,7 +46,7 @@ fn main() {
     .expect("Could not create pipeline light");
 
     let mut camera = StaticCamera::new(
-        Vec3::new(60.0, 50.0, 60.0),
+        Vec3::new(60.0, 100.0, 60.0),
         Vec3::new(0.0, 0.0, 0.0),
         renderer.swap_chain_descriptor.width as f32 / renderer.swap_chain_descriptor.height as f32,
     );
@@ -73,14 +73,16 @@ fn main() {
     let ground = entities.add(Entity {
         mesh_handle: meshes.add(Mesh::from_shape(
             &renderer,
-            Shape::from(Plane::new(100.0, 4, Box::new(generators::Noise::new()))),
-            //Shape::from(Plane::new(100.0, 6, Box::new(generators::Zero))),
+            //Shape::from(Plane::new(100.0, 4, Box::new(generators::Noise::new()))),
+            Shape::from(Plane::new(100.0, 6, Box::new(generators::Zero))),
             //Shape::from(Cube::new(30.0)),
         )),
         transform: Transform::identity(),
     });
+
     let character = entities.add(Entity {
-        mesh_handle: meshes.add(Mesh::from_shape(&renderer, Shape::from(Cube::new(5.0)))),
+/*        mesh_handle: meshes.add(Mesh::from_shape(&renderer, Shape::from(Cube::new(5.0)))), */
+        mesh_handle: meshes.add(Mesh::from_shape(&renderer, Shape::from(IcoSphere::new(10.0)))),
         transform: Transform::identity(),
     });
     let mut input_state = InputState::default();
