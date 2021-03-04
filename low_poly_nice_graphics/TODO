@@ -23,6 +23,7 @@ DONE 10: advanced light rendering
 DONE 14: Unit which moves through the world
 [x] wasd keys move unit
 [x] fix bug a and d both go to positive x
+DONE 16: IcoSphere (icosahedron) mesh implementation
 TODO 13: Implement camera follow/rotate around/zoom/change angle unit
 [] follow
 [] rotate around using x of mouse with ctrl
@@ -35,5 +36,5 @@ TODO 12: Advanced light rendering shadow mapping
 TODO 5: Add transform implementation and can be added to entities
 TODO 6: Add Graph so entities can have parent child relation
 TODO 15: Terrain generation using blue noise (can be implemented using poison disc sampling, use blue noise texture from noise-test) voronoi redblobgames
-TODO 16: Sphere mesh implementation
 TODO 17: Basic physics, walking around with sphere and hitting cubes and sliding off
+TODO 18: Add camera like in 3d tool to move around and rotate

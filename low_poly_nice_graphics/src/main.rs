@@ -46,7 +46,7 @@ fn main() {
     .expect("Could not create pipeline light");
 
     let mut camera = StaticCamera::new(
-        Vec3::new(60.0, 100.0, 60.0),
+        Vec3::new(20.0, 20.0, 20.0),
         Vec3::new(0.0, 0.0, 0.0),
         renderer.swap_chain_descriptor.width as f32 / renderer.swap_chain_descriptor.height as f32,
     );
@@ -81,8 +81,10 @@ fn main() {
     });
 
     let character = entities.add(Entity {
-/*        mesh_handle: meshes.add(Mesh::from_shape(&renderer, Shape::from(Cube::new(5.0)))), */
-        mesh_handle: meshes.add(Mesh::from_shape(&renderer, Shape::from(IcoSphere::new(10.0)))),
+        mesh_handle: meshes.add(Mesh::from_shape(
+            &renderer,
+            Shape::from(IcoSphere::new(2.0)),
+        )),
         transform: Transform::identity(),
     });
     let mut input_state = InputState::default();

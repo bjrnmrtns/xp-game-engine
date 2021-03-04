@@ -3,6 +3,7 @@ use crate::{
     renderer::Vertex,
 };
 use glam::Vec3;
+use std::collections::HashMap;
 
 pub struct Shape {
     pub vertices: Vec<Vertex>,
@@ -193,20 +194,56 @@ impl IcoSphere {
     pub fn new(radius: f32) -> Self {
         Self {
             radius,
-            subdivisions: 5,
+            subdivisions: 1,
         }
     }
 }
 
+fn add_midpoint(
+    vertices: &mut Vec<[f32; 3]>,
+    lookup: &mut HashMap<(usize, usize), usize>,
+    v0: usize,
+    v1: usize,
+) -> usize {
+    let edge = if v0 < v1 { (v0, v1) } else { (v1, v0) };
+    if !lookup.contains_key(&edge) {
+        lookup.insert(edge, vertices.len());
+        // normalize works because we are working with unit vectors
+        let midpoint = (Vec3::from(vertices[v0]) + Vec3::from(vertices[v1])).normalize();
+        vertices.push(midpoint.into());
+    }
+    *lookup.get(&edge).unwrap()
+}
+
+fn sphere_subdivide(vertices: &mut Vec<[f32; 3]>, triangles: &[[usize; 3]]) -> Vec<[usize; 3]> {
+    let mut lookup = HashMap::new();
+    let mut result = Vec::new();
+    for triangle in triangles {
+        let mid0 = add_midpoint(vertices, &mut lookup, triangle[0], triangle[1]);
+        let mid1 = add_midpoint(vertices, &mut lookup, triangle[1], triangle[2]);
+        let mid2 = add_midpoint(vertices, &mut lookup, triangle[2], triangle[0]);
+
+        result.push([triangle[0], mid0, mid2]);
+        result.push([triangle[1], mid1, mid0]);
+        result.push([triangle[2], mid2, mid1]);
+        result.push([mid0, mid1, mid2]);
+    }
+    result
+}
+
+fn scale_vertex(v: [f32; 3], scale: f32) -> [f32; 3] {
+    [v[0] * scale, v[1] * scale, v[2] * scale]
+}
+
 impl From<IcoSphere> for Shape {
     fn from(sphere: IcoSphere) -> Self {
-        let X: f32 = 0.525731112119133606 * sphere.radius;
-        let Z: f32 = 0.850650808352039932 * sphere.radius;
+        let X: f32 = 0.525731112119133606;
+        let Z: f32 = 0.850650808352039932;
         let N: f32 = 0.0;
 
         let color = [1.0, 0.0, 0.0];
 
-        let VERTICES: [[f32; 3]; 12] = [
+        let mut points = vec![
             [-X, N, Z],
             [X, N, Z],
             [-X, N, -Z],
@@ -220,7 +257,7 @@ impl From<IcoSphere> for Shape {
             [Z, -X, N],
             [-Z, -X, N],
         ];
-        let TRIANGLES: [[usize; 3]; 20] = [
+        let mut triangles = vec![
             [0, 1, 4],
             [0, 4, 9],
             [9, 4, 5],
@@ -242,16 +279,31 @@ impl From<IcoSphere> for Shape {
             [9, 5, 2],
             [7, 11, 2],
         ];
+        for _ in 0..sphere.subdivisions {
+            triangles = sphere_subdivide(&mut points, triangles.as_slice());
+        }
         let mut vertices = Vec::new();
-        for triangle in &TRIANGLES {
+        for triangle in &triangles {
             let normal = triangle_normal(
-                VERTICES[triangle[0]],
-                VERTICES[triangle[1]],
-                VERTICES[triangle[2]],
+                points[triangle[0]],
+                points[triangle[1]],
+                points[triangle[2]],
             );
-            vertices.push(Vertex::new(VERTICES[triangle[0]], normal, color));
-            vertices.push(Vertex::new(VERTICES[triangle[1]], normal, color));
-            vertices.push(Vertex::new(VERTICES[triangle[2]], normal, color));
+            vertices.push(Vertex::new(
+                scale_vertex(points[triangle[0]], sphere.radius),
+                normal,
+                color,
+            ));
+            vertices.push(Vertex::new(
+                scale_vertex(points[triangle[1]], sphere.radius),
+                normal,
+                color,
+            ));
+            vertices.push(Vertex::new(
+                scale_vertex(points[triangle[2]], sphere.radius),
+                normal,
+                color,
+            ));
         }
         Self { vertices }
     }
