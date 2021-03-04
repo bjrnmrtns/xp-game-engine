@@ -237,9 +237,9 @@ fn scale_vertex(v: [f32; 3], scale: f32) -> [f32; 3] {
 
 impl From<IcoSphere> for Shape {
     fn from(sphere: IcoSphere) -> Self {
-        let X: f32 = 0.525731112119133606;
-        let Z: f32 = 0.850650808352039932;
-        let N: f32 = 0.0;
+        const X: f32 = 0.525731112119133606;
+        const Z: f32 = 0.850650808352039932;
+        const N: f32 = 0.0;
 
         let color = [1.0, 0.0, 0.0];
 

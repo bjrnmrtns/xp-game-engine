@@ -20,7 +20,7 @@ use crate::{
     static_camera::StaticCamera,
     transform::Transform,
 };
-use glam::{Quat, Vec3};
+use glam::{Mat4, Quat, Vec3};
 use winit::{
     event::{Event, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
@@ -70,6 +70,11 @@ fn main() {
     lights.add(Light::Point(PointProperties::new([30.0, 10.0, 30.0, 1.0])));
     lights.add(Light::Point(PointProperties::new([-30.0, 10.0, 30.0, 1.0])));
 
+    entities.add(Entity {
+        mesh_handle: meshes.add(Mesh::from_shape(&renderer, Shape::from(Cube::new(4.0)))),
+        transform: Transform::from_translation(Vec3::new(0.0, 2.0, -8.0)),
+    });
+
     let ground = entities.add(Entity {
         mesh_handle: meshes.add(Mesh::from_shape(
             &renderer,
@@ -85,7 +90,7 @@ fn main() {
             &renderer,
             Shape::from(IcoSphere::new(2.0)),
         )),
-        transform: Transform::identity(),
+        transform: Transform::from_translation(Vec3::new(0.0, 1.0, 0.0)),
     });
     let mut input_state = InputState::default();
     let mut character_controller = CharacterController::default();

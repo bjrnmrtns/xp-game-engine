@@ -37,4 +37,6 @@ TODO 5: Add transform implementation and can be added to entities
 TODO 6: Add Graph so entities can have parent child relation
 TODO 15: Terrain generation using blue noise (can be implemented using poison disc sampling, use blue noise texture from noise-test) voronoi redblobgames
 TODO 17: Basic physics, walking around with sphere and hitting cubes and sliding off
+[] add cube to world
+[] detect collision with cube and player sphere
 TODO 18: Add camera like in 3d tool to move around and rotate
