@@ -1,5 +1,5 @@
 use crate::{renderer::Camera, transform::Transform};
-use glam::{Mat4, Quat, Vec3};
+use glam::{Mat4, Quat, Vec3, Vec4, Vec4Swizzles};
 
 pub struct StaticCamera {
     pos: Vec3,
@@ -60,7 +60,13 @@ impl FollowCamera {
 }
 impl Camera for FollowCamera {
     fn get_position(&self) -> Vec3 {
-        Vec3::new(0.0, 10.0, 10.0)
+        //TODO: still mostly duplicated with get_view
+        let transform = Transform {
+            translation: Vec3::new(0.0, 10.0, 10.0),
+            rotation: Quat::from_rotation_x(-std::f32::consts::FRAC_PI_4),
+            ..Default::default()
+        };
+        (self.follow.mul_transform(transform).to_matrix() * Vec4::new(0.0, 0.0, 0.0, 1.0)).xyz()
     }
 
     fn get_projection(&self) -> Mat4 {
