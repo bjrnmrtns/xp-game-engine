@@ -167,8 +167,11 @@ fn main() {
                     );
                 }
                 WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
-                WindowEvent::KeyboardInput { ref input, .. } => {
-                    winit_impl::handle_input(&mut input_all.keyboard_events, event);
+                WindowEvent::KeyboardInput { .. } => {
+                    winit_impl::handle_input(&mut input_all, event);
+                }
+                WindowEvent::MouseWheel { .. } => {
+                    winit_impl::handle_input(&mut input_all, event);
                 }
                 _ => (),
             },

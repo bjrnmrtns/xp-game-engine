@@ -6,13 +6,13 @@ mod mouse;
 pub use event::Events;
 pub use input::Input;
 pub use keyboard::{keyboard_state_from_events, ElementState, KeyCode, KeyboardInput};
-pub use mouse::MouseWheel;
+pub use mouse::{MouseScrollUnit, MouseWheelDelta};
 
 #[derive(Default)]
 pub struct InputAll {
     pub keyboard_input: Input<KeyCode>,
     pub keyboard_events: Events<KeyboardInput>,
-    pub mouse_wheel_events: Events<MouseWheel>,
+    pub mouse_wheel_events: Events<MouseWheelDelta>,
 }
 
 impl InputAll {

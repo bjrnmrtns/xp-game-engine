@@ -1,4 +1,9 @@
-pub enum MouseWheel {
-    Line(f32, f32),
-    Pixel(f32, f32),
+pub enum MouseScrollUnit {
+    Line,
+    Pixel,
+}
+pub struct MouseWheelDelta {
+    pub unit: MouseScrollUnit,
+    pub x: f32,
+    pub y: f32,
 }
