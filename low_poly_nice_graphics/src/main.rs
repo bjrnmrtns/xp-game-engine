@@ -22,7 +22,7 @@ use crate::{
 };
 use glam::{Mat4, Quat, Vec3};
 use winit::{
-    event::{Event, WindowEvent},
+    event::{DeviceEvent, Event, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
     window::WindowBuilder,
 };
@@ -87,12 +87,6 @@ fn main() {
         transform: Transform::from_translation(Vec3::new(0.0, 1.0, 0.0)),
     });
 
-    let mut static_camera = StaticCamera::new(
-        Vec3::new(20.0, 20.0, 20.0),
-        Vec3::new(0.0, 0.0, 0.0),
-        renderer.swap_chain_descriptor.width as f32 / renderer.swap_chain_descriptor.height as f32,
-    );
-
     let mut follow_camera = FollowCamera::new(
         entities.get(character.clone()).unwrap().transform.clone(),
         renderer.swap_chain_descriptor.width as f32 / renderer.swap_chain_descriptor.height as f32,
@@ -111,7 +105,10 @@ fn main() {
                     &mut input_all.keyboard_input,
                 );
                 character_controller.keyboard(&input_all.keyboard_input);
-                camera_controller.mouse_wheel(&input_all.mouse_wheel_events);
+                camera_controller.mouse_handling(
+                    &input_all.mouse_wheel_events,
+                    &input_all.mouse_motion_events,
+                );
                 follow_camera.handle_camera_controller(&camera_controller);
                 let entity = entities.get_mut(character.clone()).unwrap();
                 entity.transform.rotation *=
@@ -154,9 +151,9 @@ fn main() {
                 window.request_redraw();
             }
             Event::WindowEvent {
-                ref event,
+                event: ref window_event,
                 window_id,
-            } if window_id == window.id() => match event {
+            } if window_id == window.id() => match window_event {
                 WindowEvent::Resized(size) => {
                     follow_camera.set_aspect_ratio(size.width as f32 / size.height as f32);
                     futures::executor::block_on(renderer.resize(size.width, size.height));
@@ -171,13 +168,14 @@ fn main() {
                 }
                 WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
                 WindowEvent::KeyboardInput { .. } => {
-                    winit_impl::handle_input(&mut input_all, event);
+                    winit_impl::handle_input(&mut input_all, &event);
                 }
                 WindowEvent::MouseWheel { .. } => {
-                    winit_impl::handle_input(&mut input_all, event);
+                    winit_impl::handle_input(&mut input_all, &event);
                 }
                 _ => (),
             },
+            Event::DeviceEvent { .. } => winit_impl::handle_input(&mut input_all, &event),
             _ => (),
         }
     });

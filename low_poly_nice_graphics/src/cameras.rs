@@ -43,7 +43,8 @@ impl Camera for StaticCamera {
 pub struct FollowCamera {
     aspect: f32,
     to_follow: Transform,
-    follow_vector: Vec3,
+    follow_angle: f32,
+    follow_distance: f32,
 }
 
 impl FollowCamera {
@@ -51,7 +52,8 @@ impl FollowCamera {
         Self {
             to_follow: follow,
             aspect,
-            follow_vector: Vec3::new(0.0, 10.0, 10.0),
+            follow_angle: 45.0,
+            follow_distance: 10.0,
         }
     }
 
@@ -63,24 +65,38 @@ impl FollowCamera {
         self.to_follow = to_follow;
     }
 
+    fn get_camera_transform(&self) -> Mat4 {
+        let mut rotate_around = self.to_follow.clone();
+        rotate_around.rotation *=
+            Quat::from_rotation_x(-self.follow_angle * std::f32::consts::PI * 2.0 / 360.0);
+
+        let transform = Transform {
+            translation: Vec3::new(0.0, 0.0, self.follow_distance),
+            ..Default::default()
+        };
+        rotate_around.mul_transform(transform).to_matrix()
+    }
+
     pub fn handle_camera_controller(&mut self, controller: &CameraController) {
-        let new_follow_distance = self.follow_vector.length() - controller.zoom;
-        let new_follow_distance = if new_follow_distance < 1.0 {
+        let new_follow_distance = self.follow_distance - controller.zoom;
+        self.follow_distance = if new_follow_distance < 1.0 {
             1.0
         } else {
             new_follow_distance
         };
-        self.follow_vector = self.follow_vector.normalize() * new_follow_distance;
+        let new_follow_angle = self.follow_angle + controller.vertical_angle_update;
+        self.follow_angle = if new_follow_angle < 0.0 {
+            0.0
+        } else if new_follow_angle > 90.0 {
+            90.0
+        } else {
+            new_follow_angle
+        };
     }
 }
 impl Camera for FollowCamera {
     fn get_position(&self) -> Vec3 {
-        let transform = Transform {
-            translation: self.follow_vector,
-            rotation: Quat::from_rotation_x(-std::f32::consts::FRAC_PI_4),
-            ..Default::default()
-        };
-        (self.to_follow.mul_transform(transform).to_matrix() * Vec4::new(0.0, 0.0, 0.0, 1.0)).xyz()
+        (self.get_camera_transform() * Vec4::new(0.0, 0.0, 0.0, 1.0)).xyz()
     }
 
     fn get_projection(&self) -> Mat4 {
@@ -93,14 +109,15 @@ impl Camera for FollowCamera {
     }
 
     fn get_view(&self) -> Mat4 {
-        let transform = Transform {
-            translation: self.follow_vector,
-            rotation: Quat::from_rotation_x(-std::f32::consts::FRAC_PI_4),
-            ..Default::default()
-        };
-        self.to_follow
-            .mul_transform(transform)
-            .to_matrix()
-            .inverse()
+        self.get_camera_transform().inverse()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn check_angle_distance_calculation() {
+        let angle = 90.0 * std::f32::consts::PI * 2.0 / 360.0;
+        println!("{}, {}, {}", angle.cos() * 10.0, angle.sin() * 10.0, 0.0);
     }
 }

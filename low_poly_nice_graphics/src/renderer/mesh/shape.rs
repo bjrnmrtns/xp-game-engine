@@ -311,7 +311,7 @@ impl From<IcoSphere> for Shape {
 
 #[cfg(test)]
 mod tests {
-    use crate::renderer::{mesh::shape::triangle_normal, shape::triangle_normal};
+    use crate::renderer::mesh::shape::triangle_normal;
 
     #[test]
     fn check_understanding_normal_calculation_0() {

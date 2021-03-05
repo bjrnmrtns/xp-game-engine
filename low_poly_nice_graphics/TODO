@@ -28,7 +28,7 @@ DONE 5: Add transform implementation and can be added to entities
 TODO 13: Implement camera follow/rotate around/zoom/change angle unit
 [x] follow
 [x] zoom using scroll wheel and touchpad
-[] change angle y with mouse
+[x] change angle y with mouse
 [] rotate around with mouse
 TODO 12: Advanced light rendering shadow mapping
 [] render depth buffer of camera
@@ -39,3 +39,4 @@ TODO 15: Terrain generation using blue noise (can be implemented using poison di
 TODO 17: Basic physics, walking around with sphere and hitting cubes and sliding off
 [] add cube and player sphere to physics world
 [] detect collision with cube and player sphere
+TODO 18: Check if MainEventsCleared is a better place to do all redrawing iso RedrawRequested (or maybe only physics update)

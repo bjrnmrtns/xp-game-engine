@@ -1,35 +1,48 @@
 use crate::{
-    input::{Events, Input, InputAll, KeyCode, KeyboardInput, MouseScrollUnit, MouseWheelDelta},
+    input::{
+        Events, Input, InputAll, KeyCode, KeyboardInput, MouseMotion, MouseScrollUnit,
+        MouseWheelDelta,
+    },
     winit_impl::converters::convert_keyboard_input,
 };
+use glam::Vec2;
 use winit::{
-    event::{MouseScrollDelta, WindowEvent},
+    event::{DeviceEvent, Event, MouseScrollDelta, WindowEvent},
     event_loop::EventLoop,
 };
 
-pub fn handle_input(input_all: &mut InputAll, window_event: &winit::event::WindowEvent) {
-    match window_event {
-        WindowEvent::KeyboardInput { ref input, .. } => {
-            input_all
-                .keyboard_events
-                .send(convert_keyboard_input(input));
-        }
-        WindowEvent::MouseWheel { delta, .. } => match delta {
-            winit::event::MouseScrollDelta::LineDelta(x, y) => {
-                input_all.mouse_wheel_events.send(MouseWheelDelta {
-                    unit: MouseScrollUnit::Line,
-                    x: *x,
-                    y: *y,
-                });
+pub fn handle_input(input_all: &mut InputAll, event: &winit::event::Event<()>) {
+    match event {
+        winit::event::Event::WindowEvent { event, .. } => match event {
+            WindowEvent::KeyboardInput { ref input, .. } => {
+                input_all
+                    .keyboard_events
+                    .send(convert_keyboard_input(input));
             }
-            winit::event::MouseScrollDelta::PixelDelta(delta) => {
-                input_all.mouse_wheel_events.send(MouseWheelDelta {
-                    unit: MouseScrollUnit::Pixel,
-                    x: delta.x as f32,
-                    y: delta.y as f32,
-                });
-            }
+            WindowEvent::MouseWheel { delta, .. } => match delta {
+                winit::event::MouseScrollDelta::LineDelta(x, y) => {
+                    input_all.mouse_wheel_events.send(MouseWheelDelta {
+                        unit: MouseScrollUnit::Line,
+                        x: *x,
+                        y: *y,
+                    });
+                }
+                winit::event::MouseScrollDelta::PixelDelta(delta) => {
+                    input_all.mouse_wheel_events.send(MouseWheelDelta {
+                        unit: MouseScrollUnit::Pixel,
+                        x: delta.x as f32,
+                        y: delta.y as f32,
+                    });
+                }
+            },
+            _ => (),
         },
+        winit::event::Event::DeviceEvent {
+            event: DeviceEvent::MouseMotion { delta },
+            ..
+        } => input_all.mouse_motion_events.send(MouseMotion {
+            delta: Vec2::new(delta.0 as f32, delta.1 as f32),
+        }),
         _ => (),
     }
 }
