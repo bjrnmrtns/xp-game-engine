@@ -12,7 +12,7 @@ use crate::{
     cameras::{FollowCamera, StaticCamera},
     controllers::CharacterController,
     entity::Entity,
-    input::InputState,
+    input::{keyboard_state_from_events, InputAll},
     registry::Registry,
     renderer::{
         BindGroup, Cube, DirectionalProperties, IcoSphere, Light, LightBindGroup, Mesh, Plane,
@@ -98,14 +98,18 @@ fn main() {
         renderer.swap_chain_descriptor.width as f32 / renderer.swap_chain_descriptor.height as f32,
     );
 
-    let mut input_state = InputState::default();
+    let mut input_all = InputAll::default();
     let mut character_controller = CharacterController::default();
     let start_time = std::time::Instant::now();
     event_loop.run(move |event, _, control_flow| {
         *control_flow = winit::event_loop::ControlFlow::Poll;
         match event {
             Event::RedrawRequested(_) => {
-                character_controller.keyboard(&input_state.keyboard);
+                keyboard_state_from_events(
+                    &input_all.keyboard_events,
+                    &mut input_all.keyboard_input,
+                );
+                character_controller.keyboard(&input_all.keyboard_input);
                 let entity = entities.get_mut(character.clone()).unwrap();
                 entity.transform.rotation *=
                     Quat::from_rotation_y(-character_controller.rotate * 0.02);
@@ -116,6 +120,7 @@ fn main() {
                 let model_rotation_y = 0.0;
                 entities.get_mut(ground.clone()).unwrap().transform.rotation =
                     Quat::from_rotation_y(model_rotation_y);
+                input_all.clear_events();
 
                 let target = &renderer
                     .swap_chain
@@ -163,7 +168,7 @@ fn main() {
                 }
                 WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
                 WindowEvent::KeyboardInput { ref input, .. } => {
-                    winit_impl::keyboard_handler(&mut input_state.keyboard, input);
+                    winit_impl::handle_input(&mut input_all.keyboard_events, event);
                 }
                 _ => (),
             },

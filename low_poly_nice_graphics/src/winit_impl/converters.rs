@@ -1,6 +1,20 @@
-use crate::input::KeyCode;
+use crate::input::{ElementState, KeyCode, KeyboardInput};
 
-pub(crate) fn convert_virtual_keycode(virtual_key_code: winit::event::VirtualKeyCode) -> KeyCode {
+pub fn convert_keyboard_input(keyboard_input: &winit::event::KeyboardInput) -> KeyboardInput {
+    KeyboardInput {
+        key_code: keyboard_input.virtual_keycode.map(convert_keycode),
+        state: convert_element_state(keyboard_input.state),
+    }
+}
+
+fn convert_element_state(element_state: winit::event::ElementState) -> ElementState {
+    match element_state {
+        winit::event::ElementState::Pressed => ElementState::Pressed,
+        winit::event::ElementState::Released => ElementState::Released,
+    }
+}
+
+fn convert_keycode(virtual_key_code: winit::event::VirtualKeyCode) -> KeyCode {
     match virtual_key_code {
         winit::event::VirtualKeyCode::Key1 => KeyCode::Key1,
         winit::event::VirtualKeyCode::Key2 => KeyCode::Key2,

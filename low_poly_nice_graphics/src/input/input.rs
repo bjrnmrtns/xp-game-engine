@@ -36,6 +36,11 @@ where
         self.just_released.insert(input);
     }
 
+    pub fn update(&mut self) {
+        self.just_pressed.clear();
+        self.just_released.clear();
+    }
+
     pub fn just_pressed(&self, input: T) -> bool {
         self.just_pressed.contains(&input)
     }

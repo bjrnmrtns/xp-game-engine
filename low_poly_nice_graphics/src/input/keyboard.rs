@@ -1,3 +1,34 @@
+use crate::input::{Events, Input};
+
+pub fn keyboard_state_from_events(
+    keyboard_events: &Events<KeyboardInput>,
+    keyboard_input: &mut Input<KeyCode>,
+) {
+    keyboard_input.update();
+    for event in keyboard_events.values() {
+        if let KeyboardInput {
+            key_code: Some(key_code),
+            state,
+        } = event
+        {
+            match state {
+                ElementState::Pressed => keyboard_input.press(*key_code),
+                ElementState::Released => keyboard_input.release(*key_code),
+            }
+        }
+    }
+}
+
+pub struct KeyboardInput {
+    pub key_code: Option<KeyCode>,
+    pub state: ElementState,
+}
+
+pub enum ElementState {
+    Pressed,
+    Released,
+}
+
 // this is just a copy of winit KeyCode
 #[derive(Debug, Hash, Ord, PartialOrd, PartialEq, Eq, Clone, Copy)]
 #[repr(u32)]
