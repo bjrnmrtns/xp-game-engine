@@ -10,7 +10,7 @@ mod winit_impl;
 
 use crate::{
     cameras::{FollowCamera, StaticCamera},
-    controllers::CharacterController,
+    controllers::{CameraController, CharacterController},
     entity::Entity,
     input::{keyboard_state_from_events, InputAll},
     registry::Registry,
@@ -100,6 +100,7 @@ fn main() {
 
     let mut input_all = InputAll::default();
     let mut character_controller = CharacterController::default();
+    let mut camera_controller = CameraController::default();
     let start_time = std::time::Instant::now();
     event_loop.run(move |event, _, control_flow| {
         *control_flow = winit::event_loop::ControlFlow::Poll;
@@ -110,6 +111,8 @@ fn main() {
                     &mut input_all.keyboard_input,
                 );
                 character_controller.keyboard(&input_all.keyboard_input);
+                camera_controller.mouse_wheel(&input_all.mouse_wheel_events);
+                follow_camera.handle_camera_controller(&camera_controller);
                 let entity = entities.get_mut(character.clone()).unwrap();
                 entity.transform.rotation *=
                     Quat::from_rotation_y(-character_controller.rotate * 0.02);

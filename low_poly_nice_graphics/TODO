@@ -27,8 +27,9 @@ DONE 16: IcoSphere (icosahedron) mesh implementation
 DONE 5: Add transform implementation and can be added to entities
 TODO 13: Implement camera follow/rotate around/zoom/change angle unit
 [x] follow
-[] zoom using scroll wheel
-[] change angle y of mouse with ctrl
+[x] zoom using scroll wheel and touchpad
+[] change angle y with mouse
+[] rotate around with mouse
 TODO 12: Advanced light rendering shadow mapping
 [] render depth buffer of camera
 [] render depth buffer of light
