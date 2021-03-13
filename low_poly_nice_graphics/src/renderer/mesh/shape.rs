@@ -55,16 +55,12 @@ impl From<Plane> for Shape {
                 ];
                 let p01 = [
                     x * increment,
-                    plane
-                        .height_function
-                        .height(x * increment, (z + 1.0) * increment),
+                    plane.height_function.height(x * increment, (z + 1.0) * increment),
                     (z + 1.0) * increment,
                 ];
                 let p10 = [
                     (x + 1.0) * increment,
-                    plane
-                        .height_function
-                        .height((x + 1.0) * increment, z * increment),
+                    plane.height_function.height((x + 1.0) * increment, z * increment),
                     z * increment,
                 ];
                 let p11 = [
@@ -284,11 +280,7 @@ impl From<IcoSphere> for Shape {
         }
         let mut vertices = Vec::new();
         for triangle in &triangles {
-            let normal = triangle_normal(
-                points[triangle[0]],
-                points[triangle[1]],
-                points[triangle[2]],
-            );
+            let normal = triangle_normal(points[triangle[0]], points[triangle[1]], points[triangle[2]]);
             vertices.push(Vertex::new(
                 scale_vertex(points[triangle[0]], sphere.radius),
                 normal,
@@ -304,6 +296,114 @@ impl From<IcoSphere> for Shape {
                 normal,
                 color,
             ));
+        }
+        Self { vertices }
+    }
+}
+
+fn create_left_plane(start: f32, end: f32, start_height: f32, end_height: f32, color: [f32; 3]) -> Vec<Vertex> {
+    let mut vertices = Vec::new();
+    let ground_height = 0.0;
+    let green = [0.0, 1.0, 0.0];
+    vertices.extend_from_slice(&[
+        // ground plane
+        Vertex::new([-0.5, ground_height, -0.5], [0.0, 1.0, 0.0], green),
+        Vertex::new([-0.5, ground_height, 0.5], [0.0, 1.0, 0.0], green),
+        Vertex::new([0.5, ground_height, 0.5], [0.0, 1.0, 0.0], green),
+        Vertex::new([-0.5, ground_height, -0.5], [0.0, 1.0, 0.0], green),
+        Vertex::new([0.5, ground_height, 0.5], [0.0, 1.0, 0.0], green),
+        Vertex::new([0.5, ground_height, -0.5], [0.0, 1.0, 0.0], green),
+    ]);
+    vertices
+}
+
+pub enum Tile {
+    GrassCorner,
+    GrassSide,
+    Stone,
+}
+
+impl From<Tile> for Shape {
+    fn from(tile: Tile) -> Self {
+        let mut vertices = Vec::new();
+        let max = 0.5;
+        let min = -0.5;
+        let green = [0.0, 1.0, 0.0];
+        let grey = [0.5, 0.5, 0.5];
+        let ground_height = 0.0;
+        let layer_height = 0.1;
+        let normal_right = [1.0, 0.0, 0.0];
+        let normal_front = [0.0, 0.0, 1.0];
+        let normal_top = [0.0, 1.0, 0.0];
+        match tile {
+            Tile::GrassCorner => {
+                vertices.extend_from_slice(&[
+                    // ground plane
+                    Vertex::new([min, ground_height, min], normal_top, green),
+                    Vertex::new([min, ground_height, max], normal_top, green),
+                    Vertex::new([max, ground_height, max], normal_top, green),
+                    Vertex::new([min, ground_height, min], normal_top, green),
+                    Vertex::new([max, ground_height, max], normal_top, green),
+                    Vertex::new([max, ground_height, min], normal_top, green),
+                    // top
+                    Vertex::new([min, layer_height, min], normal_top, grey),
+                    Vertex::new([min, layer_height, min + 0.1], normal_top, grey),
+                    Vertex::new([min + 0.1, layer_height, min + 0.1], normal_top, grey),
+                    Vertex::new([min, layer_height, min], normal_top, grey),
+                    Vertex::new([min + 0.1, layer_height, min + 0.1], normal_top, grey),
+                    Vertex::new([min + 0.1, layer_height, min], normal_top, grey),
+                    // right
+                    Vertex::new([min + 0.1, 0.0, min], normal_right, grey),
+                    Vertex::new([min + 0.1, layer_height, min], normal_right, grey),
+                    Vertex::new([min + 0.1, 0.0, min + 0.1], normal_right, grey),
+                    Vertex::new([min + 0.1, layer_height, min], normal_right, grey),
+                    Vertex::new([min + 0.1, layer_height, min + 0.1], normal_right, grey),
+                    Vertex::new([min + 0.1, 0.0, min + 0.1], normal_right, grey),
+                    // front
+                    Vertex::new([min, 0.0, min + 0.1], normal_front, grey),
+                    Vertex::new([min + 0.1, 0.0, min + 0.1], normal_front, grey),
+                    Vertex::new([min, layer_height, min + 0.1], normal_front, grey),
+                    Vertex::new([min + 0.1, 0.0, min + 0.1], normal_front, grey),
+                    Vertex::new([min + 0.1, layer_height, min + 0.1], normal_front, grey),
+                    Vertex::new([min, layer_height, min + 0.1], normal_front, grey),
+                ]);
+            }
+            Tile::GrassSide => {
+                vertices.extend_from_slice(&[
+                    // ground plane
+                    Vertex::new([min, ground_height, min], normal_top, green),
+                    Vertex::new([min, ground_height, max], normal_top, green),
+                    Vertex::new([max, ground_height, max], normal_top, green),
+                    Vertex::new([min, ground_height, min], normal_top, green),
+                    Vertex::new([max, ground_height, max], normal_top, green),
+                    Vertex::new([max, ground_height, min], normal_top, green),
+                    // top
+                    Vertex::new([min, layer_height, min], normal_top, grey),
+                    Vertex::new([min, layer_height, min + 0.1], normal_top, grey),
+                    Vertex::new([max, layer_height, min + 0.1], normal_top, grey),
+                    Vertex::new([min, layer_height, min], normal_top, grey),
+                    Vertex::new([max, layer_height, min + 0.1], normal_top, grey),
+                    Vertex::new([max, layer_height, min], normal_top, grey),
+                    // front
+                    Vertex::new([min, 0.0, min + 0.1], normal_front, grey),
+                    Vertex::new([max, 0.0, min + 0.1], normal_front, grey),
+                    Vertex::new([min, layer_height, min + 0.1], normal_front, grey),
+                    Vertex::new([max, 0.0, min + 0.1], normal_front, grey),
+                    Vertex::new([max, layer_height, min + 0.1], normal_front, grey),
+                    Vertex::new([min, layer_height, min + 0.1], normal_front, grey),
+                ]);
+            }
+            Tile::Stone => {
+                vertices.extend_from_slice(&[
+                    // ground plane
+                    Vertex::new([min, ground_height + 0.1, min], normal_top, grey),
+                    Vertex::new([min, ground_height + 0.1, max], normal_top, grey),
+                    Vertex::new([max, ground_height + 0.1, max], normal_top, grey),
+                    Vertex::new([min, ground_height + 0.1, min], normal_top, grey),
+                    Vertex::new([max, ground_height + 0.1, max], normal_top, grey),
+                    Vertex::new([max, ground_height + 0.1, min], normal_top, grey),
+                ]);
+            }
         }
         Self { vertices }
     }
