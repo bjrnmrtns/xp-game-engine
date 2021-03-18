@@ -9,11 +9,7 @@ pub struct StaticCamera {
 
 impl StaticCamera {
     pub fn new(pos: Vec3, target: Vec3, aspect: f32) -> Self {
-        Self {
-            pos,
-            target,
-            aspect,
-        }
+        Self { pos, target, aspect }
     }
 
     pub fn set_aspect_ratio(&mut self, aspect: f32) {
@@ -27,12 +23,7 @@ impl Camera for StaticCamera {
     }
 
     fn get_projection(&self) -> Mat4 {
-        Mat4::perspective_rh(
-            45.0 * std::f32::consts::PI * 2.0 / 360.0,
-            self.aspect,
-            0.1,
-            1000.0,
-        )
+        Mat4::perspective_rh(45.0 * std::f32::consts::PI * 2.0 / 360.0, self.aspect, 0.1, 1000.0)
     }
 
     fn get_view(&self) -> Mat4 {
@@ -53,7 +44,7 @@ impl FollowCamera {
             to_follow: follow,
             aspect,
             follow_angle: 45.0,
-            follow_distance: 10.0,
+            follow_distance: 3.0,
         }
     }
 
@@ -67,8 +58,7 @@ impl FollowCamera {
 
     fn get_camera_transform(&self) -> Mat4 {
         let mut rotate_around = self.to_follow.clone();
-        rotate_around.rotation *=
-            Quat::from_rotation_x(-self.follow_angle * std::f32::consts::PI * 2.0 / 360.0);
+        rotate_around.rotation *= Quat::from_rotation_x(-self.follow_angle * std::f32::consts::PI * 2.0 / 360.0);
 
         let transform = Transform {
             translation: Vec3::new(0.0, 0.0, self.follow_distance),
@@ -100,12 +90,7 @@ impl Camera for FollowCamera {
     }
 
     fn get_projection(&self) -> Mat4 {
-        Mat4::perspective_rh(
-            45.0 * std::f32::consts::PI * 2.0 / 360.0,
-            self.aspect,
-            0.1,
-            1000.0,
-        )
+        Mat4::perspective_rh(45.0 * std::f32::consts::PI * 2.0 / 360.0, self.aspect, 0.1, 1000.0)
     }
 
     fn get_view(&self) -> Mat4 {

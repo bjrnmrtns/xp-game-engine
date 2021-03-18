@@ -45,39 +45,33 @@ fn main() {
     let mut meshes = Registry::new();
     let mut lights = Registry::new();
     let mut entities = Registry::new();
-    let light_mesh_handle = meshes.add(Mesh::from_shape(&renderer, Shape::from(Cube::new(1.0))));
+    let light_mesh_handle = meshes.add(Mesh::from_shape(&renderer, Shape::from(Cube::new(0.25))));
     lights.add(Light::Directional(DirectionalProperties::new([-1.0, -0.5, -1.0, 1.0])));
 
     lights.add(Light::Spot(SpotProperties::new(
-        [0.0, 7.0, 0.0, 1.0],
+        [0.0, 4.0, 0.0, 1.0],
         [0.0, -1.0, 0.0, 1.0],
     )));
     lights.add(Light::Spot(SpotProperties::new(
-        [30.0, 15.0, 0.0, 1.0],
+        [8.0, 4.0, 0.0, 1.0],
         [0.0, -1.0, 0.0, 1.0],
     )));
-    lights.add(Light::Point(PointProperties::new([30.0, 10.0, 30.0, 1.0])));
-    lights.add(Light::Point(PointProperties::new([-30.0, 10.0, 30.0, 1.0])));
-
-    entities.add(Entity {
-        mesh_handle: meshes.add(Mesh::from_shape(&renderer, Shape::from(Cube::new(4.0)))),
-        transform: Transform::from_translation(Vec3::new(0.0, 2.0, -8.0)),
-    });
+    lights.add(Light::Point(PointProperties::new([8.0, 4.0, 8.0, 1.0])));
+    lights.add(Light::Point(PointProperties::new([-8.0, 4.0, 8.0, 1.0])));
 
     let ground = entities.add(Entity {
         mesh_handle: meshes.add(Mesh::from_shape(
             &renderer,
             //Shape::from(Plane::new(100.0, 4, Box::new(generators::Noise::new()))),
             //Shape::from(Plane::new(100.0, 6, Box::new(generators::Zero))),
-            Shape::from(Tile::Stone),
-            //Shape::from(Cube::new(30.0)),
+            Shape::from(Tile::GrassCorner),
         )),
         transform: Transform::identity(),
     });
 
     let character = entities.add(Entity {
-        mesh_handle: meshes.add(Mesh::from_shape(&renderer, Shape::from(IcoSphere::new(2.0)))),
-        transform: Transform::from_translation(Vec3::new(0.0, 1.0, 0.0)),
+        mesh_handle: meshes.add(Mesh::from_shape(&renderer, Shape::from(IcoSphere::new(0.5)))),
+        transform: Transform::from_translation(Vec3::new(0.0, 0.5, 0.0)),
     });
 
     let mut follow_camera = FollowCamera::new(
