@@ -63,7 +63,7 @@ fn main() {
         &renderer,
         //Shape::from(Plane::new(100.0, 4, Box::new(generators::Noise::new()))),
         //Shape::from(Plane::new(100.0, 6, Box::new(generators::Zero))),
-        Shape::from(Tile::GrassTwoSides),
+        Shape::from(Tile::StoneLeftUpRightSide),
     ));
 
     for x in -5..5 {

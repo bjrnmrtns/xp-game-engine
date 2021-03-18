@@ -318,10 +318,13 @@ fn create_left_plane(start: f32, end: f32, start_height: f32, end_height: f32, c
 }
 
 pub enum Tile {
-    GrassCorner,
-    GrassSide,
-    GrassTwoSides,
-    Stone,
+    Grass,
+    StoneNoSide,
+    StoneUpSide,
+    StoneLeftRightSide,
+    StoneLeftUpSide,
+    StoneLeftUpRightSide,
+    StoneAllSide,
 }
 
 impl From<Tile> for Shape {
@@ -331,117 +334,172 @@ impl From<Tile> for Shape {
         let min = -0.5;
         let green = [0.0, 1.0, 0.0];
         let grey = [0.5, 0.5, 0.5];
-        let ground_height = 0.0;
-        let layer_height = 0.1;
+        let normal_left = [-1.0, 0.0, 0.0];
         let normal_right = [1.0, 0.0, 0.0];
         let normal_front = [0.0, 0.0, 1.0];
+        let normal_back = [0.0, 0.0, -1.0];
         let normal_top = [0.0, 1.0, 0.0];
         match tile {
-            Tile::GrassCorner => {
+            Tile::Grass => {
                 vertices.extend_from_slice(&[
                     // ground plane
-                    Vertex::new([min, ground_height, min], normal_top, green),
-                    Vertex::new([min, ground_height, max], normal_top, green),
-                    Vertex::new([max, ground_height, max], normal_top, green),
-                    Vertex::new([min, ground_height, min], normal_top, green),
-                    Vertex::new([max, ground_height, max], normal_top, green),
-                    Vertex::new([max, ground_height, min], normal_top, green),
-                    // top
-                    Vertex::new([min, layer_height, min], normal_top, grey),
-                    Vertex::new([min, layer_height, min + 0.1], normal_top, grey),
-                    Vertex::new([min + 0.1, layer_height, min + 0.1], normal_top, grey),
-                    Vertex::new([min, layer_height, min], normal_top, grey),
-                    Vertex::new([min + 0.1, layer_height, min + 0.1], normal_top, grey),
-                    Vertex::new([min + 0.1, layer_height, min], normal_top, grey),
+                    Vertex::new([min, 0.0, min], normal_top, green),
+                    Vertex::new([min, 0.0, max], normal_top, green),
+                    Vertex::new([max, 0.0, max], normal_top, green),
+                    Vertex::new([min, 0.0, min], normal_top, green),
+                    Vertex::new([max, 0.0, max], normal_top, green),
+                    Vertex::new([max, 0.0, min], normal_top, green),
+                ]);
+            }
+            Tile::StoneNoSide => {
+                vertices.extend_from_slice(&[
+                    // ground plane
+                    Vertex::new([min, 0.1, min], normal_top, grey),
+                    Vertex::new([min, 0.1, max], normal_top, grey),
+                    Vertex::new([max, 0.1, max], normal_top, grey),
+                    Vertex::new([min, 0.1, min], normal_top, grey),
+                    Vertex::new([max, 0.1, max], normal_top, grey),
+                    Vertex::new([max, 0.1, min], normal_top, grey),
+                ]);
+            }
+            Tile::StoneUpSide => {
+                vertices.extend_from_slice(&[
+                    // ground plane
+                    Vertex::new([min, 0.1, min], normal_top, grey),
+                    Vertex::new([min, 0.1, max], normal_top, grey),
+                    Vertex::new([max, 0.1, max], normal_top, grey),
+                    Vertex::new([min, 0.1, min], normal_top, grey),
+                    Vertex::new([max, 0.1, max], normal_top, grey),
+                    Vertex::new([max, 0.1, min], normal_top, grey),
+                    // back
+                    Vertex::new([min, 0.0, min], normal_back, grey),
+                    Vertex::new([min, 0.1, min], normal_back, grey),
+                    Vertex::new([max, 0.0, min], normal_back, grey),
+                    Vertex::new([max, 0.0, min], normal_back, grey),
+                    Vertex::new([min, 0.1, min], normal_back, grey),
+                    Vertex::new([max, 0.1, min], normal_back, grey),
+                ]);
+            }
+
+            Tile::StoneLeftRightSide => {
+                vertices.extend_from_slice(&[
+                    // ground plane
+                    Vertex::new([min, 0.1, min], normal_top, grey),
+                    Vertex::new([min, 0.1, max], normal_top, grey),
+                    Vertex::new([max, 0.1, max], normal_top, grey),
+                    Vertex::new([min, 0.1, min], normal_top, grey),
+                    Vertex::new([max, 0.1, max], normal_top, grey),
+                    Vertex::new([max, 0.1, min], normal_top, grey),
+                    // left
+                    Vertex::new([min, 0.0, min], normal_left, grey),
+                    Vertex::new([min, 0.0, max], normal_left, grey),
+                    Vertex::new([min, 0.1, min], normal_left, grey),
+                    Vertex::new([min, 0.1, min], normal_left, grey),
+                    Vertex::new([min, 0.0, max], normal_left, grey),
+                    Vertex::new([min, 0.1, max], normal_left, grey),
                     // right
-                    Vertex::new([min + 0.1, 0.0, min], normal_right, grey),
-                    Vertex::new([min + 0.1, layer_height, min], normal_right, grey),
-                    Vertex::new([min + 0.1, 0.0, min + 0.1], normal_right, grey),
-                    Vertex::new([min + 0.1, layer_height, min], normal_right, grey),
-                    Vertex::new([min + 0.1, layer_height, min + 0.1], normal_right, grey),
-                    Vertex::new([min + 0.1, 0.0, min + 0.1], normal_right, grey),
-                    // front
-                    Vertex::new([min, 0.0, min + 0.1], normal_front, grey),
-                    Vertex::new([min + 0.1, 0.0, min + 0.1], normal_front, grey),
-                    Vertex::new([min, layer_height, min + 0.1], normal_front, grey),
-                    Vertex::new([min + 0.1, 0.0, min + 0.1], normal_front, grey),
-                    Vertex::new([min + 0.1, layer_height, min + 0.1], normal_front, grey),
-                    Vertex::new([min, layer_height, min + 0.1], normal_front, grey),
+                    Vertex::new([max, 0.0, min], normal_right, grey),
+                    Vertex::new([max, 0.1, min], normal_right, grey),
+                    Vertex::new([max, 0.0, max], normal_right, grey),
+                    Vertex::new([max, 0.1, min], normal_right, grey),
+                    Vertex::new([max, 0.1, max], normal_right, grey),
+                    Vertex::new([max, 0.0, max], normal_right, grey),
                 ]);
             }
-            Tile::GrassSide => {
+            Tile::StoneLeftUpSide => {
                 vertices.extend_from_slice(&[
                     // ground plane
-                    Vertex::new([min, ground_height, min], normal_top, green),
-                    Vertex::new([min, ground_height, max], normal_top, green),
-                    Vertex::new([max, ground_height, max], normal_top, green),
-                    Vertex::new([min, ground_height, min], normal_top, green),
-                    Vertex::new([max, ground_height, max], normal_top, green),
-                    Vertex::new([max, ground_height, min], normal_top, green),
-                    // top
-                    Vertex::new([min, layer_height, min], normal_top, grey),
-                    Vertex::new([min, layer_height, min + 0.1], normal_top, grey),
-                    Vertex::new([max, layer_height, min + 0.1], normal_top, grey),
-                    Vertex::new([min, layer_height, min], normal_top, grey),
-                    Vertex::new([max, layer_height, min + 0.1], normal_top, grey),
-                    Vertex::new([max, layer_height, min], normal_top, grey),
-                    // front
-                    Vertex::new([min, 0.0, min + 0.1], normal_front, grey),
-                    Vertex::new([max, 0.0, min + 0.1], normal_front, grey),
-                    Vertex::new([min, layer_height, min + 0.1], normal_front, grey),
-                    Vertex::new([max, 0.0, min + 0.1], normal_front, grey),
-                    Vertex::new([max, layer_height, min + 0.1], normal_front, grey),
-                    Vertex::new([min, layer_height, min + 0.1], normal_front, grey),
+                    Vertex::new([min, 0.1, min], normal_top, grey),
+                    Vertex::new([min, 0.1, max], normal_top, grey),
+                    Vertex::new([max, 0.1, max], normal_top, grey),
+                    Vertex::new([min, 0.1, min], normal_top, grey),
+                    Vertex::new([max, 0.1, max], normal_top, grey),
+                    Vertex::new([max, 0.1, min], normal_top, grey),
+                    // back
+                    Vertex::new([min, 0.0, min], normal_back, grey),
+                    Vertex::new([min, 0.1, min], normal_back, grey),
+                    Vertex::new([max, 0.0, min], normal_back, grey),
+                    Vertex::new([max, 0.0, min], normal_back, grey),
+                    Vertex::new([min, 0.1, min], normal_back, grey),
+                    Vertex::new([max, 0.1, min], normal_back, grey),
+                    // left
+                    Vertex::new([min, 0.0, min], normal_left, grey),
+                    Vertex::new([min, 0.0, max], normal_left, grey),
+                    Vertex::new([min, 0.1, min], normal_left, grey),
+                    Vertex::new([min, 0.1, min], normal_left, grey),
+                    Vertex::new([min, 0.0, max], normal_left, grey),
+                    Vertex::new([min, 0.1, max], normal_left, grey),
                 ]);
             }
-            Tile::GrassTwoSides => {
+            Tile::StoneLeftUpRightSide => {
                 vertices.extend_from_slice(&[
                     // ground plane
-                    Vertex::new([min, ground_height, min], normal_top, green),
-                    Vertex::new([min, ground_height, max], normal_top, green),
-                    Vertex::new([max, ground_height, max], normal_top, green),
-                    Vertex::new([min, ground_height, min], normal_top, green),
-                    Vertex::new([max, ground_height, max], normal_top, green),
-                    Vertex::new([max, ground_height, min], normal_top, green),
-                    // top_up
-                    Vertex::new([min + 0.1, layer_height, min], normal_top, grey),
-                    Vertex::new([min + 0.1, layer_height, min + 0.1], normal_top, grey),
-                    Vertex::new([max, layer_height, min + 0.1], normal_top, grey),
-                    Vertex::new([min + 0.1, layer_height, min], normal_top, grey),
-                    Vertex::new([max, layer_height, min + 0.1], normal_top, grey),
-                    Vertex::new([max, layer_height, min], normal_top, grey),
-                    // front
-                    Vertex::new([min + 0.1, 0.0, min + 0.1], normal_front, grey),
-                    Vertex::new([max, 0.0, min + 0.1], normal_front, grey),
-                    Vertex::new([min + 0.1, layer_height, min + 0.1], normal_front, grey),
-                    Vertex::new([max, 0.0, min + 0.1], normal_front, grey),
-                    Vertex::new([max, layer_height, min + 0.1], normal_front, grey),
-                    Vertex::new([min + 0.1, layer_height, min + 0.1], normal_front, grey),
-                    // top_left
-                    Vertex::new([min, layer_height, min], normal_top, grey),
-                    Vertex::new([min, layer_height, max], normal_top, grey),
-                    Vertex::new([min + 0.1, layer_height, max], normal_top, grey),
-                    Vertex::new([min, layer_height, min], normal_top, grey),
-                    Vertex::new([min + 0.1, layer_height, max], normal_top, grey),
-                    Vertex::new([min + 0.1, layer_height, min], normal_top, grey),
+                    Vertex::new([min, 0.1, min], normal_top, grey),
+                    Vertex::new([min, 0.1, max], normal_top, grey),
+                    Vertex::new([max, 0.1, max], normal_top, grey),
+                    Vertex::new([min, 0.1, min], normal_top, grey),
+                    Vertex::new([max, 0.1, max], normal_top, grey),
+                    Vertex::new([max, 0.1, min], normal_top, grey),
+                    // back
+                    Vertex::new([min, 0.0, min], normal_back, grey),
+                    Vertex::new([min, 0.1, min], normal_back, grey),
+                    Vertex::new([max, 0.0, min], normal_back, grey),
+                    Vertex::new([max, 0.0, min], normal_back, grey),
+                    Vertex::new([min, 0.1, min], normal_back, grey),
+                    Vertex::new([max, 0.1, min], normal_back, grey),
+                    // left
+                    Vertex::new([min, 0.0, min], normal_left, grey),
+                    Vertex::new([min, 0.0, max], normal_left, grey),
+                    Vertex::new([min, 0.1, min], normal_left, grey),
+                    Vertex::new([min, 0.1, min], normal_left, grey),
+                    Vertex::new([min, 0.0, max], normal_left, grey),
+                    Vertex::new([min, 0.1, max], normal_left, grey),
                     // right
-                    Vertex::new([min + 0.1, 0.0, min], normal_right, grey),
-                    Vertex::new([min + 0.1, layer_height, min], normal_right, grey),
-                    Vertex::new([min + 0.1, 0.0, max], normal_right, grey),
-                    Vertex::new([min + 0.1, layer_height, min], normal_right, grey),
-                    Vertex::new([min + 0.1, layer_height, max], normal_right, grey),
-                    Vertex::new([min + 0.1, 0.0, max], normal_right, grey),
+                    Vertex::new([max, 0.0, min], normal_right, grey),
+                    Vertex::new([max, 0.1, min], normal_right, grey),
+                    Vertex::new([max, 0.0, max], normal_right, grey),
+                    Vertex::new([max, 0.1, min], normal_right, grey),
+                    Vertex::new([max, 0.1, max], normal_right, grey),
+                    Vertex::new([max, 0.0, max], normal_right, grey),
                 ]);
             }
-            Tile::Stone => {
+            Tile::StoneAllSide => {
                 vertices.extend_from_slice(&[
                     // ground plane
-                    Vertex::new([min, ground_height + 0.1, min], normal_top, grey),
-                    Vertex::new([min, ground_height + 0.1, max], normal_top, grey),
-                    Vertex::new([max, ground_height + 0.1, max], normal_top, grey),
-                    Vertex::new([min, ground_height + 0.1, min], normal_top, grey),
-                    Vertex::new([max, ground_height + 0.1, max], normal_top, grey),
-                    Vertex::new([max, ground_height + 0.1, min], normal_top, grey),
+                    Vertex::new([min, 0.1, min], normal_top, grey),
+                    Vertex::new([min, 0.1, max], normal_top, grey),
+                    Vertex::new([max, 0.1, max], normal_top, grey),
+                    Vertex::new([min, 0.1, min], normal_top, grey),
+                    Vertex::new([max, 0.1, max], normal_top, grey),
+                    Vertex::new([max, 0.1, min], normal_top, grey),
+                    // front
+                    Vertex::new([min, 0.0, max], normal_front, grey),
+                    Vertex::new([max, 0.0, max], normal_front, grey),
+                    Vertex::new([min, 0.1, max], normal_front, grey),
+                    Vertex::new([max, 0.0, max], normal_front, grey),
+                    Vertex::new([max, 0.1, max], normal_front, grey),
+                    Vertex::new([min, 0.1, max], normal_front, grey),
+                    // back
+                    Vertex::new([min, 0.0, min], normal_back, grey),
+                    Vertex::new([min, 0.1, min], normal_back, grey),
+                    Vertex::new([max, 0.0, min], normal_back, grey),
+                    Vertex::new([max, 0.0, min], normal_back, grey),
+                    Vertex::new([min, 0.1, min], normal_back, grey),
+                    Vertex::new([max, 0.1, min], normal_back, grey),
+                    // left
+                    Vertex::new([min, 0.0, min], normal_left, grey),
+                    Vertex::new([min, 0.0, max], normal_left, grey),
+                    Vertex::new([min, 0.1, min], normal_left, grey),
+                    Vertex::new([min, 0.1, min], normal_left, grey),
+                    Vertex::new([min, 0.0, max], normal_left, grey),
+                    Vertex::new([min, 0.1, max], normal_left, grey),
+                    // right
+                    Vertex::new([max, 0.0, min], normal_right, grey),
+                    Vertex::new([max, 0.1, min], normal_right, grey),
+                    Vertex::new([max, 0.0, max], normal_right, grey),
+                    Vertex::new([max, 0.1, min], normal_right, grey),
+                    Vertex::new([max, 0.1, max], normal_right, grey),
+                    Vertex::new([max, 0.0, max], normal_right, grey),
                 ]);
             }
         }
