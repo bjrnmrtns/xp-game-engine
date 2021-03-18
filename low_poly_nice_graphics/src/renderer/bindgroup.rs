@@ -7,7 +7,7 @@ use crate::{
 };
 use glam::Mat4;
 
-const MAX_NR_OF_INSTANCES: usize = 100;
+const MAX_NR_OF_INSTANCES: usize = 1024;
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -56,8 +56,7 @@ impl BindGroup {
         let directional_lights = renderer.device.create_buffer(&wgpu::BufferDescriptor {
             label: None,
             usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
-            size: (std::mem::size_of::<DirectionalProperties>() * MAX_NR_OF_DIRECTIONAL_LIGHTS)
-                as u64,
+            size: (std::mem::size_of::<DirectionalProperties>() * MAX_NR_OF_DIRECTIONAL_LIGHTS) as u64,
             mapped_at_creation: false,
         });
         let spot_lights = renderer.device.create_buffer(&wgpu::BufferDescriptor {
@@ -81,93 +80,90 @@ impl BindGroup {
             mapped_at_creation: false,
         });
 
-        let bind_group_layout =
-            renderer
-                .device
-                .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                    entries: &[
-                        wgpu::BindGroupLayoutEntry {
-                            binding: 0,
-                            visibility: wgpu::ShaderStage::VERTEX | wgpu::ShaderStage::FRAGMENT,
-                            ty: wgpu::BindingType::Buffer {
-                                ty: wgpu::BufferBindingType::Uniform,
-                                min_binding_size: None,
-                                has_dynamic_offset: false,
-                            },
-                            count: None,
-                        },
-                        wgpu::BindGroupLayoutEntry {
-                            binding: 1,
-                            visibility: wgpu::ShaderStage::VERTEX | wgpu::ShaderStage::FRAGMENT,
-                            ty: wgpu::BindingType::Buffer {
-                                ty: wgpu::BufferBindingType::Uniform,
-                                min_binding_size: None,
-                                has_dynamic_offset: false,
-                            },
-                            count: None,
-                        },
-                        wgpu::BindGroupLayoutEntry {
-                            binding: 2,
-                            visibility: wgpu::ShaderStage::VERTEX | wgpu::ShaderStage::FRAGMENT,
-                            ty: wgpu::BindingType::Buffer {
-                                ty: wgpu::BufferBindingType::Uniform,
-                                min_binding_size: None,
-                                has_dynamic_offset: false,
-                            },
-                            count: None,
-                        },
-                        wgpu::BindGroupLayoutEntry {
-                            binding: 3,
-                            visibility: wgpu::ShaderStage::VERTEX | wgpu::ShaderStage::FRAGMENT,
-                            ty: wgpu::BindingType::Buffer {
-                                ty: wgpu::BufferBindingType::Uniform,
-                                min_binding_size: None,
-                                has_dynamic_offset: false,
-                            },
-                            count: None,
-                        },
-                        wgpu::BindGroupLayoutEntry {
-                            binding: 4,
-                            visibility: wgpu::ShaderStage::VERTEX | wgpu::ShaderStage::FRAGMENT,
-                            ty: wgpu::BindingType::Buffer {
-                                ty: wgpu::BufferBindingType::Storage { read_only: true },
-                                min_binding_size: None,
-                                has_dynamic_offset: false,
-                            },
-                            count: None,
-                        },
-                    ],
-                    label: None,
-                });
-
-        let bind_group = renderer
+        let bind_group_layout = renderer
             .device
-            .create_bind_group(&wgpu::BindGroupDescriptor {
-                label: None,
-                layout: &bind_group_layout,
+            .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
                 entries: &[
-                    wgpu::BindGroupEntry {
+                    wgpu::BindGroupLayoutEntry {
                         binding: 0,
-                        resource: uniform.as_entire_binding(),
+                        visibility: wgpu::ShaderStage::VERTEX | wgpu::ShaderStage::FRAGMENT,
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Uniform,
+                            min_binding_size: None,
+                            has_dynamic_offset: false,
+                        },
+                        count: None,
                     },
-                    wgpu::BindGroupEntry {
+                    wgpu::BindGroupLayoutEntry {
                         binding: 1,
-                        resource: directional_lights.as_entire_binding(),
+                        visibility: wgpu::ShaderStage::VERTEX | wgpu::ShaderStage::FRAGMENT,
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Uniform,
+                            min_binding_size: None,
+                            has_dynamic_offset: false,
+                        },
+                        count: None,
                     },
-                    wgpu::BindGroupEntry {
+                    wgpu::BindGroupLayoutEntry {
                         binding: 2,
-                        resource: spot_lights.as_entire_binding(),
+                        visibility: wgpu::ShaderStage::VERTEX | wgpu::ShaderStage::FRAGMENT,
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Uniform,
+                            min_binding_size: None,
+                            has_dynamic_offset: false,
+                        },
+                        count: None,
                     },
-                    wgpu::BindGroupEntry {
+                    wgpu::BindGroupLayoutEntry {
                         binding: 3,
-                        resource: point_lights.as_entire_binding(),
+                        visibility: wgpu::ShaderStage::VERTEX | wgpu::ShaderStage::FRAGMENT,
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Uniform,
+                            min_binding_size: None,
+                            has_dynamic_offset: false,
+                        },
+                        count: None,
                     },
-                    wgpu::BindGroupEntry {
+                    wgpu::BindGroupLayoutEntry {
                         binding: 4,
-                        resource: instances.as_entire_binding(),
+                        visibility: wgpu::ShaderStage::VERTEX | wgpu::ShaderStage::FRAGMENT,
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Storage { read_only: true },
+                            min_binding_size: None,
+                            has_dynamic_offset: false,
+                        },
+                        count: None,
                     },
                 ],
+                label: None,
             });
+
+        let bind_group = renderer.device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: None,
+            layout: &bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: uniform.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: directional_lights.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: spot_lights.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 3,
+                    resource: point_lights.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 4,
+                    resource: instances.as_entire_binding(),
+                },
+            ],
+        });
         Self {
             uniform,
             instances,
@@ -185,12 +181,7 @@ impl BindGroup {
             .write_buffer(&self.instances, 0, bytemuck::cast_slice(transforms));
     }
 
-    pub fn update_uniforms(
-        &self,
-        renderer: &Renderer,
-        lights: &Registry<Light>,
-        camera: &dyn Camera,
-    ) {
+    pub fn update_uniforms(&self, renderer: &Renderer, lights: &Registry<Light>, camera: &dyn Camera) {
         let mut directional_lights = Vec::new();
         let mut spot_lights = Vec::new();
         let mut point_lights = Vec::new();
@@ -235,15 +226,11 @@ impl BindGroup {
             0,
             bytemuck::cast_slice(directional_lights.as_slice()),
         );
-        renderer.queue.write_buffer(
-            &self.spot_lights,
-            0,
-            bytemuck::cast_slice(spot_lights.as_slice()),
-        );
-        renderer.queue.write_buffer(
-            &self.point_lights,
-            0,
-            bytemuck::cast_slice(point_lights.as_slice()),
-        );
+        renderer
+            .queue
+            .write_buffer(&self.spot_lights, 0, bytemuck::cast_slice(spot_lights.as_slice()));
+        renderer
+            .queue
+            .write_buffer(&self.point_lights, 0, bytemuck::cast_slice(point_lights.as_slice()));
     }
 }

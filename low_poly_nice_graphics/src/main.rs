@@ -7,6 +7,7 @@ mod registry;
 mod renderer;
 mod transform;
 mod winit_impl;
+mod world;
 
 use crate::{
     cameras::{FollowCamera, StaticCamera},
@@ -58,16 +59,21 @@ fn main() {
     )));
     lights.add(Light::Point(PointProperties::new([8.0, 4.0, 8.0, 1.0])));
     lights.add(Light::Point(PointProperties::new([-8.0, 4.0, 8.0, 1.0])));
+    let ground_corner_mesh_handle = meshes.add(Mesh::from_shape(
+        &renderer,
+        //Shape::from(Plane::new(100.0, 4, Box::new(generators::Noise::new()))),
+        //Shape::from(Plane::new(100.0, 6, Box::new(generators::Zero))),
+        Shape::from(Tile::GrassTwoSides),
+    ));
 
-    let ground = entities.add(Entity {
-        mesh_handle: meshes.add(Mesh::from_shape(
-            &renderer,
-            //Shape::from(Plane::new(100.0, 4, Box::new(generators::Noise::new()))),
-            //Shape::from(Plane::new(100.0, 6, Box::new(generators::Zero))),
-            Shape::from(Tile::GrassCorner),
-        )),
-        transform: Transform::identity(),
-    });
+    for x in -5..5 {
+        for z in -5..5 {
+            let ground = entities.add(Entity {
+                mesh_handle: ground_corner_mesh_handle.clone(),
+                transform: Transform::from_translation(Vec3::new(x as f32, 0.0, z as f32)),
+            });
+        }
+    }
 
     let character = entities.add(Entity {
         mesh_handle: meshes.add(Mesh::from_shape(&renderer, Shape::from(IcoSphere::new(0.5)))),
@@ -95,9 +101,6 @@ fn main() {
                 entity.transform.rotation *= Quat::from_rotation_y(-character_controller.rotate * 0.02);
                 entity.transform.translation += entity.transform.forward() * character_controller.forward * 0.1;
                 follow_camera.follow(entity.transform.clone());
-                let time_since_start_secs = (std::time::Instant::now() - start_time).as_secs_f32();
-                let model_rotation_y = 0.0;
-                entities.get_mut(ground.clone()).unwrap().transform.rotation = Quat::from_rotation_y(model_rotation_y);
                 input_all.clear_events();
 
                 let target = &renderer

@@ -320,6 +320,7 @@ fn create_left_plane(start: f32, end: f32, start_height: f32, end_height: f32, c
 pub enum Tile {
     GrassCorner,
     GrassSide,
+    GrassTwoSides,
     Stone,
 }
 
@@ -391,6 +392,45 @@ impl From<Tile> for Shape {
                     Vertex::new([max, 0.0, min + 0.1], normal_front, grey),
                     Vertex::new([max, layer_height, min + 0.1], normal_front, grey),
                     Vertex::new([min, layer_height, min + 0.1], normal_front, grey),
+                ]);
+            }
+            Tile::GrassTwoSides => {
+                vertices.extend_from_slice(&[
+                    // ground plane
+                    Vertex::new([min, ground_height, min], normal_top, green),
+                    Vertex::new([min, ground_height, max], normal_top, green),
+                    Vertex::new([max, ground_height, max], normal_top, green),
+                    Vertex::new([min, ground_height, min], normal_top, green),
+                    Vertex::new([max, ground_height, max], normal_top, green),
+                    Vertex::new([max, ground_height, min], normal_top, green),
+                    // top_up
+                    Vertex::new([min + 0.1, layer_height, min], normal_top, grey),
+                    Vertex::new([min + 0.1, layer_height, min + 0.1], normal_top, grey),
+                    Vertex::new([max, layer_height, min + 0.1], normal_top, grey),
+                    Vertex::new([min + 0.1, layer_height, min], normal_top, grey),
+                    Vertex::new([max, layer_height, min + 0.1], normal_top, grey),
+                    Vertex::new([max, layer_height, min], normal_top, grey),
+                    // front
+                    Vertex::new([min + 0.1, 0.0, min + 0.1], normal_front, grey),
+                    Vertex::new([max, 0.0, min + 0.1], normal_front, grey),
+                    Vertex::new([min + 0.1, layer_height, min + 0.1], normal_front, grey),
+                    Vertex::new([max, 0.0, min + 0.1], normal_front, grey),
+                    Vertex::new([max, layer_height, min + 0.1], normal_front, grey),
+                    Vertex::new([min + 0.1, layer_height, min + 0.1], normal_front, grey),
+                    // top_left
+                    Vertex::new([min, layer_height, min], normal_top, grey),
+                    Vertex::new([min, layer_height, max], normal_top, grey),
+                    Vertex::new([min + 0.1, layer_height, max], normal_top, grey),
+                    Vertex::new([min, layer_height, min], normal_top, grey),
+                    Vertex::new([min + 0.1, layer_height, max], normal_top, grey),
+                    Vertex::new([min + 0.1, layer_height, min], normal_top, grey),
+                    // right
+                    Vertex::new([min + 0.1, 0.0, min], normal_right, grey),
+                    Vertex::new([min + 0.1, layer_height, min], normal_right, grey),
+                    Vertex::new([min + 0.1, 0.0, max], normal_right, grey),
+                    Vertex::new([min + 0.1, layer_height, min], normal_right, grey),
+                    Vertex::new([min + 0.1, layer_height, max], normal_right, grey),
+                    Vertex::new([min + 0.1, 0.0, max], normal_right, grey),
                 ]);
             }
             Tile::Stone => {
