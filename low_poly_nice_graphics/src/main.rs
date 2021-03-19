@@ -5,6 +5,7 @@ mod generators;
 mod input;
 mod registry;
 mod renderer;
+mod tile;
 mod transform;
 mod winit_impl;
 mod world;
@@ -17,8 +18,9 @@ use crate::{
     registry::Registry,
     renderer::{
         BindGroup, Cube, DirectionalProperties, IcoSphere, Light, LightBindGroup, Mesh, Plane, PointProperties, Shape,
-        SpotProperties, Tile,
+        SpotProperties,
     },
+    tile::{Tile, TileConfiguration, TileOrientation, TileType},
     transform::Transform,
 };
 use glam::{Mat4, Quat, Vec3};
@@ -63,11 +65,15 @@ fn main() {
         &renderer,
         //Shape::from(Plane::new(100.0, 4, Box::new(generators::Noise::new()))),
         //Shape::from(Plane::new(100.0, 6, Box::new(generators::Zero))),
-        Shape::from(Tile::StoneLeftUpRightSide),
+        Shape::from(Tile {
+            tile_type: TileType::Stone,
+            configuration: TileConfiguration::USide,
+            orientation: TileOrientation::Zero,
+        }),
     ));
 
-    for x in -5..5 {
-        for z in -5..5 {
+    for x in -3..3 {
+        for z in -3..3 {
             let ground = entities.add(Entity {
                 mesh_handle: ground_corner_mesh_handle.clone(),
                 transform: Transform::from_translation(Vec3::new(x as f32, 0.0, z as f32)),

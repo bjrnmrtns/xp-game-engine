@@ -14,6 +14,6 @@ pub use camera::Camera;
 pub use light::{DirectionalProperties, Light, PointProperties, SpotProperties};
 pub use light_bindgroup::LightBindGroup;
 pub use light_pipeline::LightPipeline;
-pub use mesh::{Cube, IcoSphere, Mesh, Plane, Shape, Tile, Vertex};
+pub use mesh::{Cube, IcoSphere, Mesh, Plane, Shape, Vertex};
 pub use pipeline::Pipeline;
 pub use renderer::Renderer;

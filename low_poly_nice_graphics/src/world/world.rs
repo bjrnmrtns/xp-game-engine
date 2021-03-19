@@ -18,14 +18,31 @@ impl Default for World {
 }
 
 pub enum WorldTile {
-    GrassTopLeft,
-    GrassTopRight,
-    GrassBottomLeft,
-    GrassBottomRight,
+    Grass,
     Stone,
 }
 
-/*impl World {
-    pub fn get(&self, x: usize, z: usize) -> TileType {}
+impl World {
+    // never calculate for edges
+    fn get(&self, x: i32, z: i32) -> u32 {
+        let x = (x + self.width as i32 / 2) as usize;
+        let z = (z + self.height as i32 / 2) as usize;
+        assert!(x < self.width);
+        assert!(z < self.height);
+        self.grid[x + z * self.width]
+    }
+
+    pub fn get_tile_type(&self, x: i32, z: i32) -> WorldTile {
+        let value = self.get(x, z);
+        if value == 0 {
+            return WorldTile::Grass;
+        } else {
+            let left = self.get(x - 1, z);
+            let right = self.get(x + 1, z);
+            let up = self.get(x, z - 1);
+            let down = self.get(x, z + 1);
+        }
+
+        WorldTile::Stone
+    }
 }
- */
