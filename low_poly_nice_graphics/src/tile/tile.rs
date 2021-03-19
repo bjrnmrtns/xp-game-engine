@@ -1,8 +1,10 @@
+#[derive(Copy, Clone, Eq, PartialEq, Hash)]
 pub enum TileType {
     Grass,
     Stone,
 }
 
+#[derive(Copy, Clone, Eq, PartialEq, Hash)]
 pub enum TileConfiguration {
     NoSides,
     OneSide,
@@ -12,15 +14,8 @@ pub enum TileConfiguration {
     All,
 }
 
-pub enum TileOrientation {
-    Zero,
-    One,
-    Two,
-    Three,
-}
-
+#[derive(Copy, Clone, Eq, PartialEq, Hash)]
 pub struct Tile {
     pub tile_type: TileType,
     pub configuration: TileConfiguration,
-    pub orientation: TileOrientation,
 }

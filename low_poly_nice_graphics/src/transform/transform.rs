@@ -30,10 +30,26 @@ impl Transform {
         }
     }
 
+    pub fn from_translation_rotation(translation: Vec3, rotation: Quat) -> Self {
+        Transform {
+            translation,
+            rotation,
+            ..Default::default()
+        }
+    }
+
     pub fn from_scale(scale: Vec3) -> Self {
         Transform {
             scale,
             ..Default::default()
+        }
+    }
+
+    pub fn from_translation_rotation_scale(translation: Vec3, rotation: Quat, scale: Vec3) -> Self {
+        Transform {
+            translation,
+            rotation,
+            scale,
         }
     }
 

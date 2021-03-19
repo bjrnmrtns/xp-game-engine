@@ -20,10 +20,12 @@ use crate::{
         BindGroup, Cube, DirectionalProperties, IcoSphere, Light, LightBindGroup, Mesh, Plane, PointProperties, Shape,
         SpotProperties,
     },
-    tile::{Tile, TileConfiguration, TileOrientation, TileType},
+    tile::{Tile, TileConfiguration, TileType},
     transform::Transform,
+    world::World,
 };
 use glam::{Mat4, Quat, Vec3};
+use std::collections::HashMap;
 use winit::{
     event::{DeviceEvent, Event, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
@@ -61,22 +63,55 @@ fn main() {
     )));
     lights.add(Light::Point(PointProperties::new([8.0, 4.0, 8.0, 1.0])));
     lights.add(Light::Point(PointProperties::new([-8.0, 4.0, 8.0, 1.0])));
-    let ground_corner_mesh_handle = meshes.add(Mesh::from_shape(
-        &renderer,
-        //Shape::from(Plane::new(100.0, 4, Box::new(generators::Noise::new()))),
-        //Shape::from(Plane::new(100.0, 6, Box::new(generators::Zero))),
-        Shape::from(Tile {
-            tile_type: TileType::Stone,
-            configuration: TileConfiguration::USide,
-            orientation: TileOrientation::Zero,
-        }),
-    ));
+    let mut tile_to_mesh_handle = HashMap::new();
+
+    let tile = Tile {
+        tile_type: TileType::Grass,
+        configuration: TileConfiguration::NoSides,
+    };
+    tile_to_mesh_handle.insert(tile, meshes.add(Mesh::from_shape(&renderer, Shape::from(tile))));
+    let tile = Tile {
+        tile_type: TileType::Stone,
+        configuration: TileConfiguration::NoSides,
+    };
+    tile_to_mesh_handle.insert(tile, meshes.add(Mesh::from_shape(&renderer, Shape::from(tile))));
+    let tile = Tile {
+        tile_type: TileType::Stone,
+        configuration: TileConfiguration::All,
+    };
+    tile_to_mesh_handle.insert(tile, meshes.add(Mesh::from_shape(&renderer, Shape::from(tile))));
+    let tile = Tile {
+        tile_type: TileType::Stone,
+        configuration: TileConfiguration::USide,
+    };
+    tile_to_mesh_handle.insert(tile, meshes.add(Mesh::from_shape(&renderer, Shape::from(tile))));
+    let tile = Tile {
+        tile_type: TileType::Stone,
+        configuration: TileConfiguration::Corner,
+    };
+    tile_to_mesh_handle.insert(tile, meshes.add(Mesh::from_shape(&renderer, Shape::from(tile))));
+    let tile = Tile {
+        tile_type: TileType::Stone,
+        configuration: TileConfiguration::BothSides,
+    };
+    tile_to_mesh_handle.insert(tile, meshes.add(Mesh::from_shape(&renderer, Shape::from(tile))));
+    let tile = Tile {
+        tile_type: TileType::Stone,
+        configuration: TileConfiguration::OneSide,
+    };
+    tile_to_mesh_handle.insert(tile, meshes.add(Mesh::from_shape(&renderer, Shape::from(tile))));
+
+    let world = World::default();
 
     for x in -3..3 {
         for z in -3..3 {
-            let ground = entities.add(Entity {
-                mesh_handle: ground_corner_mesh_handle.clone(),
-                transform: Transform::from_translation(Vec3::new(x as f32, 0.0, z as f32)),
+            let (tile, rotation) = world.get_tile_type(x, z);
+            entities.add(Entity {
+                mesh_handle: tile_to_mesh_handle.get(&tile).unwrap().clone(),
+                transform: Transform::from_translation_rotation(
+                    Vec3::new(x as f32, 0.0, z as f32),
+                    Quat::from_rotation_y(rotation),
+                ),
             });
         }
     }

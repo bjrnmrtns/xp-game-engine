@@ -211,7 +211,7 @@ impl BindGroup {
                 camera.get_position().z,
                 1.0,
             ],
-            material_specular: [0.5, 0.5, 0.5, 1.0],
+            material_specular: [0.1, 0.1, 0.1, 1.0],
             material_shininess: 16.0,
             nr_of_directional_lights: directional_lights.len() as u32,
             nr_of_spot_lights: spot_lights.len() as u32,
