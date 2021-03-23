@@ -2,6 +2,8 @@
 pub enum GltfError {
     Gltf(gltf::Error),
     Decode(base64::DecodeError),
+    NotSupportedUri,
+    MissingBlob,
 }
 
 impl From<gltf::Error> for GltfError {
@@ -35,21 +37,17 @@ fn load_buffers(gltf: &gltf::Gltf) -> Result<Vec<Vec<u8>>, GltfError> {
     for buffer in gltf.buffers() {
         match buffer.source() {
             gltf::buffer::Source::Uri(uri) => {
-                if uri.starts_with("data:") {
-                    if uri.starts_with(OCTET_STREAM_URI) {
-                        buffer_data.push(base64::decode(&uri[OCTET_STREAM_URI.len()..])?);
-                    } else {
-                        panic!("uri failure");
-                    }
+                if uri.starts_with(OCTET_STREAM_URI) {
+                    buffer_data.push(base64::decode(&uri[OCTET_STREAM_URI.len()..])?);
                 } else {
-                    panic!("no data uri");
+                    return Err(GltfError::NotSupportedUri);
                 }
             }
             gltf::buffer::Source::Bin => {
                 if let Some(blob) = gltf.blob.as_deref() {
                     buffer_data.push(blob.into());
                 } else {
-                    panic!("blob failure");
+                    return Err(GltfError::MissingBlob);
                 }
             }
         }
