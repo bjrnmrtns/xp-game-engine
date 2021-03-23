@@ -2,6 +2,7 @@ mod cameras;
 mod controllers;
 mod entity;
 mod generators;
+mod gltf;
 mod input;
 mod registry;
 mod renderer;

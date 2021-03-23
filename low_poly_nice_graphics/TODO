@@ -41,3 +41,4 @@ TODO 17: Basic physics, walking around with sphere and hitting cubes and sliding
 [] add cube and player sphere to physics world
 [] detect collision with cube and player sphere
 TODO 18: Check if MainEventsCleared is a better place to do all redrawing iso RedrawRequested (or maybe only physics update)
+TODO 19: Gltf loader
