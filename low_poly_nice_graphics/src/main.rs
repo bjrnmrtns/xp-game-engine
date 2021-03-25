@@ -116,7 +116,11 @@ fn main() {
         }
     }
 
-    let meshes_gltf = gltf::load_gltf(std::fs::read("res/gltf/test.gltf").unwrap().as_slice()).unwrap();
+    let mut meshes_gltf = Vec::new();
+    gltf::load_gltf(std::fs::read("res/gltf/test.gltf").unwrap().as_slice(), |name, mesh| {
+        meshes_gltf.push(mesh)
+    })
+    .unwrap();
 
     entities.add(Entity {
         mesh_handle: meshes.add(meshes_gltf[1].clone()),
