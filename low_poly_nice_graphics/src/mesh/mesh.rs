@@ -6,6 +6,7 @@ use crate::{
 use glam::Vec3;
 use std::collections::HashMap;
 
+#[derive(Clone)]
 pub struct Mesh {
     pub vertices: Vec<Vertex>,
     pub just_loaded: bool,

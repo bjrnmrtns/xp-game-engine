@@ -116,6 +116,13 @@ fn main() {
         }
     }
 
+    let meshes_gltf = gltf::load_gltf(std::fs::read("res/gltf/test.gltf").unwrap().as_slice()).unwrap();
+
+    entities.add(Entity {
+        mesh_handle: meshes.add(meshes_gltf[1].clone()),
+        transform: Transform::from_translation(Vec3::new(10.0, 0.0, 10.0)),
+    });
+
     let character = entities.add(Entity {
         mesh_handle: meshes.add(Mesh::from(IcoSphere::new(0.5))),
         transform: Transform::from_translation(Vec3::new(0.0, 0.5, 0.0)),

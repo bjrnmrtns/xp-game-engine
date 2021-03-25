@@ -1,4 +1,4 @@
-use crate::mesh::{triangle_normal, Vertex};
+use crate::mesh::{triangle_normal, Mesh, Vertex};
 use gltf::mesh::Mode;
 
 #[derive(Debug)]
@@ -22,45 +22,57 @@ impl From<base64::DecodeError> for MeshLoadError {
     }
 }
 
-pub fn load_gltf(bytes: &[u8]) -> Result<(), MeshLoadError> {
+pub fn load_gltf(bytes: &[u8]) -> Result<Vec<Mesh>, MeshLoadError> {
     let gltf = gltf::Gltf::from_slice(bytes)?;
     let buffer_data = load_buffers(&gltf)?;
+    let mut meshes = Vec::new();
     for node in gltf.nodes() {
-        println!("{}", node.name().unwrap());
         let mesh = node.mesh().unwrap();
+        let mut vertices = Vec::new();
         for primitive in mesh.primitives() {
             if primitive.mode() != Mode::Triangles {
                 return Err(MeshLoadError::UnsupportedPrimitiveMode);
             }
             let reader = primitive.reader(|buffer| Some(&buffer_data[buffer.index()]));
 
-            let mut vertices = Vec::new();
             if let Some(positions) = reader.read_positions().map(|v| v.collect::<Vec<[f32; 3]>>()) {
-                assert!(positions.len() % 3 == 0);
-                for v in positions.chunks(3) {
-                    let n = triangle_normal(v[0], v[1], v[2]);
-                    vertices.extend_from_slice(&[
-                        Vertex {
-                            position: v[0],
-                            normal: n,
-                            color: [1.0, 0.0, 0.0],
-                        },
-                        Vertex {
-                            position: v[1],
-                            normal: n,
-                            color: [1.0, 0.0, 0.0],
-                        },
-                        Vertex {
-                            position: v[2],
-                            normal: n,
-                            color: [1.0, 0.0, 0.0],
-                        },
-                    ]);
+                if let Some(indices) = reader
+                    .read_indices()
+                    .map(|indices| indices.into_u32().collect::<Vec<u32>>())
+                {
+                    assert!(indices.len() % 3 == 0);
+                    for i in indices.chunks(3) {
+                        let v0 = positions[i[0] as usize];
+                        let v1 = positions[i[1] as usize];
+                        let v2 = positions[i[2] as usize];
+                        let n = triangle_normal(v0, v1, v2);
+                        vertices.extend_from_slice(&[
+                            Vertex {
+                                position: v0,
+                                normal: n,
+                                color: [1.0, 0.0, 0.0],
+                            },
+                            Vertex {
+                                position: v1,
+                                normal: n,
+                                color: [1.0, 0.0, 0.0],
+                            },
+                            Vertex {
+                                position: v2,
+                                normal: n,
+                                color: [1.0, 0.0, 0.0],
+                            },
+                        ]);
+                    }
                 }
             }
         }
+        meshes.push(Mesh {
+            vertices,
+            just_loaded: true,
+        });
     }
-    Ok(())
+    Ok(meshes)
 }
 
 fn load_buffers(gltf: &gltf::Gltf) -> Result<Vec<Vec<u8>>, MeshLoadError> {
