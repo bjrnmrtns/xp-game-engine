@@ -1,6 +1,6 @@
 use crate::{
     generators::{Height, Zero},
-    renderer::Vertex,
+    mesh::Vertex,
     tile::{Tile, TileConfiguration, TileType},
 };
 use glam::Vec3;
@@ -310,22 +310,6 @@ impl From<IcoSphere> for Mesh {
             just_loaded: true,
         }
     }
-}
-
-fn create_left_plane(start: f32, end: f32, start_height: f32, end_height: f32, color: [f32; 3]) -> Vec<Vertex> {
-    let mut vertices = Vec::new();
-    let ground_height = 0.0;
-    let green = [0.0, 1.0, 0.0];
-    vertices.extend_from_slice(&[
-        // ground plane
-        Vertex::new([-0.5, ground_height, -0.5], [0.0, 1.0, 0.0], green),
-        Vertex::new([-0.5, ground_height, 0.5], [0.0, 1.0, 0.0], green),
-        Vertex::new([0.5, ground_height, 0.5], [0.0, 1.0, 0.0], green),
-        Vertex::new([-0.5, ground_height, -0.5], [0.0, 1.0, 0.0], green),
-        Vertex::new([0.5, ground_height, 0.5], [0.0, 1.0, 0.0], green),
-        Vertex::new([0.5, ground_height, -0.5], [0.0, 1.0, 0.0], green),
-    ]);
-    vertices
 }
 
 impl From<Tile> for Mesh {

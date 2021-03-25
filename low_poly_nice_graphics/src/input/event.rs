@@ -1,5 +1,3 @@
-use std::marker::PhantomData;
-
 pub struct Events<T> {
     events: Vec<T>,
 }

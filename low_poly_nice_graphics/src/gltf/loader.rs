@@ -1,4 +1,4 @@
-use crate::renderer::{triangle_normal, Vertex};
+use crate::mesh::{triangle_normal, Vertex};
 use gltf::mesh::Mode;
 
 #[derive(Debug)]

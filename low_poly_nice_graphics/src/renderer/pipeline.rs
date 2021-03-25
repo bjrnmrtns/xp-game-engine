@@ -1,9 +1,10 @@
 use crate::{
     entity::Entity,
+    mesh::{Mesh, Vertex},
     registry::{Handle, Registry},
     renderer::{
-        bindgroup::Instance, depth_texture::DepthTexture, error::RendererError, BindGroup, Camera, Light, Mesh,
-        Renderer, Vertex, VertexBuffer,
+        bindgroup::Instance, depth_texture::DepthTexture, error::RendererError, vertex_buffer::VertexBuffer, BindGroup,
+        Camera, Light, Renderer,
     },
 };
 use std::io::Read;

@@ -1,23 +1,15 @@
 use crate::{
-    input::{
-        Events, Input, InputAll, KeyCode, KeyboardInput, MouseMotion, MouseScrollUnit,
-        MouseWheelDelta,
-    },
+    input::{InputAll, MouseMotion, MouseScrollUnit, MouseWheelDelta},
     winit_impl::converters::convert_keyboard_input,
 };
 use glam::Vec2;
-use winit::{
-    event::{DeviceEvent, Event, MouseScrollDelta, WindowEvent},
-    event_loop::EventLoop,
-};
+use winit::event::{DeviceEvent, WindowEvent};
 
 pub fn handle_input(input_all: &mut InputAll, event: &winit::event::Event<()>) {
     match event {
         winit::event::Event::WindowEvent { event, .. } => match event {
             WindowEvent::KeyboardInput { ref input, .. } => {
-                input_all
-                    .keyboard_events
-                    .send(convert_keyboard_input(input));
+                input_all.keyboard_events.send(convert_keyboard_input(input));
             }
             WindowEvent::MouseWheel { delta, .. } => match delta {
                 winit::event::MouseScrollDelta::LineDelta(x, y) => {

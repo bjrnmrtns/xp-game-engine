@@ -1,17 +1,26 @@
+use crate::{
+    mesh::{Mesh, Vertex},
+    renderer::Renderer,
+};
+use wgpu::util::DeviceExt;
+
 #[repr(C)]
-#[derive(Copy, Clone, Debug)]
-pub struct Vertex {
-    pub position: [f32; 3],
-    pub normal: [f32; 3],
-    pub color: [f32; 3],
+#[derive(Debug)]
+pub struct VertexBuffer {
+    pub vertex_buffer: wgpu::Buffer,
+    pub len: u32,
 }
 
-impl Vertex {
-    pub fn new(position: [f32; 3], normal: [f32; 3], color: [f32; 3]) -> Self {
+impl VertexBuffer {
+    pub fn from_mesh(renderer: &Renderer, mesh: &Mesh) -> Self {
+        let vertex_buffer = renderer.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: None,
+            contents: bytemuck::cast_slice(mesh.vertices.as_slice()),
+            usage: wgpu::BufferUsage::VERTEX,
+        });
         Self {
-            position,
-            normal,
-            color,
+            vertex_buffer,
+            len: mesh.vertices.len() as u32,
         }
     }
 }

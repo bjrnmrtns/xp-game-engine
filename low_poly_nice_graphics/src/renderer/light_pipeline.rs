@@ -1,8 +1,9 @@
 use crate::{
+    mesh::{Mesh, Vertex},
     registry::{Handle, Registry},
     renderer::{
         depth_texture::DepthTexture, error::RendererError, light_bindgroup::Instance, Camera, Light, LightBindGroup,
-        Mesh, Renderer, Vertex, VertexBuffer,
+        Renderer,
     },
 };
 use glam::{Mat4, Vec3};

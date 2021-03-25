@@ -1,7 +1,4 @@
-use crate::{
-    registry::Handle,
-    renderer::{depth_texture::DepthTexture, error::RendererError, Mesh, VertexBuffer},
-};
+use crate::renderer::{depth_texture::DepthTexture, error::RendererError, vertex_buffer::VertexBuffer};
 use std::collections::HashMap;
 use winit::window::Window;
 

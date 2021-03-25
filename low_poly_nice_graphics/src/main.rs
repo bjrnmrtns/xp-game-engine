@@ -1,34 +1,33 @@
-mod cameras;
-mod controllers;
-mod entity;
-mod generators;
-mod gltf;
-mod input;
-mod registry;
-mod renderer;
-mod tile;
-mod transform;
-mod winit_impl;
-mod world;
+pub mod cameras;
+pub mod controllers;
+pub mod entity;
+pub mod generators;
+pub mod gltf;
+pub mod input;
+pub mod mesh;
+pub mod registry;
+pub mod renderer;
+pub mod tile;
+pub mod transform;
+pub mod winit_impl;
+pub mod world;
 
 use crate::{
-    cameras::{FollowCamera, StaticCamera},
+    cameras::FollowCamera,
     controllers::{CameraController, CharacterController},
     entity::Entity,
     input::{keyboard_state_from_events, InputAll},
+    mesh::{Cube, IcoSphere, Mesh},
     registry::Registry,
-    renderer::{
-        BindGroup, Cube, DirectionalProperties, IcoSphere, Light, LightBindGroup, Mesh, Plane, PointProperties,
-        SpotProperties, VertexBuffer,
-    },
+    renderer::{BindGroup, DirectionalProperties, Light, LightBindGroup, PointProperties, SpotProperties},
     tile::{Tile, TileConfiguration, TileType},
     transform::Transform,
     world::World,
 };
-use glam::{Mat4, Quat, Vec3};
+use glam::{Quat, Vec3};
 use std::collections::HashMap;
 use winit::{
-    event::{DeviceEvent, Event, WindowEvent},
+    event::{Event, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
     window::WindowBuilder,
 };
@@ -130,7 +129,6 @@ fn main() {
     let mut input_all = InputAll::default();
     let mut character_controller = CharacterController::default();
     let mut camera_controller = CameraController::default();
-    let start_time = std::time::Instant::now();
     event_loop.run(move |event, _, control_flow| {
         *control_flow = winit::event_loop::ControlFlow::Poll;
         match event {
