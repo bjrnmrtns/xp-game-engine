@@ -9,7 +9,7 @@ pub struct VertexBuffer {
 }
 
 impl VertexBuffer {
-    pub fn from_shape(renderer: &Renderer, shape: Mesh) -> Self {
+    pub fn from_mesh(renderer: &Renderer, shape: Mesh) -> Self {
         let vertex_buffer = renderer.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: None,
             contents: bytemuck::cast_slice(shape.vertices.as_slice()),

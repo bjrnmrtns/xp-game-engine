@@ -34,7 +34,7 @@ impl Plane {
     }
 }
 
-fn triangle_normal(p0: [f32; 3], p1: [f32; 3], p2: [f32; 3]) -> [f32; 3] {
+pub fn triangle_normal(p0: [f32; 3], p1: [f32; 3], p2: [f32; 3]) -> [f32; 3] {
     let edge0 = Vec3::from(p2) - Vec3::from(p0);
     let edge1 = Vec3::from(p1) - Vec3::from(p0);
     edge1.cross(edge0).into()

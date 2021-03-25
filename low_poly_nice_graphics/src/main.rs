@@ -51,7 +51,7 @@ fn main() {
     let mut vertex_buffers = Registry::new();
     let mut lights = Registry::new();
     let mut entities = Registry::new();
-    let light_mesh_handle = vertex_buffers.add(VertexBuffer::from_shape(&renderer, Mesh::from(Cube::new(0.25))));
+    let light_mesh_handle = vertex_buffers.add(VertexBuffer::from_mesh(&renderer, Mesh::from(Cube::new(0.25))));
     lights.add(Light::Directional(DirectionalProperties::new([-1.0, -0.5, -1.0, 1.0])));
 
     lights.add(Light::Spot(SpotProperties::new(
@@ -72,7 +72,7 @@ fn main() {
     };
     tile_to_vb.insert(
         tile,
-        vertex_buffers.add(VertexBuffer::from_shape(&renderer, Mesh::from(tile))),
+        vertex_buffers.add(VertexBuffer::from_mesh(&renderer, Mesh::from(tile))),
     );
     let tile = Tile {
         tile_type: TileType::Stone,
@@ -80,7 +80,7 @@ fn main() {
     };
     tile_to_vb.insert(
         tile,
-        vertex_buffers.add(VertexBuffer::from_shape(&renderer, Mesh::from(tile))),
+        vertex_buffers.add(VertexBuffer::from_mesh(&renderer, Mesh::from(tile))),
     );
     let tile = Tile {
         tile_type: TileType::Stone,
@@ -88,7 +88,7 @@ fn main() {
     };
     tile_to_vb.insert(
         tile,
-        vertex_buffers.add(VertexBuffer::from_shape(&renderer, Mesh::from(tile))),
+        vertex_buffers.add(VertexBuffer::from_mesh(&renderer, Mesh::from(tile))),
     );
     let tile = Tile {
         tile_type: TileType::Stone,
@@ -96,7 +96,7 @@ fn main() {
     };
     tile_to_vb.insert(
         tile,
-        vertex_buffers.add(VertexBuffer::from_shape(&renderer, Mesh::from(tile))),
+        vertex_buffers.add(VertexBuffer::from_mesh(&renderer, Mesh::from(tile))),
     );
     let tile = Tile {
         tile_type: TileType::Stone,
@@ -104,7 +104,7 @@ fn main() {
     };
     tile_to_vb.insert(
         tile,
-        vertex_buffers.add(VertexBuffer::from_shape(&renderer, Mesh::from(tile))),
+        vertex_buffers.add(VertexBuffer::from_mesh(&renderer, Mesh::from(tile))),
     );
     let tile = Tile {
         tile_type: TileType::Stone,
@@ -112,7 +112,7 @@ fn main() {
     };
     tile_to_vb.insert(
         tile,
-        vertex_buffers.add(VertexBuffer::from_shape(&renderer, Mesh::from(tile))),
+        vertex_buffers.add(VertexBuffer::from_mesh(&renderer, Mesh::from(tile))),
     );
     let tile = Tile {
         tile_type: TileType::Stone,
@@ -120,7 +120,7 @@ fn main() {
     };
     tile_to_vb.insert(
         tile,
-        vertex_buffers.add(VertexBuffer::from_shape(&renderer, Mesh::from(tile))),
+        vertex_buffers.add(VertexBuffer::from_mesh(&renderer, Mesh::from(tile))),
     );
 
     let world = World::default();
@@ -139,7 +139,7 @@ fn main() {
     }
 
     let character = entities.add(Entity {
-        vb_handle: vertex_buffers.add(VertexBuffer::from_shape(&renderer, Mesh::from(IcoSphere::new(0.5)))),
+        vb_handle: vertex_buffers.add(VertexBuffer::from_mesh(&renderer, Mesh::from(IcoSphere::new(0.5)))),
         transform: Transform::from_translation(Vec3::new(0.0, 0.5, 0.0)),
     });
 
