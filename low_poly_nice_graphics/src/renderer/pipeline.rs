@@ -2,8 +2,8 @@ use crate::{
     entity::Entity,
     registry::{Handle, Registry},
     renderer::{
-        bindgroup::Instance, depth_texture::DepthTexture, error::RendererError, BindGroup, Camera, Light, Renderer,
-        Vertex, VertexBuffer,
+        bindgroup::Instance, depth_texture::DepthTexture, error::RendererError, BindGroup, Camera, Light, Mesh,
+        Renderer, Vertex, VertexBuffer,
     },
 };
 use std::io::Read;
@@ -90,7 +90,7 @@ impl Pipeline {
     pub fn render(
         &self,
         entities: &Registry<Entity>,
-        meshes: &Registry<VertexBuffer>,
+        meshes: &mut Registry<Mesh>,
         lights: &Registry<Light>,
         bindgroup: &BindGroup,
         camera: &dyn Camera,
@@ -101,13 +101,19 @@ impl Pipeline {
         let mut instance_map = Vec::new();
         let mut start_range = 0;
         let mut transforms = Vec::new();
-        for (id, _) in &meshes.registry {
+        for (id, mesh) in &mut meshes.registry {
+            if mesh.just_loaded {
+                renderer
+                    .vertex_buffers
+                    .insert(*id, VertexBuffer::from_mesh(&renderer, mesh));
+                mesh.just_loaded = false;
+            }
             transforms.extend_from_slice(
                 entities
                     .registry
                     .iter()
                     .filter_map(|(_, v)| {
-                        if v.vb_handle.id == *id {
+                        if v.mesh_handle.id == *id {
                             Some(Instance {
                                 m: v.transform.to_matrix(),
                             })
@@ -118,7 +124,7 @@ impl Pipeline {
                     .collect::<Vec<_>>()
                     .as_slice(),
             );
-            instance_map.push((Handle::new(*id), start_range..transforms.len() as u32));
+            instance_map.push((Handle::<Mesh>::new(*id), start_range..transforms.len() as u32));
             start_range = transforms.len() as u32;
         }
         bindgroup.update_instances(&renderer, transforms.as_slice());
@@ -153,7 +159,7 @@ impl Pipeline {
 
             for (mesh_handle, instance_range) in instance_map {
                 if !instance_range.is_empty() {
-                    let mesh = meshes.get(mesh_handle).unwrap();
+                    let mesh = renderer.vertex_buffers.get(&mesh_handle.id).unwrap();
                     render_pass.set_pipeline(&self.render_pipeline);
                     render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
                     render_pass.set_bind_group(0, &bindgroup.bind_group, &[]);

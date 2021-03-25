@@ -48,10 +48,10 @@ fn main() {
         futures::executor::block_on(renderer::LightPipeline::new(&renderer, &light_pipeline_bindgroup))
             .expect("Could not create pipeline light");
 
-    let mut vertex_buffers = Registry::new();
+    let mut meshes = Registry::new();
     let mut lights = Registry::new();
     let mut entities = Registry::new();
-    let light_mesh_handle = vertex_buffers.add(VertexBuffer::from_mesh(&renderer, Mesh::from(Cube::new(0.25))));
+    let light_mesh_handle = meshes.add(Mesh::from(Cube::new(0.25)));
     lights.add(Light::Directional(DirectionalProperties::new([-1.0, -0.5, -1.0, 1.0])));
 
     lights.add(Light::Spot(SpotProperties::new(
@@ -64,64 +64,43 @@ fn main() {
     )));
     lights.add(Light::Point(PointProperties::new([8.0, 4.0, 8.0, 1.0])));
     lights.add(Light::Point(PointProperties::new([-8.0, 4.0, 8.0, 1.0])));
-    let mut tile_to_vb = HashMap::new();
+    let mut tile_to_mesh = HashMap::new();
 
     let tile = Tile {
         tile_type: TileType::Grass,
         configuration: TileConfiguration::NoSides,
     };
-    tile_to_vb.insert(
-        tile,
-        vertex_buffers.add(VertexBuffer::from_mesh(&renderer, Mesh::from(tile))),
-    );
+    tile_to_mesh.insert(tile, meshes.add(Mesh::from(tile)));
     let tile = Tile {
         tile_type: TileType::Stone,
         configuration: TileConfiguration::NoSides,
     };
-    tile_to_vb.insert(
-        tile,
-        vertex_buffers.add(VertexBuffer::from_mesh(&renderer, Mesh::from(tile))),
-    );
+    tile_to_mesh.insert(tile, meshes.add(Mesh::from(tile)));
     let tile = Tile {
         tile_type: TileType::Stone,
         configuration: TileConfiguration::All,
     };
-    tile_to_vb.insert(
-        tile,
-        vertex_buffers.add(VertexBuffer::from_mesh(&renderer, Mesh::from(tile))),
-    );
+    tile_to_mesh.insert(tile, meshes.add(Mesh::from(tile)));
     let tile = Tile {
         tile_type: TileType::Stone,
         configuration: TileConfiguration::USide,
     };
-    tile_to_vb.insert(
-        tile,
-        vertex_buffers.add(VertexBuffer::from_mesh(&renderer, Mesh::from(tile))),
-    );
+    tile_to_mesh.insert(tile, meshes.add(Mesh::from(tile)));
     let tile = Tile {
         tile_type: TileType::Stone,
         configuration: TileConfiguration::Corner,
     };
-    tile_to_vb.insert(
-        tile,
-        vertex_buffers.add(VertexBuffer::from_mesh(&renderer, Mesh::from(tile))),
-    );
+    tile_to_mesh.insert(tile, meshes.add(Mesh::from(tile)));
     let tile = Tile {
         tile_type: TileType::Stone,
         configuration: TileConfiguration::BothSides,
     };
-    tile_to_vb.insert(
-        tile,
-        vertex_buffers.add(VertexBuffer::from_mesh(&renderer, Mesh::from(tile))),
-    );
+    tile_to_mesh.insert(tile, meshes.add(Mesh::from(tile)));
     let tile = Tile {
         tile_type: TileType::Stone,
         configuration: TileConfiguration::OneSide,
     };
-    tile_to_vb.insert(
-        tile,
-        vertex_buffers.add(VertexBuffer::from_mesh(&renderer, Mesh::from(tile))),
-    );
+    tile_to_mesh.insert(tile, meshes.add(Mesh::from(tile)));
 
     let world = World::default();
 
@@ -129,7 +108,7 @@ fn main() {
         for z in -3..3 {
             let (tile, rotation) = world.get_tile_type(x, z);
             entities.add(Entity {
-                vb_handle: tile_to_vb.get(&tile).unwrap().clone(),
+                mesh_handle: tile_to_mesh.get(&tile).unwrap().clone(),
                 transform: Transform::from_translation_rotation(
                     Vec3::new(x as f32, 0.0, z as f32),
                     Quat::from_rotation_y(rotation),
@@ -139,7 +118,7 @@ fn main() {
     }
 
     let character = entities.add(Entity {
-        vb_handle: vertex_buffers.add(VertexBuffer::from_mesh(&renderer, Mesh::from(IcoSphere::new(0.5)))),
+        mesh_handle: meshes.add(Mesh::from(IcoSphere::new(0.5))),
         transform: Transform::from_translation(Vec3::new(0.0, 0.5, 0.0)),
     });
 
@@ -174,7 +153,7 @@ fn main() {
                     .view;
                 pipeline.render(
                     &entities,
-                    &vertex_buffers,
+                    &mut meshes,
                     &lights,
                     &pipeline_bindgroup,
                     &follow_camera,
@@ -183,7 +162,6 @@ fn main() {
                 );
                 pipeline_light.render(
                     &light_mesh_handle,
-                    &vertex_buffers,
                     &lights,
                     &light_pipeline_bindgroup,
                     &follow_camera,

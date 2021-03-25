@@ -2,7 +2,7 @@ use crate::{
     registry::{Handle, Registry},
     renderer::{
         depth_texture::DepthTexture, error::RendererError, light_bindgroup::Instance, Camera, Light, LightBindGroup,
-        Renderer, Vertex, VertexBuffer,
+        Mesh, Renderer, Vertex, VertexBuffer,
     },
 };
 use glam::{Mat4, Vec3};
@@ -95,8 +95,7 @@ impl LightPipeline {
 
     pub fn render(
         &self,
-        light_handle: &Handle<VertexBuffer>,
-        meshes: &Registry<VertexBuffer>,
+        light_handle: &Handle<Mesh>,
         lights: &Registry<Light>,
         bindgroup: &LightBindGroup,
         camera: &dyn Camera,
@@ -152,11 +151,11 @@ impl LightPipeline {
                     stencil_ops: None,
                 }),
             });
-            let mesh = meshes.get(light_handle.clone()).unwrap();
+            let vb = renderer.vertex_buffers.get(&light_handle.id).unwrap();
             render_pass.set_pipeline(&self.render_pipeline);
-            render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
+            render_pass.set_vertex_buffer(0, vb.vertex_buffer.slice(..));
             render_pass.set_bind_group(0, &bindgroup.bind_group, &[]);
-            render_pass.draw(0..mesh.len, 0..transforms.len() as u32);
+            render_pass.draw(0..vb.len, 0..transforms.len() as u32);
         }
         renderer.queue.submit(std::iter::once(encoder.finish()));
     }

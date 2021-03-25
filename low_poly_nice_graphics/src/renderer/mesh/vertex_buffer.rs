@@ -9,15 +9,15 @@ pub struct VertexBuffer {
 }
 
 impl VertexBuffer {
-    pub fn from_mesh(renderer: &Renderer, shape: Mesh) -> Self {
+    pub fn from_mesh(renderer: &Renderer, mesh: &Mesh) -> Self {
         let vertex_buffer = renderer.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: None,
-            contents: bytemuck::cast_slice(shape.vertices.as_slice()),
+            contents: bytemuck::cast_slice(mesh.vertices.as_slice()),
             usage: wgpu::BufferUsage::VERTEX,
         });
         Self {
             vertex_buffer,
-            len: shape.vertices.len() as u32,
+            len: mesh.vertices.len() as u32,
         }
     }
 }

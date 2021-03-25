@@ -1,13 +1,18 @@
-use crate::renderer::{depth_texture::DepthTexture, error::RendererError};
+use crate::{
+    registry::Handle,
+    renderer::{depth_texture::DepthTexture, error::RendererError, Mesh, VertexBuffer},
+};
+use std::collections::HashMap;
 use winit::window::Window;
 
 pub struct Renderer {
     surface: wgpu::Surface,
     pub device: wgpu::Device,
-    pub(crate) queue: wgpu::Queue,
+    pub queue: wgpu::Queue,
     pub swap_chain_descriptor: wgpu::SwapChainDescriptor,
-    pub(crate) swap_chain: wgpu::SwapChain,
-    pub(crate) depth_texture: DepthTexture,
+    pub swap_chain: wgpu::SwapChain,
+    pub depth_texture: DepthTexture,
+    pub vertex_buffers: HashMap<u64, VertexBuffer>,
 }
 
 impl Renderer {
@@ -54,14 +59,14 @@ impl Renderer {
             swap_chain_descriptor,
             swap_chain,
             depth_texture,
+            vertex_buffers: HashMap::new(),
         })
     }
 
     pub async fn resize(&mut self, width: u32, height: u32) {
         self.swap_chain_descriptor.width = width;
         self.swap_chain_descriptor.height = height;
-        self.depth_texture =
-            DepthTexture::create_depth_texture(&self.device, &self.swap_chain_descriptor);
+        self.depth_texture = DepthTexture::create_depth_texture(&self.device, &self.swap_chain_descriptor);
         self.swap_chain = self
             .device
             .create_swap_chain(&self.surface, &self.swap_chain_descriptor);

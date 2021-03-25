@@ -8,6 +8,7 @@ use std::collections::HashMap;
 
 pub struct Mesh {
     pub vertices: Vec<Vertex>,
+    pub just_loaded: bool,
 }
 
 pub struct Plane {
@@ -108,7 +109,10 @@ impl From<Plane> for Mesh {
                 ]);
             }
         }
-        Self { vertices }
+        Self {
+            vertices,
+            just_loaded: true,
+        }
     }
 }
 
@@ -178,7 +182,10 @@ impl From<Cube> for Mesh {
             Vertex::new([max, min, min], normal_back, color),
             Vertex::new([min, min, min], normal_back, color),
         ]);
-        Self { vertices }
+        Self {
+            vertices,
+            just_loaded: true,
+        }
     }
 }
 
@@ -298,7 +305,10 @@ impl From<IcoSphere> for Mesh {
                 color,
             ));
         }
-        Self { vertices }
+        Self {
+            vertices,
+            just_loaded: true,
+        }
     }
 }
 
@@ -498,7 +508,10 @@ impl From<Tile> for Mesh {
                 }
             },
         }
-        Self { vertices }
+        Self {
+            vertices,
+            just_loaded: true,
+        }
     }
 }
 
