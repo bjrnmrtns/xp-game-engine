@@ -1,8 +1,8 @@
 use crate::{
     registry::{Handle, Registry},
     renderer::{
-        depth_texture::DepthTexture, error::RendererError, light_bindgroup::Instance, Camera,
-        Light, LightBindGroup, Mesh, Renderer, Vertex,
+        depth_texture::DepthTexture, error::RendererError, light_bindgroup::Instance, Camera, Light, LightBindGroup,
+        Renderer, Vertex, VertexBuffer,
     },
 };
 use glam::{Mat4, Vec3};
@@ -13,10 +13,7 @@ pub struct LightPipeline {
 }
 
 impl LightPipeline {
-    pub async fn new(
-        renderer: &Renderer,
-        bind_group: &LightBindGroup,
-    ) -> Result<Self, RendererError> {
+    pub async fn new(renderer: &Renderer, bind_group: &LightBindGroup) -> Result<Self, RendererError> {
         let (mut spirv_vs_bytes, mut spirv_fs_bytes) = (Vec::new(), Vec::new());
         match glsl_to_spirv::compile(
             include_str!("shaders/light_shader.vert"),
@@ -38,78 +35,68 @@ impl LightPipeline {
         }
         let vs_module_source = wgpu::util::make_spirv(spirv_vs_bytes.as_slice());
         let fs_module_source = wgpu::util::make_spirv(spirv_fs_bytes.as_slice());
-        let vs_module = renderer
-            .device
-            .create_shader_module(&wgpu::ShaderModuleDescriptor {
-                label: None,
-                source: vs_module_source,
-                flags: Default::default(),
-            });
-        let fs_module = renderer
-            .device
-            .create_shader_module(&wgpu::ShaderModuleDescriptor {
-                label: None,
-                source: fs_module_source,
-                flags: Default::default(),
-            });
-        let render_pipeline_layout =
-            renderer
-                .device
-                .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                    label: None,
-                    bind_group_layouts: &[&bind_group.bind_group_layout],
-                    push_constant_ranges: &[],
-                });
+        let vs_module = renderer.device.create_shader_module(&wgpu::ShaderModuleDescriptor {
+            label: None,
+            source: vs_module_source,
+            flags: Default::default(),
+        });
+        let fs_module = renderer.device.create_shader_module(&wgpu::ShaderModuleDescriptor {
+            label: None,
+            source: fs_module_source,
+            flags: Default::default(),
+        });
+        let render_pipeline_layout = renderer.device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: None,
+            bind_group_layouts: &[&bind_group.bind_group_layout],
+            push_constant_ranges: &[],
+        });
 
-        let render_pipeline =
-            renderer
-                .device
-                .create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-                    label: None,
-                    layout: Some(&render_pipeline_layout),
-                    vertex: wgpu::VertexState {
-                        module: &vs_module,
-                        entry_point: "main",
-                        buffers: &[Vertex::desc()],
-                    },
-                    primitive: wgpu::PrimitiveState {
-                        topology: wgpu::PrimitiveTopology::TriangleList,
-                        strip_index_format: None,
-                        front_face: wgpu::FrontFace::Ccw,
-                        cull_mode: wgpu::CullMode::Back,
-                        polygon_mode: wgpu::PolygonMode::Fill,
-                    },
-                    depth_stencil: Some(wgpu::DepthStencilState {
-                        format: DepthTexture::DEPTH_FORMAT,
-                        depth_write_enabled: true,
-                        depth_compare: wgpu::CompareFunction::Less,
-                        stencil: wgpu::StencilState {
-                            front: wgpu::StencilFaceState::IGNORE,
-                            back: wgpu::StencilFaceState::IGNORE,
-                            read_mask: 0,
-                            write_mask: 0,
-                        },
-                        bias: wgpu::DepthBiasState {
-                            constant: 0,
-                            slope_scale: 0.0,
-                            clamp: 0.0,
-                        },
-                        clamp_depth: false,
-                    }),
-                    multisample: wgpu::MultisampleState::default(),
-                    fragment: Some(wgpu::FragmentState {
-                        module: &fs_module,
-                        entry_point: "main",
-                        targets: &[renderer.swap_chain_descriptor.format.into()],
-                    }),
-                });
+        let render_pipeline = renderer.device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: None,
+            layout: Some(&render_pipeline_layout),
+            vertex: wgpu::VertexState {
+                module: &vs_module,
+                entry_point: "main",
+                buffers: &[Vertex::desc()],
+            },
+            primitive: wgpu::PrimitiveState {
+                topology: wgpu::PrimitiveTopology::TriangleList,
+                strip_index_format: None,
+                front_face: wgpu::FrontFace::Ccw,
+                cull_mode: wgpu::CullMode::Back,
+                polygon_mode: wgpu::PolygonMode::Fill,
+            },
+            depth_stencil: Some(wgpu::DepthStencilState {
+                format: DepthTexture::DEPTH_FORMAT,
+                depth_write_enabled: true,
+                depth_compare: wgpu::CompareFunction::Less,
+                stencil: wgpu::StencilState {
+                    front: wgpu::StencilFaceState::IGNORE,
+                    back: wgpu::StencilFaceState::IGNORE,
+                    read_mask: 0,
+                    write_mask: 0,
+                },
+                bias: wgpu::DepthBiasState {
+                    constant: 0,
+                    slope_scale: 0.0,
+                    clamp: 0.0,
+                },
+                clamp_depth: false,
+            }),
+            multisample: wgpu::MultisampleState::default(),
+            fragment: Some(wgpu::FragmentState {
+                module: &fs_module,
+                entry_point: "main",
+                targets: &[renderer.swap_chain_descriptor.format.into()],
+            }),
+        });
         Ok(Self { render_pipeline })
     }
 
     pub fn render(
         &self,
-        light_handle: &Handle<Mesh>,
-        meshes: &Registry<Mesh>,
+        light_handle: &Handle<VertexBuffer>,
+        meshes: &Registry<VertexBuffer>,
         lights: &Registry<Light>,
         bindgroup: &LightBindGroup,
         camera: &dyn Camera,

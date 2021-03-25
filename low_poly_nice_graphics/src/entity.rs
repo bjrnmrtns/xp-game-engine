@@ -1,6 +1,6 @@
-use crate::{registry::Handle, renderer::Mesh, transform::Transform};
+use crate::{registry::Handle, renderer::VertexBuffer, transform::Transform};
 
 pub struct Entity {
-    pub mesh_handle: Handle<Mesh>,
+    pub vb_handle: Handle<VertexBuffer>,
     pub transform: Transform,
 }

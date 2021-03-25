@@ -2,7 +2,7 @@
 pub enum GltfError {
     Gltf(gltf::Error),
     Decode(base64::DecodeError),
-    NotSupportedUri,
+    UnsupportedBufferFormat,
     MissingBlob,
 }
 
@@ -20,12 +20,15 @@ impl From<base64::DecodeError> for GltfError {
 
 pub fn load_gltf(bytes: &[u8]) -> Result<(), GltfError> {
     let gltf = gltf::Gltf::from_slice(bytes)?;
+    let buffer_data = load_buffers(&gltf)?;
     for node in gltf.nodes() {
         println!("{}", node.name().unwrap());
         let mesh = node.mesh().unwrap();
         for primitive in mesh.primitives() {
             let mode = primitive.mode();
-            //primitive.reader(|buffer| Some(&bu))
+            let reader = primitive.reader(|buffer| Some(&buffer_data[buffer.index()]));
+
+            if let Some(vertex_attribute) = reader.read_positions().map(|v| v.collect::<Vec<[f32; 3]>>()) {}
         }
     }
     Ok(())
@@ -40,7 +43,7 @@ fn load_buffers(gltf: &gltf::Gltf) -> Result<Vec<Vec<u8>>, GltfError> {
                 if uri.starts_with(OCTET_STREAM_URI) {
                     buffer_data.push(base64::decode(&uri[OCTET_STREAM_URI.len()..])?);
                 } else {
-                    return Err(GltfError::NotSupportedUri);
+                    return Err(GltfError::UnsupportedBufferFormat);
                 }
             }
             gltf::buffer::Source::Bin => {

@@ -1,7 +1,7 @@
 mod mesh;
-mod shape;
 mod vertex;
+mod vertex_buffer;
 
-pub use mesh::Mesh;
-pub use shape::{Cube, IcoSphere, Plane, Shape};
+pub use mesh::{Cube, IcoSphere, Mesh, Plane};
 pub use vertex::Vertex;
+pub use vertex_buffer::VertexBuffer;

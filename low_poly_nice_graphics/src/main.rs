@@ -18,8 +18,8 @@ use crate::{
     input::{keyboard_state_from_events, InputAll},
     registry::Registry,
     renderer::{
-        BindGroup, Cube, DirectionalProperties, IcoSphere, Light, LightBindGroup, Mesh, Plane, PointProperties, Shape,
-        SpotProperties,
+        BindGroup, Cube, DirectionalProperties, IcoSphere, Light, LightBindGroup, Mesh, Plane, PointProperties,
+        SpotProperties, VertexBuffer,
     },
     tile::{Tile, TileConfiguration, TileType},
     transform::Transform,
@@ -48,10 +48,10 @@ fn main() {
         futures::executor::block_on(renderer::LightPipeline::new(&renderer, &light_pipeline_bindgroup))
             .expect("Could not create pipeline light");
 
-    let mut meshes = Registry::new();
+    let mut vertex_buffers = Registry::new();
     let mut lights = Registry::new();
     let mut entities = Registry::new();
-    let light_mesh_handle = meshes.add(Mesh::from_shape(&renderer, Shape::from(Cube::new(0.25))));
+    let light_mesh_handle = vertex_buffers.add(VertexBuffer::from_shape(&renderer, Mesh::from(Cube::new(0.25))));
     lights.add(Light::Directional(DirectionalProperties::new([-1.0, -0.5, -1.0, 1.0])));
 
     lights.add(Light::Spot(SpotProperties::new(
@@ -64,43 +64,64 @@ fn main() {
     )));
     lights.add(Light::Point(PointProperties::new([8.0, 4.0, 8.0, 1.0])));
     lights.add(Light::Point(PointProperties::new([-8.0, 4.0, 8.0, 1.0])));
-    let mut tile_to_mesh_handle = HashMap::new();
+    let mut tile_to_vb = HashMap::new();
 
     let tile = Tile {
         tile_type: TileType::Grass,
         configuration: TileConfiguration::NoSides,
     };
-    tile_to_mesh_handle.insert(tile, meshes.add(Mesh::from_shape(&renderer, Shape::from(tile))));
+    tile_to_vb.insert(
+        tile,
+        vertex_buffers.add(VertexBuffer::from_shape(&renderer, Mesh::from(tile))),
+    );
     let tile = Tile {
         tile_type: TileType::Stone,
         configuration: TileConfiguration::NoSides,
     };
-    tile_to_mesh_handle.insert(tile, meshes.add(Mesh::from_shape(&renderer, Shape::from(tile))));
+    tile_to_vb.insert(
+        tile,
+        vertex_buffers.add(VertexBuffer::from_shape(&renderer, Mesh::from(tile))),
+    );
     let tile = Tile {
         tile_type: TileType::Stone,
         configuration: TileConfiguration::All,
     };
-    tile_to_mesh_handle.insert(tile, meshes.add(Mesh::from_shape(&renderer, Shape::from(tile))));
+    tile_to_vb.insert(
+        tile,
+        vertex_buffers.add(VertexBuffer::from_shape(&renderer, Mesh::from(tile))),
+    );
     let tile = Tile {
         tile_type: TileType::Stone,
         configuration: TileConfiguration::USide,
     };
-    tile_to_mesh_handle.insert(tile, meshes.add(Mesh::from_shape(&renderer, Shape::from(tile))));
+    tile_to_vb.insert(
+        tile,
+        vertex_buffers.add(VertexBuffer::from_shape(&renderer, Mesh::from(tile))),
+    );
     let tile = Tile {
         tile_type: TileType::Stone,
         configuration: TileConfiguration::Corner,
     };
-    tile_to_mesh_handle.insert(tile, meshes.add(Mesh::from_shape(&renderer, Shape::from(tile))));
+    tile_to_vb.insert(
+        tile,
+        vertex_buffers.add(VertexBuffer::from_shape(&renderer, Mesh::from(tile))),
+    );
     let tile = Tile {
         tile_type: TileType::Stone,
         configuration: TileConfiguration::BothSides,
     };
-    tile_to_mesh_handle.insert(tile, meshes.add(Mesh::from_shape(&renderer, Shape::from(tile))));
+    tile_to_vb.insert(
+        tile,
+        vertex_buffers.add(VertexBuffer::from_shape(&renderer, Mesh::from(tile))),
+    );
     let tile = Tile {
         tile_type: TileType::Stone,
         configuration: TileConfiguration::OneSide,
     };
-    tile_to_mesh_handle.insert(tile, meshes.add(Mesh::from_shape(&renderer, Shape::from(tile))));
+    tile_to_vb.insert(
+        tile,
+        vertex_buffers.add(VertexBuffer::from_shape(&renderer, Mesh::from(tile))),
+    );
 
     let world = World::default();
 
@@ -108,7 +129,7 @@ fn main() {
         for z in -3..3 {
             let (tile, rotation) = world.get_tile_type(x, z);
             entities.add(Entity {
-                mesh_handle: tile_to_mesh_handle.get(&tile).unwrap().clone(),
+                vb_handle: tile_to_vb.get(&tile).unwrap().clone(),
                 transform: Transform::from_translation_rotation(
                     Vec3::new(x as f32, 0.0, z as f32),
                     Quat::from_rotation_y(rotation),
@@ -118,7 +139,7 @@ fn main() {
     }
 
     let character = entities.add(Entity {
-        mesh_handle: meshes.add(Mesh::from_shape(&renderer, Shape::from(IcoSphere::new(0.5)))),
+        vb_handle: vertex_buffers.add(VertexBuffer::from_shape(&renderer, Mesh::from(IcoSphere::new(0.5)))),
         transform: Transform::from_translation(Vec3::new(0.0, 0.5, 0.0)),
     });
 
@@ -153,7 +174,7 @@ fn main() {
                     .view;
                 pipeline.render(
                     &entities,
-                    &meshes,
+                    &vertex_buffers,
                     &lights,
                     &pipeline_bindgroup,
                     &follow_camera,
@@ -162,7 +183,7 @@ fn main() {
                 );
                 pipeline_light.render(
                     &light_mesh_handle,
-                    &meshes,
+                    &vertex_buffers,
                     &lights,
                     &light_pipeline_bindgroup,
                     &follow_camera,
