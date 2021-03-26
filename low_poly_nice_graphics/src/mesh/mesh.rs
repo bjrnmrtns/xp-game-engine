@@ -492,6 +492,7 @@ impl From<Tile> for Mesh {
                     ]);
                 }
             },
+            TileType::Test => assert!(false),
         }
         Self {
             vertices,

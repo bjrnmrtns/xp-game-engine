@@ -20,12 +20,11 @@ use crate::{
     mesh::{Cube, IcoSphere, Mesh},
     registry::Registry,
     renderer::{BindGroup, DirectionalProperties, Light, LightBindGroup, PointProperties, SpotProperties},
-    tile::{Tile, TileConfiguration, TileLoadError, TileType},
+    tile::TileLoadError,
     transform::Transform,
     world::World,
 };
 use glam::{Quat, Vec3};
-use std::collections::HashMap;
 use winit::{
     event::{Event, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
@@ -74,51 +73,15 @@ fn main() -> Result<(), GameError> {
     )));
     lights.add(Light::Point(PointProperties::new([8.0, 4.0, 8.0, 1.0])));
     lights.add(Light::Point(PointProperties::new([-8.0, 4.0, 8.0, 1.0])));
-    let mut tile_to_mesh = HashMap::new();
-
-    let tile = Tile {
-        tile_type: TileType::Grass,
-        configuration: TileConfiguration::NoSides,
-    };
-    tile_to_mesh.insert(tile, meshes.add(Mesh::from(tile)));
-    let tile = Tile {
-        tile_type: TileType::Stone,
-        configuration: TileConfiguration::NoSides,
-    };
-    tile_to_mesh.insert(tile, meshes.add(Mesh::from(tile)));
-    let tile = Tile {
-        tile_type: TileType::Stone,
-        configuration: TileConfiguration::All,
-    };
-    tile_to_mesh.insert(tile, meshes.add(Mesh::from(tile)));
-    let tile = Tile {
-        tile_type: TileType::Stone,
-        configuration: TileConfiguration::USide,
-    };
-    tile_to_mesh.insert(tile, meshes.add(Mesh::from(tile)));
-    let tile = Tile {
-        tile_type: TileType::Stone,
-        configuration: TileConfiguration::Corner,
-    };
-    tile_to_mesh.insert(tile, meshes.add(Mesh::from(tile)));
-    let tile = Tile {
-        tile_type: TileType::Stone,
-        configuration: TileConfiguration::BothSides,
-    };
-    tile_to_mesh.insert(tile, meshes.add(Mesh::from(tile)));
-    let tile = Tile {
-        tile_type: TileType::Stone,
-        configuration: TileConfiguration::OneSide,
-    };
-    tile_to_mesh.insert(tile, meshes.add(Mesh::from(tile)));
 
     let world = World::default();
+    let tile_mapping = tile::load_tiles(|mesh| meshes.add(mesh))?;
 
     for x in -3..3 {
         for z in -3..3 {
             let (tile, rotation) = world.get_tile_type(x, z);
             entities.add(Entity {
-                mesh_handle: tile_to_mesh.get(&tile).unwrap().clone(),
+                mesh_handle: tile_mapping.get(&tile).unwrap().clone(),
                 transform: Transform::from_translation_rotation(
                     Vec3::new(x as f32, 0.0, z as f32),
                     Quat::from_rotation_y(rotation),
@@ -126,8 +89,6 @@ fn main() -> Result<(), GameError> {
             });
         }
     }
-
-    tile::load_tiles(|mesh| meshes.add(mesh))?;
 
     let character = entities.add(Entity {
         mesh_handle: meshes.add(Mesh::from(IcoSphere::new(0.5))),

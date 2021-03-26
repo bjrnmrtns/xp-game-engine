@@ -1,5 +1,6 @@
 #[derive(Copy, Clone, Eq, PartialEq, Hash)]
 pub enum TileType {
+    Test,
     Grass,
     Stone,
 }
