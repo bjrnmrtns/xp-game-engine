@@ -77,8 +77,8 @@ fn main() -> Result<(), GameError> {
     let world = World::load();
     let tile_mapping = tile::load_tiles(|mesh| meshes.add(mesh))?;
 
-    for x in -17..17 {
-        for z in -10..10 {
+    for x in -49..49 {
+        for z in -49..49 {
             let (tile, rotation) = world.get_tile_type(x, z);
             entities.add(Entity {
                 mesh_handle: tile_mapping.get(&tile).unwrap().clone(),

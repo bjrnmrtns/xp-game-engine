@@ -23,7 +23,8 @@ impl Default for World {
 impl World {
     pub fn load() -> Self {
         let mut grid = Vec::new();
-        let world_image = image::load_from_memory(std::fs::read("res/map/world.png").unwrap().as_slice()).unwrap();
+        let world_image =
+            image::load_from_memory(std::fs::read("res/map/world100x100.png").unwrap().as_slice()).unwrap();
         let world_rgba = world_image.as_rgb8().unwrap();
         for p in world_rgba.pixels() {
             if p.0 == [0, 255, 0] {
