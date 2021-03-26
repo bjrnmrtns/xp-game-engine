@@ -19,6 +19,11 @@ impl From<MeshLoadError> for TileLoadError {
 
 fn load_prebaked_tiles(mapping: &mut HashMap<Tile, Handle<Mesh>>, mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh>) {
     let tile = Tile {
+        tile_type: TileType::Empty,
+        configuration: TileConfiguration::NoSides,
+    };
+    mapping.insert(tile, add_mesh(Mesh::from(tile)));
+    let tile = Tile {
         tile_type: TileType::Grass,
         configuration: TileConfiguration::NoSides,
     };

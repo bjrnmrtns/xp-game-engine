@@ -60,7 +60,7 @@ impl World {
                 },
                 0.0,
             );
-        } else {
+        } else if value == 1 {
             let left = self.get(x - 1, z);
             let right = self.get(x + 1, z);
             let up = self.get(x, z - 1);
@@ -179,6 +179,14 @@ impl World {
                     0.0,
                 ),
             }
+        } else {
+            (
+                Tile {
+                    tile_type: TileType::Empty,
+                    configuration: TileConfiguration::NoSides,
+                },
+                0.0,
+            )
         }
     }
 }

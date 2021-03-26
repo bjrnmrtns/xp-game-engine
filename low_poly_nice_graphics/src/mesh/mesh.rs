@@ -320,12 +320,24 @@ impl From<Tile> for Mesh {
         let min = -0.5;
         let green = [0.0, 1.0, 0.0];
         let grey = [0.5, 0.5, 0.5];
+        let pink = [1.0, 0.0, 1.0];
         let normal_left = [-1.0, 0.0, 0.0];
         let normal_right = [1.0, 0.0, 0.0];
         let normal_front = [0.0, 0.0, 1.0];
         let normal_back = [0.0, 0.0, -1.0];
         let normal_top = [0.0, 1.0, 0.0];
         match tile.tile_type {
+            TileType::Empty => {
+                vertices.extend_from_slice(&[
+                    // ground plane
+                    Vertex::new([min, 0.0, min], normal_top, pink),
+                    Vertex::new([min, 0.0, max], normal_top, pink),
+                    Vertex::new([max, 0.0, max], normal_top, pink),
+                    Vertex::new([min, 0.0, min], normal_top, pink),
+                    Vertex::new([max, 0.0, max], normal_top, pink),
+                    Vertex::new([max, 0.0, min], normal_top, pink),
+                ]);
+            }
             TileType::Grass => match tile.configuration {
                 _ => {
                     vertices.extend_from_slice(&[
