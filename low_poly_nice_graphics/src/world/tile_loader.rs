@@ -2,7 +2,7 @@ use crate::{
     gltf::{load_gltf, MeshLoadError},
     mesh::Mesh,
     registry::Handle,
-    tile::{Tile, TileConfiguration, TileType},
+    world::{Tile, TileConfiguration, TileType},
 };
 use std::collections::HashMap;
 
@@ -76,9 +76,7 @@ fn add_mapping(mapping: &mut HashMap<Tile, Handle<Mesh>>, handle: Handle<Mesh>, 
     }
 }
 
-pub fn load_tiles(
-    mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh>,
-) -> Result<HashMap<Tile, Handle<Mesh>>, TileLoadError> {
+pub fn load(mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh>) -> Result<HashMap<Tile, Handle<Mesh>>, TileLoadError> {
     let mut mapping = HashMap::new();
     load_prebaked_tiles(&mut mapping, &mut add_mesh);
     load_gltf(std::fs::read("res/gltf/test.gltf").unwrap().as_slice(), |name, mesh| {

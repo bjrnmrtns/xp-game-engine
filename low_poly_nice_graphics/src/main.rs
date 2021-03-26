@@ -7,7 +7,6 @@ pub mod input;
 pub mod mesh;
 pub mod registry;
 pub mod renderer;
-pub mod tile;
 pub mod transform;
 pub mod winit_impl;
 pub mod world;
@@ -20,9 +19,8 @@ use crate::{
     mesh::{Cube, IcoSphere, Mesh},
     registry::Registry,
     renderer::{BindGroup, DirectionalProperties, Light, LightBindGroup, PointProperties, SpotProperties},
-    tile::TileLoadError,
     transform::Transform,
-    world::World,
+    world::{TileLoadError, World},
 };
 use glam::{Quat, Vec3};
 use winit::{
@@ -74,21 +72,11 @@ fn main() -> Result<(), GameError> {
     lights.add(Light::Point(PointProperties::new([8.0, 4.0, 8.0, 1.0])));
     lights.add(Light::Point(PointProperties::new([-8.0, 4.0, 8.0, 1.0])));
 
-    let world = World::load();
-    let tile_mapping = tile::load_tiles(|mesh| meshes.add(mesh))?;
-
-    for x in -49..49 {
-        for z in -49..49 {
-            let (tile, rotation) = world.get_tile_type(x, z);
-            entities.add(Entity {
-                mesh_handle: tile_mapping.get(&tile).unwrap().clone(),
-                transform: Transform::from_translation_rotation(
-                    Vec3::new(x as f32, 0.0, z as f32),
-                    Quat::from_rotation_y(rotation),
-                ),
-            });
-        }
-    }
+    let world = World::load(|mesh| meshes.add(mesh))?;
+    world.spawn_entities(|mesh_handle, transform| {
+        entities.add(Entity { mesh_handle, transform });
+        ()
+    });
 
     let character = entities.add(Entity {
         mesh_handle: meshes.add(Mesh::from(IcoSphere::new(0.5))),

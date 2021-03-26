@@ -1,27 +1,23 @@
-use crate::tile::{Tile, TileConfiguration, TileType};
+use crate::{
+    mesh::Mesh,
+    registry::Handle,
+    transform::Transform,
+    world::{tile_loader, Tile, TileConfiguration, TileType},
+};
+use glam::{Quat, Vec3};
 use image::GenericImageView;
+use std::collections::HashMap;
 
 pub struct World {
     grid: Vec<u32>,
     width: usize,
     height: usize,
-}
-
-impl Default for World {
-    fn default() -> Self {
-        Self {
-            grid: vec![
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            ],
-            width: 8,
-            height: 8,
-        }
-    }
+    tile_mapping: HashMap<Tile, Handle<Mesh>>,
 }
 
 impl World {
-    pub fn load() -> Self {
+    pub fn load(add_mesh: impl FnMut(Mesh) -> Handle<Mesh>) -> Result<Self, tile_loader::TileLoadError> {
+        let tile_mapping = tile_loader::load(add_mesh)?;
         let mut grid = Vec::new();
         let world_image =
             image::load_from_memory(std::fs::read("res/map/world100x100.png").unwrap().as_slice()).unwrap();
@@ -35,11 +31,12 @@ impl World {
                 grid.push(255);
             }
         }
-        Self {
+        Ok(Self {
             grid,
             width: world_image.width() as usize,
             height: world_image.height() as usize,
-        }
+            tile_mapping,
+        })
     }
 
     // never calculate for edges
@@ -188,6 +185,23 @@ impl World {
                 },
                 0.0,
             )
+        }
+    }
+
+    pub fn spawn_entities(&self, mut add_entity: impl FnMut(Handle<Mesh>, Transform)) {
+        let half_width = (self.width / 2 - 1) as i32;
+        let half_height = (self.height / 2 - 1) as i32;
+        for x in -half_width..half_height {
+            for z in -half_height..half_height {
+                let (tile, rotation) = self.get_tile_type(x, z);
+                add_entity(
+                    self.tile_mapping.get(&tile).unwrap().clone(),
+                    Transform::from_translation_rotation(
+                        Vec3::new(x as f32, 0.0, z as f32),
+                        Quat::from_rotation_y(rotation),
+                    ),
+                );
+            }
         }
     }
 }

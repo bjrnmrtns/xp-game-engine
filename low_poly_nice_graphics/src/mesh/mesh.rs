@@ -1,7 +1,7 @@
 use crate::{
     generators::{Height, Zero},
     mesh::Vertex,
-    tile::{Tile, TileConfiguration, TileType},
+    world::{Tile, TileConfiguration, TileType},
 };
 use glam::Vec3;
 use std::collections::HashMap;
