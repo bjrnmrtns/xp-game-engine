@@ -20,7 +20,7 @@ use crate::{
     mesh::{Cube, IcoSphere, Mesh},
     registry::Registry,
     renderer::{BindGroup, DirectionalProperties, Light, LightBindGroup, PointProperties, SpotProperties},
-    tile::{Tile, TileConfiguration, TileType},
+    tile::{Tile, TileConfiguration, TileLoadError, TileType},
     transform::Transform,
     world::World,
 };
@@ -32,7 +32,18 @@ use winit::{
     window::WindowBuilder,
 };
 
-fn main() {
+#[derive(Debug)]
+pub enum GameError {
+    TileLoadError(TileLoadError),
+}
+
+impl From<TileLoadError> for GameError {
+    fn from(e: TileLoadError) -> GameError {
+        GameError::TileLoadError(e)
+    }
+}
+
+fn main() -> Result<(), GameError> {
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()
         .build(&event_loop)
@@ -116,16 +127,7 @@ fn main() {
         }
     }
 
-    let mut meshes_gltf = Vec::new();
-    gltf::load_gltf(std::fs::read("res/gltf/test.gltf").unwrap().as_slice(), |name, mesh| {
-        meshes_gltf.push(mesh)
-    })
-    .unwrap();
-
-    entities.add(Entity {
-        mesh_handle: meshes.add(meshes_gltf[1].clone()),
-        transform: Transform::from_translation(Vec3::new(10.0, 0.0, 10.0)),
-    });
+    tile::load_tiles(|mesh| meshes.add(mesh))?;
 
     let character = entities.add(Entity {
         mesh_handle: meshes.add(Mesh::from(IcoSphere::new(0.5))),

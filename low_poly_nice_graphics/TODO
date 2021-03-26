@@ -31,6 +31,7 @@ DONE 13: Implement camera follow/rotate around/zoom/change angle unit
 [x] change angle y with mouse
 DONE 19: Tile based rendering
 [x] generate tiles from masks
+DONE 29: Basic Gltf loader
 TODO 12: Advanced light rendering shadow mapping
 [] render depth buffer of camera
 [] render depth buffer of light
@@ -41,5 +42,5 @@ TODO 17: Basic physics, walking around with sphere and hitting cubes and sliding
 [] add cube and player sphere to physics world
 [] detect collision with cube and player sphere
 TODO 18: Check if MainEventsCleared is a better place to do all redrawing iso RedrawRequested (or maybe only physics update)
-TODO 19: Basic Gltf loader
 TODO 20: Load map from image (use colors from grass stone in image and generate world from that)
+TODO 21: Load tiles from gltf file

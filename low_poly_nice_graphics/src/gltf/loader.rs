@@ -110,6 +110,6 @@ mod tests {
 
     #[test]
     fn load_gltf_test() {
-        load_gltf(std::fs::read("res/gltf/test.gltf").unwrap().as_slice());
+        load_gltf(std::fs::read("res/gltf/test.gltf").unwrap().as_slice(), |mesh, name| {});
     }
 }
