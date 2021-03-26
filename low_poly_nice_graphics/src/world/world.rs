@@ -1,4 +1,5 @@
 use crate::tile::{Tile, TileConfiguration, TileType};
+use image::GenericImageView;
 
 pub struct World {
     grid: Vec<u32>,
@@ -20,6 +21,26 @@ impl Default for World {
 }
 
 impl World {
+    pub fn load() -> Self {
+        let mut grid = Vec::new();
+        let world_image = image::load_from_memory(std::fs::read("res/map/world.png").unwrap().as_slice()).unwrap();
+        let world_rgba = world_image.as_rgb8().unwrap();
+        for p in world_rgba.pixels() {
+            if p.0 == [0, 255, 0] {
+                grid.push(0);
+            } else if p.0 == [0, 0, 255] {
+                grid.push(1);
+            } else {
+                grid.push(255);
+            }
+        }
+        Self {
+            grid,
+            width: world_image.width() as usize,
+            height: world_image.height() as usize,
+        }
+    }
+
     // never calculate for edges
     fn get(&self, x: i32, z: i32) -> u32 {
         let x = (x + self.width as i32 / 2) as usize;

@@ -74,11 +74,11 @@ fn main() -> Result<(), GameError> {
     lights.add(Light::Point(PointProperties::new([8.0, 4.0, 8.0, 1.0])));
     lights.add(Light::Point(PointProperties::new([-8.0, 4.0, 8.0, 1.0])));
 
-    let world = World::default();
+    let world = World::load();
     let tile_mapping = tile::load_tiles(|mesh| meshes.add(mesh))?;
 
-    for x in -3..3 {
-        for z in -3..3 {
+    for x in -17..17 {
+        for z in -10..10 {
             let (tile, rotation) = world.get_tile_type(x, z);
             entities.add(Entity {
                 mesh_handle: tile_mapping.get(&tile).unwrap().clone(),
