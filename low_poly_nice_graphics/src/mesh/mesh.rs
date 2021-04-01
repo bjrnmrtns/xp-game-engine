@@ -515,7 +515,7 @@ impl From<Tile> for Mesh {
 
 #[cfg(test)]
 mod tests {
-    use crate::renderer::mesh::mesh::triangle_normal;
+    use crate::mesh::triangle_normal;
 
     #[test]
     fn check_understanding_normal_calculation_0() {

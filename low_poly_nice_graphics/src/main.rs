@@ -158,3 +158,61 @@ fn main() -> Result<(), GameError> {
         }
     });
 }
+
+#[cfg(test)]
+mod tests {
+    use rapier2d::{
+        dynamics::{IntegrationParameters, JointSet, RigidBodyBuilder, RigidBodySet},
+        geometry::{BroadPhase, ColliderBuilder, ColliderSet, NarrowPhase},
+        na::{Isometry2, Vector2},
+        pipeline::PhysicsPipeline,
+    };
+
+    #[test]
+    fn try_rapier() {
+        let int_params = IntegrationParameters::default();
+        let mut physics_pipeline = PhysicsPipeline::new();
+        let mut broad_phase = BroadPhase::new();
+        let mut narrow_phase = NarrowPhase::new();
+        let mut bodies = RigidBodySet::new();
+        let mut colliders = ColliderSet::new();
+        let mut joints = JointSet::new();
+        let physics_hooks = ();
+        let physics_events = ();
+
+        let collider_handle = colliders.insert(
+            ColliderBuilder::cuboid(1.0, 1.0).build(),
+            bodies.insert(RigidBodyBuilder::new_static().translation(0.0, -5.0).build()),
+            &mut bodies,
+        );
+
+        let rigid_body_handle = bodies.insert(RigidBodyBuilder::new_dynamic().translation(0.0, 0.0).build());
+        let collider = ColliderBuilder::ball(0.5).friction(0.0).build();
+        let collider_handle = colliders.insert(collider, rigid_body_handle, &mut bodies);
+        for _ in 0..1000 {
+            bodies
+                .get_mut(rigid_body_handle)
+                .unwrap()
+                .set_linvel(Vector2::new(0.0, -1.0), true);
+            /*bodies
+               .get_mut(rigid_body_handle)
+               .unwrap()
+               .set_position(Isometry2::new(Vector2::new(0.0, 0.0), 0.0), true);
+            */
+            physics_pipeline.step(
+                &(Vector2::y() * 0.0),
+                &int_params,
+                &mut broad_phase,
+                &mut narrow_phase,
+                &mut bodies,
+                &mut colliders,
+                &mut joints,
+                &physics_hooks,
+                &physics_events,
+            );
+            let rb = bodies.get(rigid_body_handle).unwrap();
+            let translation = rb.position().translation;
+            println!("{} {}", translation.x, translation.y);
+        }
+    }
+}
