@@ -25,7 +25,7 @@ impl<T> Registry<T> {
         Handle::new(id)
     }
 
-    pub fn get(&self, handle: Handle<T>) -> Option<&T> {
+    pub fn get(&self, handle: &Handle<T>) -> Option<&T> {
         self.registry.get(&handle.id)
     }
 

@@ -1,6 +1,7 @@
 use crate::{
     generators::{Height, Zero},
     mesh::Vertex,
+    physics::CollisionShape,
     world::{Tile, TileConfiguration, TileType},
 };
 use glam::Vec3;
