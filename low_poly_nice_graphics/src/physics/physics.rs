@@ -55,9 +55,13 @@ impl Physics {
     pub fn step(&mut self, entities: &mut Registry<Entity>, character_controller: &CharacterController) {
         let step_time = 1.0 / 60.0;
         if let Some(entity_handle) = self.character.clone() {
-            let entity = entities.get_mut(entity_handle).unwrap();
+            let entity = entities.get_mut(&entity_handle).unwrap();
             entity.transform.rotation *= Quat::from_rotation_y(-character_controller.rotate * 0.02);
-            entity.transform.translation += entity.transform.forward() * character_controller.forward * step_time * 5.0;
+            let new_velocity = entity.transform.forward() * character_controller.forward * 5.0;
+            if let Some(physics_object) = &mut self.physics_objects_dynamic.get(&entity_handle.id) {
+                let rigid_body = self.bodies.get_mut(physics_object.r).unwrap();
+                rigid_body.set_linvel(Vector3::new(new_velocity.x, new_velocity.y, new_velocity.z), true);
+            }
         }
         self.pipeline.step(
             &Vector3::new(0.0, 0.0, 0.0),
@@ -71,6 +75,18 @@ impl Physics {
             &(),
             &(),
         );
+        if let Some(entity_handle) = self.character.clone() {
+            let entity = entities.get_mut(&entity_handle).unwrap();
+            entity.transform.rotation *= Quat::from_rotation_y(-character_controller.rotate * 0.02);
+            entity.transform.translation += entity.transform.forward() * character_controller.forward * step_time * 5.0;
+            if let Some(physics_object) = &mut self.physics_objects_dynamic.get(&entity_handle.id) {
+                let rb = self.bodies.get(physics_object.r).unwrap();
+                let translation = rb.position().translation.clone();
+                entity.transform.translation.x = translation.x;
+                entity.transform.translation.y = translation.y;
+                entity.transform.translation.z = translation.z;
+            }
+        }
     }
 
     pub fn register_character(&mut self, entity_handle: Handle<Entity>) {

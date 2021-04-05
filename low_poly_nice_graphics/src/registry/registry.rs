@@ -29,7 +29,7 @@ impl<T> Registry<T> {
         self.registry.get(&handle.id)
     }
 
-    pub fn get_mut(&mut self, handle: Handle<T>) -> Option<&mut T> {
+    pub fn get_mut(&mut self, handle: &Handle<T>) -> Option<&mut T> {
         self.registry.get_mut(&handle.id)
     }
 }
