@@ -18,6 +18,7 @@ use crate::{
     entity::Entity,
     input::{keyboard_state_from_events, InputAll},
     mesh::{Cube, IcoSphere, Mesh},
+    physics::{Body, BodyStatus, CollisionShape, Cuboid, Physics, Sphere},
     registry::Registry,
     renderer::{BindGroup, DirectionalProperties, Light, LightBindGroup, PointProperties, SpotProperties},
     transform::Transform,
@@ -56,6 +57,7 @@ fn main() -> Result<(), GameError> {
         futures::executor::block_on(renderer::LightPipeline::new(&renderer, &light_pipeline_bindgroup))
             .expect("Could not create pipeline light");
 
+    let mut physics = Physics::default();
     let mut meshes = Registry::new();
     let mut lights = Registry::new();
     let mut entities = Registry::new();
@@ -83,11 +85,30 @@ fn main() -> Result<(), GameError> {
         ()
     });
 
-    let character = entities.add(Entity {
-        mesh_handle: meshes.add(Mesh::from(IcoSphere::new(0.5))),
-        collision_shape: None,
+    let cube = entities.add(Entity {
+        mesh_handle: meshes.add(Mesh::from(Cube::new(1.0))),
+        collision_shape: Some(CollisionShape {
+            body_status: BodyStatus::Static,
+            body: Body::Cuboid(Cuboid {
+                half_extent_x: 0.5,
+                half_extent_y: 0.5,
+                half_extent_z: 0.5,
+            }),
+        }),
         transform: Transform::from_translation(Vec3::new(0.0, 0.5, 0.0)),
     });
+    physics.register(cube, &entities);
+
+    let character = entities.add(Entity {
+        mesh_handle: meshes.add(Mesh::from(IcoSphere::new(0.5))),
+        collision_shape: Some(CollisionShape {
+            body_status: BodyStatus::Dynamic,
+            body: Body::Sphere(Sphere { radius: 0.5 }),
+        }),
+        transform: Transform::from_translation(Vec3::new(0.0, 0.5, 0.0)),
+    });
+    physics.register(character.clone(), &entities);
+    physics.register_character(character.clone());
 
     let mut follow_camera = FollowCamera::new(
         entities.get(&character).unwrap().transform.clone(),
@@ -105,6 +126,7 @@ fn main() -> Result<(), GameError> {
                 character_controller.keyboard(&input_all.keyboard_input);
                 camera_controller.mouse_handling(&input_all.mouse_wheel_events, &input_all.mouse_motion_events);
                 follow_camera.handle_camera_controller(&camera_controller);
+                physics.step(&mut entities, &character_controller);
                 let entity = entities.get_mut(character.clone()).unwrap();
                 entity.transform.rotation *= Quat::from_rotation_y(-character_controller.rotate * 0.02);
                 entity.transform.translation += entity.transform.forward() * character_controller.forward * 0.1;

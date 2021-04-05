@@ -1,4 +1,5 @@
 use crate::{
+    controllers::CharacterController,
     entity::Entity,
     physics::{
         collisionshape::{Body, BodyStatus},
@@ -29,6 +30,7 @@ pub struct Physics {
     joints: JointSet,
     ccd_solver: CCDSolver,
     physics_objects_dynamic: HashMap<u64, PhysicsObjectHandle>,
+    character: Option<Handle<Entity>>,
 }
 
 impl Default for Physics {
@@ -43,12 +45,13 @@ impl Default for Physics {
             joints: JointSet::new(),
             ccd_solver: CCDSolver::new(),
             physics_objects_dynamic: HashMap::new(),
+            character: None,
         }
     }
 }
 
 impl Physics {
-    pub fn step(&mut self) {
+    pub fn step(&mut self, entities: &mut Registry<Entity>, character_controller: &CharacterController) {
         self.pipeline.step(
             &Vector3::new(0.0, 0.0, 0.0),
             &self.int_params,
@@ -63,15 +66,20 @@ impl Physics {
         );
     }
 
-    pub fn register(&mut self, entity_handle: Handle<Entity>, entities: Registry<Entity>) {
+    pub fn register_character(&mut self, entity_handle: Handle<Entity>) {
+        self.character = Some(entity_handle);
+    }
+
+    pub fn register(&mut self, entity_handle: Handle<Entity>, entities: &Registry<Entity>) {
         if let Some(entity) = entities.get(&entity_handle) {
             if let Some(collision_shape) = &entity.collision_shape {
                 let collider = match &collision_shape.body {
                     Body::Cuboid(cuboid) => {
                         ColliderBuilder::cuboid(cuboid.half_extent_x, cuboid.half_extent_y, cuboid.half_extent_z)
+                            .friction(0.0)
                             .build()
                     }
-                    Body::Sphere(sphere) => ColliderBuilder::ball(sphere.radius).build(),
+                    Body::Sphere(sphere) => ColliderBuilder::ball(sphere.radius).friction(0.0).build(),
                 };
                 let translation = entity.transform.translation;
                 let rigid_body = match &collision_shape.body_status {
