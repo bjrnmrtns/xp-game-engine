@@ -105,7 +105,7 @@ fn main() -> Result<(), GameError> {
             body_status: BodyStatus::Dynamic,
             body: Body::Sphere(Sphere { radius: 0.5 }),
         }),
-        transform: Transform::from_translation(Vec3::new(0.0, 0.5, 0.0)),
+        transform: Transform::from_translation(Vec3::new(0.0, 0.5, 4.0)),
     });
     physics.register(character.clone(), &entities);
     physics.register_character(character.clone());
@@ -118,19 +118,23 @@ fn main() -> Result<(), GameError> {
     let mut input_all = InputAll::default();
     let mut character_controller = CharacterController::default();
     let mut camera_controller = CameraController::default();
+    let start_time = std::time::Instant::now();
+    let mut steps_taken = 0;
     event_loop.run(move |event, _, control_flow| {
         *control_flow = winit::event_loop::ControlFlow::Poll;
         match event {
             Event::RedrawRequested(_) => {
+                let steps_since_start = (std::time::Instant::now() - start_time).as_millis() * 60 / 1000;
+                let steps = steps_since_start - steps_taken;
                 keyboard_state_from_events(&input_all.keyboard_events, &mut input_all.keyboard_input);
                 character_controller.keyboard(&input_all.keyboard_input);
                 camera_controller.mouse_handling(&input_all.mouse_wheel_events, &input_all.mouse_motion_events);
                 follow_camera.handle_camera_controller(&camera_controller);
-                physics.step(&mut entities, &character_controller);
-                let entity = entities.get_mut(character.clone()).unwrap();
-                entity.transform.rotation *= Quat::from_rotation_y(-character_controller.rotate * 0.02);
-                entity.transform.translation += entity.transform.forward() * character_controller.forward * 0.1;
-                follow_camera.follow(entity.transform.clone());
+                for _ in 0..steps {
+                    physics.step(&mut entities, &character_controller);
+                }
+                steps_taken = steps_since_start;
+                follow_camera.follow(entities.get(&character).unwrap().transform.clone());
                 input_all.clear_events();
 
                 let target = &renderer

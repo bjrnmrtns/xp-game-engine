@@ -7,6 +7,7 @@ use crate::{
     },
     registry::{Handle, Registry},
 };
+use glam::Quat;
 use rapier3d::{
     dynamics::{CCDSolver, IntegrationParameters, JointSet, RigidBodyBuilder, RigidBodyHandle, RigidBodySet},
     geometry::{BroadPhase, ColliderBuilder, ColliderHandle, ColliderSet, NarrowPhase},
@@ -52,6 +53,12 @@ impl Default for Physics {
 
 impl Physics {
     pub fn step(&mut self, entities: &mut Registry<Entity>, character_controller: &CharacterController) {
+        let step_time = 1.0 / 60.0;
+        if let Some(entity_handle) = self.character.clone() {
+            let entity = entities.get_mut(entity_handle).unwrap();
+            entity.transform.rotation *= Quat::from_rotation_y(-character_controller.rotate * 0.02);
+            entity.transform.translation += entity.transform.forward() * character_controller.forward * step_time * 5.0;
+        }
         self.pipeline.step(
             &Vector3::new(0.0, 0.0, 0.0),
             &self.int_params,
