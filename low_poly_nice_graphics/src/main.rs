@@ -22,9 +22,9 @@ use crate::{
     registry::Registry,
     renderer::{BindGroup, DirectionalProperties, Light, LightBindGroup, PointProperties, SpotProperties},
     transform::Transform,
-    world::{TileLoadError, World},
+    world::TileLoadError,
 };
-use glam::{Quat, Vec3};
+use glam::Vec3;
 use winit::{
     event::{Event, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
@@ -75,7 +75,7 @@ fn main() -> Result<(), GameError> {
     lights.add(Light::Point(PointProperties::new([8.0, 4.0, 8.0, 1.0])));
     lights.add(Light::Point(PointProperties::new([-8.0, 4.0, 8.0, 1.0])));
 
-    let world = World::load(|mesh| meshes.add(mesh))?;
+    /*let world = World::load(|mesh| meshes.add(mesh))?;
     world.spawn_entities(|mesh_handle, transform| {
         entities.add(Entity {
             mesh_handle,
@@ -83,7 +83,7 @@ fn main() -> Result<(), GameError> {
             transform,
         });
         ()
-    });
+    });*/
 
     let cube = entities.add(Entity {
         mesh_handle: meshes.add(Mesh::from(Cube::new(1.0))),
@@ -97,6 +97,7 @@ fn main() -> Result<(), GameError> {
         }),
         transform: Transform::from_translation(Vec3::new(0.0, 0.5, 0.0)),
     });
+
     physics.register(cube, &entities);
 
     let character = entities.add(Entity {

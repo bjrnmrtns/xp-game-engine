@@ -34,13 +34,15 @@ DONE 19: Tile based rendering
 DONE 21: Basic Gltf loader
 DONE 22: Load tiles from gltf file
 DONE 20: Load map from image (use colors from grass stone in image and generate world from that)
+DONE 17: Basic physics, walking around with sphere and hitting cubes and sliding off
+[x] add cube and player sphere to physics world
+[x] detect collision with cube and player sphere
 TODO 12: Advanced light rendering shadow mapping
 [] render depth buffer of camera
 [] render depth buffer of light
 [] use depth buffer of light for shadow mapping
 TODO 6: Add Graph so entities can have parent child relation
 TODO 15: Terrain generation using blue noise (can be implemented using poison disc sampling, use blue noise texture from noise-test) voronoi redblobgames
-TODO 17: Basic physics, walking around with sphere and hitting cubes and sliding off
-[] add cube and player sphere to physics world
-[] detect collision with cube and player sphere
 TODO 18: Check if MainEventsCleared is a better place to do all redrawing iso RedrawRequested (or maybe only physics update)
+TODO 23: Render heightmap
+TODO 24: sync rotation of Transform between entity and physics // check bevy_rapier

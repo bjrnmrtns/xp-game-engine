@@ -1,10 +1,7 @@
 use crate::{
     controllers::CharacterController,
     entity::Entity,
-    physics::{
-        collisionshape::{Body, BodyStatus},
-        CollisionShape,
-    },
+    physics::collisionshape::{Body, BodyStatus},
     registry::{Handle, Registry},
 };
 use glam::Quat;
