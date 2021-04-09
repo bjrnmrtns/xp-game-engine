@@ -65,23 +65,24 @@ fn main() -> Result<(), GameError> {
     lights.add(Light::Directional(DirectionalProperties::new([-1.0, -0.5, -1.0, 1.0])));
 
     /*lights.add(Light::Spot(SpotProperties::new(
-            [0.0, 4.0, 0.0, 1.0],
+            [0.0, 14.0, 0.0, 1.0],
             [0.0, -1.0, 0.0, 1.0],
         )));
         lights.add(Light::Spot(SpotProperties::new(
-            [8.0, 4.0, 0.0, 1.0],
+            [8.0, 14.0, 0.0, 1.0],
             [0.0, -1.0, 0.0, 1.0],
         )));
-        lights.add(Light::Point(PointProperties::new([8.0, 4.0, 8.0, 1.0])));
-        lights.add(Light::Point(PointProperties::new([-8.0, 4.0, 8.0, 1.0])));
+        lights.add(Light::Point(PointProperties::new([8.0, 14.0, 8.0, 1.0])));
+        lights.add(Light::Point(PointProperties::new([-8.0, 14.0, 8.0, 1.0])));
     */
     world::Heightmap::load_heightmap(|mesh| {
         let mesh = meshes.add(mesh);
-        entities.add(Entity {
+        let entity = entities.add(Entity {
             mesh_handle: mesh.clone(),
             collision_shape: None,
-            transform: Transform::from_translation(Vec3::new(0.0, -10.0, 0.0)),
+            transform: Transform::default(),
         });
+        physics.register_heigtmap(entity, &entities, &meshes);
         mesh
     });
     /*let world = World::load(|mesh| meshes.add(mesh))?;
@@ -104,7 +105,7 @@ fn main() -> Result<(), GameError> {
                 half_extent_z: 0.5,
             }),
         }),
-        transform: Transform::from_translation(Vec3::new(0.0, 0.5, 0.0)),
+        transform: Transform::from_translation(Vec3::new(0.0, 10.0, 0.0)),
     });
 
     physics.register(cube, &entities);
@@ -115,7 +116,7 @@ fn main() -> Result<(), GameError> {
             body_status: BodyStatus::Dynamic,
             body: Body::Sphere(Sphere { radius: 0.5 }),
         }),
-        transform: Transform::from_translation(Vec3::new(0.0, 0.5, 4.0)),
+        transform: Transform::from_translation(Vec3::new(0.0, 10.0, 4.0)),
     });
     physics.register(character.clone(), &entities);
     physics.register_character(character.clone());

@@ -1,6 +1,7 @@
 use crate::{
     controllers::CharacterController,
     entity::Entity,
+    mesh::Mesh,
     physics::collisionshape::{Body, BodyStatus},
     registry::{Handle, Registry},
 };
@@ -8,7 +9,7 @@ use glam::Quat;
 use rapier3d::{
     dynamics::{CCDSolver, IntegrationParameters, JointSet, RigidBodyBuilder, RigidBodyHandle, RigidBodySet},
     geometry::{BroadPhase, ColliderBuilder, ColliderHandle, ColliderSet, NarrowPhase},
-    na::Vector3,
+    na::{DMatrix, Point3, Vector3},
     pipeline::PhysicsPipeline,
 };
 use std::collections::HashMap;
@@ -57,11 +58,12 @@ impl Physics {
             let new_velocity = entity.transform.forward() * character_controller.forward * 5.0;
             if let Some(physics_object) = &mut self.physics_objects_dynamic.get(&entity_handle.id) {
                 let rigid_body = self.bodies.get_mut(physics_object.r).unwrap();
-                rigid_body.set_linvel(Vector3::new(new_velocity.x, new_velocity.y, new_velocity.z), true);
+                let y = rigid_body.linvel().y;
+                rigid_body.set_linvel(Vector3::new(new_velocity.x, y, new_velocity.z), true);
             }
         }
         self.pipeline.step(
-            &Vector3::new(0.0, 0.0, 0.0),
+            &Vector3::new(0.0, -9.81, 0.0),
             &self.int_params,
             &mut self.broad_phase,
             &mut self.narrow_phase,
@@ -88,6 +90,39 @@ impl Physics {
 
     pub fn register_character(&mut self, entity_handle: Handle<Entity>) {
         self.character = Some(entity_handle);
+    }
+
+    pub fn register_heigtmap(
+        &mut self,
+        entity_handle: Handle<Entity>,
+        entities: &Registry<Entity>,
+        meshes: &Registry<Mesh>,
+    ) {
+        let entity = entities.get(&entity_handle).unwrap();
+        let mesh = meshes.get(&entity.mesh_handle).unwrap();
+        let mut vertices = Vec::new();
+        let mut indices = Vec::new();
+        let mut index: u32 = 0;
+        for triangle in mesh.vertices.chunks(3) {
+            vertices.push(triangle[0].position.into());
+            vertices.push(triangle[1].position.into());
+            vertices.push(triangle[2].position.into());
+            indices.push([index, index + 1, index + 2]);
+            index += 3;
+        }
+        let rigid_body = RigidBodyBuilder::new_static().build();
+        let handle = self.bodies.insert(rigid_body);
+        let collider = ColliderBuilder::trimesh(
+            vertices, /*vec![
+                          Point3::new(-5.0, -1.0, -5.0),
+                          Point3::new(-5.0, -1.0, 5.0),
+                          Point3::new(5.0, -1.0, 5.0),
+                          Point3::new(5.0, -1.0, -5.0),
+                      ]*/
+            indices, //vec![[0, 1, 2], [0, 2, 3]],
+        )
+        .build();
+        self.colliders.insert(collider, handle, &mut self.bodies);
     }
 
     pub fn register(&mut self, entity_handle: Handle<Entity>, entities: &Registry<Entity>) {
