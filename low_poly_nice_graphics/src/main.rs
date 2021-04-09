@@ -22,7 +22,7 @@ use crate::{
     registry::Registry,
     renderer::{BindGroup, DirectionalProperties, Light, LightBindGroup, PointProperties, SpotProperties},
     transform::Transform,
-    world::TileLoadError,
+    world::WorldLoadError,
 };
 use glam::Vec3;
 use winit::{
@@ -33,11 +33,11 @@ use winit::{
 
 #[derive(Debug)]
 pub enum GameError {
-    TileLoadError(TileLoadError),
+    TileLoadError(WorldLoadError),
 }
 
-impl From<TileLoadError> for GameError {
-    fn from(e: TileLoadError) -> GameError {
+impl From<WorldLoadError> for GameError {
+    fn from(e: WorldLoadError) -> GameError {
         GameError::TileLoadError(e)
     }
 }

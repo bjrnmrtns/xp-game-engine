@@ -1,24 +1,13 @@
 use crate::{
-    gltf::{load_gltf, MeshLoadError},
+    gltf::load_gltf,
     mesh::Mesh,
     registry::Handle,
     transform::Transform,
-    world::{tile_loader, Tile, TileConfiguration, TileType},
+    world::{tile_loader, Tile, TileConfiguration, TileType, WorldLoadError},
 };
 use glam::{Quat, Vec3};
 use image::GenericImageView;
 use std::collections::HashMap;
-
-#[derive(Debug)]
-pub enum TileLoadError {
-    MeshLoadError(MeshLoadError),
-}
-
-impl From<MeshLoadError> for TileLoadError {
-    fn from(e: MeshLoadError) -> TileLoadError {
-        TileLoadError::MeshLoadError(e)
-    }
-}
 
 fn load_prebaked_tiles(mapping: &mut HashMap<Tile, Handle<Mesh>>, mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh>) {
     let tile = Tile {
@@ -79,7 +68,7 @@ fn add_mapping(mapping: &mut HashMap<Tile, Handle<Mesh>>, handle: Handle<Mesh>, 
     }
 }
 
-pub fn load(mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh>) -> Result<HashMap<Tile, Handle<Mesh>>, TileLoadError> {
+pub fn load(mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh>) -> Result<HashMap<Tile, Handle<Mesh>>, WorldLoadError> {
     let mut mapping = HashMap::new();
     load_prebaked_tiles(&mut mapping, &mut add_mesh);
     load_gltf(std::fs::read("res/gltf/test.gltf").unwrap().as_slice(), |name, mesh| {
@@ -97,7 +86,7 @@ pub struct Tiles {
 }
 
 impl Tiles {
-    pub fn load_tilemap(add_mesh: impl FnMut(Mesh) -> Handle<Mesh>) -> Result<Self, tile_loader::TileLoadError> {
+    pub fn load_tilemap(add_mesh: impl FnMut(Mesh) -> Handle<Mesh>) -> Result<Self, WorldLoadError> {
         let tile_mapping = tile_loader::load(add_mesh)?;
         let mut grid = Vec::new();
         let world_image =

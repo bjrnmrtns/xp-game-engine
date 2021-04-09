@@ -46,3 +46,4 @@ TODO 15: Terrain generation using blue noise (can be implemented using poison di
 TODO 18: Check if MainEventsCleared is a better place to do all redrawing iso RedrawRequested (or maybe only physics update)
 TODO 23: Render heightmap
 TODO 24: sync rotation of Transform between entity and physics // check bevy_rapier
+TODO 25: Character animation
