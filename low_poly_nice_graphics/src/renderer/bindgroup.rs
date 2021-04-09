@@ -7,7 +7,7 @@ use crate::{
 };
 use glam::Mat4;
 
-const MAX_NR_OF_INSTANCES: usize = 1024000;
+const MAX_NR_OF_INSTANCES: usize = 50000;
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]

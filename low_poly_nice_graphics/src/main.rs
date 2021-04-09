@@ -64,17 +64,26 @@ fn main() -> Result<(), GameError> {
     let light_mesh_handle = meshes.add(Mesh::from(Cube::new(0.25)));
     lights.add(Light::Directional(DirectionalProperties::new([-1.0, -0.5, -1.0, 1.0])));
 
-    lights.add(Light::Spot(SpotProperties::new(
-        [0.0, 4.0, 0.0, 1.0],
-        [0.0, -1.0, 0.0, 1.0],
-    )));
-    lights.add(Light::Spot(SpotProperties::new(
-        [8.0, 4.0, 0.0, 1.0],
-        [0.0, -1.0, 0.0, 1.0],
-    )));
-    lights.add(Light::Point(PointProperties::new([8.0, 4.0, 8.0, 1.0])));
-    lights.add(Light::Point(PointProperties::new([-8.0, 4.0, 8.0, 1.0])));
-
+    /*lights.add(Light::Spot(SpotProperties::new(
+            [0.0, 4.0, 0.0, 1.0],
+            [0.0, -1.0, 0.0, 1.0],
+        )));
+        lights.add(Light::Spot(SpotProperties::new(
+            [8.0, 4.0, 0.0, 1.0],
+            [0.0, -1.0, 0.0, 1.0],
+        )));
+        lights.add(Light::Point(PointProperties::new([8.0, 4.0, 8.0, 1.0])));
+        lights.add(Light::Point(PointProperties::new([-8.0, 4.0, 8.0, 1.0])));
+    */
+    world::Heightmap::load_heightmap(|mesh| {
+        let mesh = meshes.add(mesh);
+        entities.add(Entity {
+            mesh_handle: mesh.clone(),
+            collision_shape: None,
+            transform: Transform::from_translation(Vec3::new(0.0, -10.0, 0.0)),
+        });
+        mesh
+    });
     /*let world = World::load(|mesh| meshes.add(mesh))?;
     world.spawn_entities(|mesh_handle, transform| {
         entities.add(Entity {

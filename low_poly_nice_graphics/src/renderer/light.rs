@@ -17,7 +17,7 @@ impl DirectionalProperties {
             direction,
             ambient: [0.05, 0.05, 0.05, 1.0],
             diffuse: [0.4, 0.4, 0.4, 1.0],
-            specular: [0.5, 0.5, 0.5, 1.0],
+            specular: [0.1, 0.1, 0.1, 1.0],
         }
     }
 }
