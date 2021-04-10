@@ -112,16 +112,7 @@ impl Physics {
         }
         let rigid_body = RigidBodyBuilder::new_static().build();
         let handle = self.bodies.insert(rigid_body);
-        let collider = ColliderBuilder::trimesh(
-            vertices, /*vec![
-                          Point3::new(-5.0, -1.0, -5.0),
-                          Point3::new(-5.0, -1.0, 5.0),
-                          Point3::new(5.0, -1.0, 5.0),
-                          Point3::new(5.0, -1.0, -5.0),
-                      ]*/
-            indices, //vec![[0, 1, 2], [0, 2, 3]],
-        )
-        .build();
+        let collider = ColliderBuilder::trimesh(vertices, indices).build();
         self.colliders.insert(collider, handle, &mut self.bodies);
     }
 

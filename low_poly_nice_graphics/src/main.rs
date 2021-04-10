@@ -64,17 +64,17 @@ fn main() -> Result<(), GameError> {
     let light_mesh_handle = meshes.add(Mesh::from(Cube::new(0.25)));
     lights.add(Light::Directional(DirectionalProperties::new([-1.0, -0.5, -1.0, 1.0])));
 
-    /*lights.add(Light::Spot(SpotProperties::new(
-            [0.0, 14.0, 0.0, 1.0],
-            [0.0, -1.0, 0.0, 1.0],
-        )));
-        lights.add(Light::Spot(SpotProperties::new(
-            [8.0, 14.0, 0.0, 1.0],
-            [0.0, -1.0, 0.0, 1.0],
-        )));
-        lights.add(Light::Point(PointProperties::new([8.0, 14.0, 8.0, 1.0])));
-        lights.add(Light::Point(PointProperties::new([-8.0, 14.0, 8.0, 1.0])));
-    */
+    lights.add(Light::Spot(SpotProperties::new(
+        [0.0, 14.0, 0.0, 1.0],
+        [0.0, -1.0, 0.0, 1.0],
+    )));
+    lights.add(Light::Spot(SpotProperties::new(
+        [8.0, 14.0, 0.0, 1.0],
+        [0.0, -1.0, 0.0, 1.0],
+    )));
+    lights.add(Light::Point(PointProperties::new([8.0, 14.0, 8.0, 1.0])));
+    lights.add(Light::Point(PointProperties::new([-8.0, 14.0, 8.0, 1.0])));
+
     world::Heightmap::load_heightmap(|mesh| {
         let mesh = meshes.add(mesh);
         let entity = entities.add(Entity {
