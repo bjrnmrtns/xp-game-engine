@@ -8,9 +8,10 @@ pub mod mesh;
 mod physics;
 pub mod registry;
 pub mod renderer;
+pub mod tiles;
 pub mod transform;
 pub mod winit_impl;
-pub mod world;
+mod world;
 
 use crate::{
     cameras::FollowCamera,
@@ -21,8 +22,8 @@ use crate::{
     physics::{Body, BodyStatus, CollisionShape, Cuboid, Physics, Sphere},
     registry::Registry,
     renderer::{BindGroup, DirectionalProperties, Light, LightBindGroup, PointProperties, SpotProperties},
+    tiles::LoadError,
     transform::Transform,
-    world::WorldLoadError,
 };
 use glam::Vec3;
 use winit::{
@@ -33,11 +34,11 @@ use winit::{
 
 #[derive(Debug)]
 pub enum GameError {
-    TileLoadError(WorldLoadError),
+    TileLoadError(LoadError),
 }
 
-impl From<WorldLoadError> for GameError {
-    fn from(e: WorldLoadError) -> GameError {
+impl From<LoadError> for GameError {
+    fn from(e: LoadError) -> GameError {
         GameError::TileLoadError(e)
     }
 }
@@ -85,15 +86,6 @@ fn main() -> Result<(), GameError> {
         physics.register_heigtmap(entity, &entities, &meshes);
         mesh
     });
-    /*let world = World::load(|mesh| meshes.add(mesh))?;
-    world.spawn_entities(|mesh_handle, transform| {
-        entities.add(Entity {
-            mesh_handle,
-            collision_shape: None,
-            transform,
-        });
-        ()
-    });*/
 
     let cube = entities.add(Entity {
         mesh_handle: meshes.add(Mesh::from(Cube::new(1.0))),

@@ -2,8 +2,8 @@ use crate::{
     gltf::load_gltf,
     mesh::Mesh,
     registry::Handle,
+    tiles::{tile_loader, LoadError, Tile, TileConfiguration, TileType},
     transform::Transform,
-    world::{tile_loader, Tile, TileConfiguration, TileType, WorldLoadError},
 };
 use glam::{Quat, Vec3};
 use image::GenericImageView;
@@ -68,7 +68,7 @@ fn add_mapping(mapping: &mut HashMap<Tile, Handle<Mesh>>, handle: Handle<Mesh>, 
     }
 }
 
-pub fn load(mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh>) -> Result<HashMap<Tile, Handle<Mesh>>, WorldLoadError> {
+pub fn load(mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh>) -> Result<HashMap<Tile, Handle<Mesh>>, LoadError> {
     let mut mapping = HashMap::new();
     load_prebaked_tiles(&mut mapping, &mut add_mesh);
     load_gltf(std::fs::read("res/gltf/test.gltf").unwrap().as_slice(), |name, mesh| {
@@ -86,7 +86,7 @@ pub struct Tiles {
 }
 
 impl Tiles {
-    pub fn load_tilemap(add_mesh: impl FnMut(Mesh) -> Handle<Mesh>) -> Result<Self, WorldLoadError> {
+    pub fn load_tilemap(add_mesh: impl FnMut(Mesh) -> Handle<Mesh>) -> Result<Self, LoadError> {
         let tile_mapping = tile_loader::load(add_mesh)?;
         let mut grid = Vec::new();
         let world_image =
