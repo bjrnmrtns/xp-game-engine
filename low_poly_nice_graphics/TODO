@@ -37,10 +37,10 @@ DONE 20: Load map from image (use colors from grass stone in image and generate 
 DONE 17: Basic physics, walking around with sphere and hitting cubes and sliding off
 [x] add cube and player sphere to physics world
 [x] detect collision with cube and player sphere
-TODO 23: Render heightmap
+DONE 23: Render heightmap
 [x] render heightmap from image quick and dirty
 [x] add heightmap to physics engine
-[] add physics of heightmap in a non hacky way / make large map possible by adding in chunks to physics
+TODO 26: Figure out voxel rendering big world
 TODO 15: Terrain generation using blue noise (can be implemented using poison disc sampling, use blue noise texture from noise-test) voronoi redblobgames
 TODO 25: Character animation
 TODO 24: sync rotation of Transform between entity and physics // check bevy_rapier
