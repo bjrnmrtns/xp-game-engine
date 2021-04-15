@@ -10,6 +10,7 @@ pub mod registry;
 pub mod renderer;
 pub mod tiles;
 pub mod transform;
+mod voxel;
 pub mod winit_impl;
 mod world;
 
@@ -76,7 +77,18 @@ fn main() -> Result<(), GameError> {
     lights.add(Light::Point(PointProperties::new([8.0, 14.0, 8.0, 1.0])));
     lights.add(Light::Point(PointProperties::new([-8.0, 14.0, 8.0, 1.0])));
 
-    world::Heightmap::load_heightmap(|mesh| {
+    let vox_data = std::fs::read("res/example.vox").unwrap();
+    voxel::load_vox(&vox_data, |mesh| {
+        let mesh = meshes.add(mesh);
+        entities.add(Entity {
+            mesh_handle: mesh.clone(),
+            collision_shape: None,
+            transform: Transform::default(),
+        });
+        mesh
+    });
+
+    /*world::Heightmap::load_heightmap(|mesh| {
         let mesh = meshes.add(mesh);
         let entity = entities.add(Entity {
             mesh_handle: mesh.clone(),
@@ -85,7 +97,7 @@ fn main() -> Result<(), GameError> {
         });
         physics.register_heigtmap(entity, &entities, &meshes);
         mesh
-    });
+    });*/
 
     let cube = entities.add(Entity {
         mesh_handle: meshes.add(Mesh::from(Cube::new(1.0))),

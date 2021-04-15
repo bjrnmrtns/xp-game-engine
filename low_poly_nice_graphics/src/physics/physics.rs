@@ -9,7 +9,7 @@ use glam::Quat;
 use rapier3d::{
     dynamics::{CCDSolver, IntegrationParameters, JointSet, RigidBodyBuilder, RigidBodyHandle, RigidBodySet},
     geometry::{BroadPhase, ColliderBuilder, ColliderHandle, ColliderSet, NarrowPhase},
-    na::{DMatrix, Point3, Vector3},
+    na::Vector3,
     pipeline::PhysicsPipeline,
 };
 use std::collections::HashMap;
@@ -63,7 +63,7 @@ impl Physics {
             }
         }
         self.pipeline.step(
-            &Vector3::new(0.0, -9.81, 0.0),
+            &Vector3::new(0.0, 0.0 /*-9.81*/, 0.0),
             &self.int_params,
             &mut self.broad_phase,
             &mut self.narrow_phase,
@@ -155,7 +155,7 @@ mod tests {
     use rapier2d::{
         dynamics::{IntegrationParameters, JointSet, RigidBodyBuilder, RigidBodySet},
         geometry::{BroadPhase, ColliderBuilder, ColliderSet, NarrowPhase},
-        na::{Isometry2, Vector2},
+        na::Vector2,
         pipeline::PhysicsPipeline,
     };
 
@@ -179,7 +179,7 @@ mod tests {
 
         let rigid_body_handle = bodies.insert(RigidBodyBuilder::new_dynamic().translation(0.0, 0.0).build());
         let collider = ColliderBuilder::ball(0.5).friction(0.0).build();
-        let collider_handle = colliders.insert(collider, rigid_body_handle, &mut bodies);
+        colliders.insert(collider, rigid_body_handle, &mut bodies);
         for _ in 0..1000 {
             bodies
                 .get_mut(rigid_body_handle)
