@@ -99,7 +99,7 @@ pub fn load_vox(buffer: &[u8], mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh>) {
             count += 1;
             let color = palette_to_color(data.palette[voxel.i as usize]);
             let size = 0.1;
-            let pos = [voxel.x as f32 * size, voxel.y as f32 * size, voxel.z as f32 * size];
+            let pos = [voxel.x as f32 * size, voxel.z as f32 * size, voxel.y as f32 * size];
             vertices.extend_from_slice(front_face(pos, color, size).as_slice());
             vertices.extend_from_slice(top_face(pos, color, size).as_slice());
             vertices.extend_from_slice(bottom_face(pos, color, size).as_slice());
@@ -120,9 +120,61 @@ pub fn load_vox(buffer: &[u8], mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh>) {
     });
 }
 
+pub fn load_test_vox_files(mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh>) {
+    let mut count = 0;
+    let mut vertices = Vec::new();
+    let mut offset = 0;
+    for file in test_files() {
+        let buffer = std::fs::read(file).unwrap();
+        if let Ok(data) = dot_vox::load_bytes(buffer.as_slice()) {
+            for model in data.models.iter() {
+                for voxel in model.voxels.iter() {
+                    count += 1;
+                    let color = palette_to_color(data.palette[voxel.i as usize]);
+                    let size = 0.1;
+                    let pos = [voxel.x as u32, voxel.z as u32, voxel.y as u32 + offset];
+                    let pos = [pos[0] as f32 * size, pos[1] as f32 * size, pos[2] as f32 * size];
+                    vertices.extend_from_slice(front_face(pos, color, size).as_slice());
+                    vertices.extend_from_slice(top_face(pos, color, size).as_slice());
+                    vertices.extend_from_slice(bottom_face(pos, color, size).as_slice());
+                    vertices.extend_from_slice(back_face(pos, color, size).as_slice());
+                    vertices.extend_from_slice(left_face(pos, color, size).as_slice());
+                    vertices.extend_from_slice(right_face(pos, color, size).as_slice());
+                }
+                offset += 128;
+            }
+        }
+    }
+    println!(
+        "cubes: {}, triangles: {}, vertices: {}",
+        count,
+        count * 12,
+        count * 12 * 3
+    );
+    add_mesh(Mesh {
+        vertices,
+        just_loaded: true,
+    });
+}
+
 fn palette_to_color(from: u32) -> [f32; 3] {
     let (_a, b, g, r) = (from >> 24 & 0xFF, from >> 16 & 0xFF, from >> 8 & 0xFF, from & 0xFF);
     [r as f32 / 255.0, g as f32 / 255.0, b as f32 / 255.0]
+}
+
+fn test_files() -> &'static [&'static str] {
+    &[
+        /*"res/vox-models/#skyscraper/#skyscraper_01_000.vox",
+        "res/vox-models/#skyscraper/#skyscraper_02_000.vox",
+        "res/vox-models/#skyscraper/#skyscraper_03_000.vox",
+        "res/vox-models/#skyscraper/#skyscraper_06_000.vox",
+        "res/vox-models/#skyscraper/#skyscraper_05_000.vox",
+        "res/vox-models/#skyscraper/#skyscraper_04_000.vox",
+         */
+        //"res/vox-models/#haunted_house/#haunted_house.vox",
+        //        "res/vox-models/#treehouse/#treehouse.vox",
+        "res/vox-models/#phantom_mansion/#phantom_mansion.vox",
+    ]
 }
 
 #[cfg(test)]

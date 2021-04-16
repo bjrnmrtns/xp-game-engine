@@ -77,8 +77,18 @@ fn main() -> Result<(), GameError> {
     lights.add(Light::Point(PointProperties::new([8.0, 14.0, 8.0, 1.0])));
     lights.add(Light::Point(PointProperties::new([-8.0, 14.0, 8.0, 1.0])));
 
-    let vox_data = std::fs::read("res/example.vox").unwrap();
-    voxel::load_vox(&vox_data, |mesh| {
+    /*    let vox_data = std::fs::read("res/example.vox").unwrap();
+        voxel::load_vox(&vox_data, |mesh| {
+            let mesh = meshes.add(mesh);
+            entities.add(Entity {
+                mesh_handle: mesh.clone(),
+                collision_shape: None,
+                transform: Transform::default(),
+            });
+            mesh
+        });
+    */
+    voxel::load_test_vox_files(|mesh| {
         let mesh = meshes.add(mesh);
         entities.add(Entity {
             mesh_handle: mesh.clone(),
@@ -87,17 +97,6 @@ fn main() -> Result<(), GameError> {
         });
         mesh
     });
-
-    /*world::Heightmap::load_heightmap(|mesh| {
-        let mesh = meshes.add(mesh);
-        let entity = entities.add(Entity {
-            mesh_handle: mesh.clone(),
-            collision_shape: None,
-            transform: Transform::default(),
-        });
-        physics.register_heigtmap(entity, &entities, &meshes);
-        mesh
-    });*/
 
     let cube = entities.add(Entity {
         mesh_handle: meshes.add(Mesh::from(Cube::new(1.0))),
@@ -152,12 +151,14 @@ fn main() -> Result<(), GameError> {
                 follow_camera.follow(entities.get(&character).unwrap().transform.clone());
                 input_all.clear_events();
 
+                let before_render = std::time::Instant::now();
                 let target = &renderer
                     .swap_chain
                     .get_current_frame()
                     .expect("Could not get next frame texture_view")
                     .output
                     .view;
+
                 pipeline.render(
                     &entities,
                     &mut meshes,
@@ -167,6 +168,7 @@ fn main() -> Result<(), GameError> {
                     &mut renderer,
                     target,
                 );
+                let after_render = std::time::Instant::now();
                 pipeline_light.render(
                     &light_mesh_handle,
                     &lights,
@@ -175,6 +177,7 @@ fn main() -> Result<(), GameError> {
                     &mut renderer,
                     target,
                 );
+                println!("render-time: {}", (after_render - before_render).as_millis());
             }
             Event::MainEventsCleared => {
                 window.request_redraw();
