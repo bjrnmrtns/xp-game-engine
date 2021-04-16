@@ -157,6 +157,18 @@ pub fn load_test_vox_files(mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh>) {
     });
 }
 
+pub fn load_test_vox_files_culling(mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh>) {
+    let buffer = std::fs::read("res/vox-models/#phantom_mansion/#phantom_mansion.vox").unwrap();
+    if let Ok(data) = dot_vox::load_bytes(buffer.as_slice()) {
+        for (model_number, model) in data.models.iter().enumerate() {
+            let mut grid: Vec<u8> = vec![0; 126 * 126 * 126];
+            for voxel in model.voxels.iter() {
+                grid[voxel.x as usize + voxel.y as usize + voxel.z as usize] = voxel.i;
+            }
+        }
+    }
+}
+
 fn palette_to_color(from: u32) -> [f32; 3] {
     let (_a, b, g, r) = (from >> 24 & 0xFF, from >> 16 & 0xFF, from >> 8 & 0xFF, from & 0xFF);
     [r as f32 / 255.0, g as f32 / 255.0, b as f32 / 255.0]
