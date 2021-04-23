@@ -214,10 +214,8 @@ pub fn load_test_vox_files_culling(mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh
     let chunk_size = 8;
     let mut voxel_grid = VoxelGrid::new(chunk_size);
     voxel_grid.set(0, 0, 0, 1);
-    voxel_grid.set(1, 0, 0, 1);
-    voxel_grid.set(2, 0, 0, 1);
+
     voxel_grid.set(0, 2, 0, 1);
-    voxel_grid.set(1, 2, 0, 1);
     voxel_grid.set(0, 3, 0, 1);
     for norm in 0..3 {
         let tan = (norm + 1) % 3;
@@ -260,9 +258,9 @@ pub fn load_test_vox_files_culling(mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh
                         let mut height = 1;
                         let mut done = false;
                         while y + height < chunk_size && !done {
-                            let mut k = x;
+                            let mut k = 0;
                             while k < width && !done {
-                                if mask.get(k, y + height) == color_id {
+                                if mask.get(x + k, y + height) == color_id {
                                     k += 1;
                                 } else {
                                     done = true;
