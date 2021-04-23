@@ -177,7 +177,7 @@ fn main() -> Result<(), GameError> {
                     &mut renderer,
                     target,
                 );
-                println!("render-time: {}", (after_render - before_render).as_millis());
+                //println!("render-time: {}", (after_render - before_render).as_millis());
             }
             Event::MainEventsCleared => {
                 window.request_redraw();

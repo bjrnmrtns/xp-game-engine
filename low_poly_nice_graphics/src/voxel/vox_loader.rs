@@ -213,11 +213,13 @@ pub fn load_test_vox_files_culling(mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh
     let mut vertices = Vec::new();
     let chunk_size = 8;
     let mut voxel_grid = VoxelGrid::new(chunk_size);
-    voxel_grid.set(0, 0, 0, 1);
+    let color_table = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
 
-    voxel_grid.set(0, 2, 0, 1);
-    voxel_grid.set(0, 3, 0, 1);
-    for norm in 0..3 {
+    voxel_grid.set(0, 2, 0, 0);
+    voxel_grid.set(0, 3, 0, 0);
+    //    voxel_grid.set(0, 4, 0, 1);
+    //    voxel_grid.set(0, 5, 0, 2);
+    for norm in 0..1 {
         let tan = (norm + 1) % 3;
         let bi_tan = (norm + 2) % 3;
         let mut normal = [0, 0, 0];
@@ -280,7 +282,8 @@ pub fn load_test_vox_files_culling(mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh
                         let mut dv = [0.0, 0.0, 0.0];
                         dv[bi_tan] = height as f32;
 
-                        let color = [1.0, 0.0, 0.0];
+                        let color = color_table[m as usize];
+                        print!(". ");
                         vertices.extend_from_slice(&[
                             Vertex::new([base[0], base[1], base[2]], normal_outside, color),
                             Vertex::new(
