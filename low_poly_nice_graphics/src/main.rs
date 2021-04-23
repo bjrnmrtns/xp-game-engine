@@ -67,15 +67,15 @@ fn main() -> Result<(), GameError> {
     lights.add(Light::Directional(DirectionalProperties::new([-1.0, -0.5, -1.0, 1.0])));
 
     lights.add(Light::Spot(SpotProperties::new(
-        [0.0, 14.0, 0.0, 1.0],
+        [0.0, 4.0, 0.0, 1.0],
         [0.0, -1.0, 0.0, 1.0],
     )));
     lights.add(Light::Spot(SpotProperties::new(
-        [8.0, 14.0, 0.0, 1.0],
+        [8.0, 4.0, 0.0, 1.0],
         [0.0, -1.0, 0.0, 1.0],
     )));
-    lights.add(Light::Point(PointProperties::new([8.0, 14.0, 8.0, 1.0])));
-    lights.add(Light::Point(PointProperties::new([-8.0, 14.0, 8.0, 1.0])));
+    lights.add(Light::Point(PointProperties::new([8.0, 4.0, 8.0, 1.0])));
+    lights.add(Light::Point(PointProperties::new([-8.0, 4.0, 8.0, 1.0])));
 
     /*    let vox_data = std::fs::read("res/example.vox").unwrap();
         voxel::load_vox(&vox_data, |mesh| {
@@ -88,7 +88,7 @@ fn main() -> Result<(), GameError> {
             mesh
         });
     */
-    voxel::load_test_vox_files(|mesh| {
+    voxel::load_test_vox_files_culling(|mesh| {
         let mesh = meshes.add(mesh);
         entities.add(Entity {
             mesh_handle: mesh.clone(),
@@ -108,7 +108,7 @@ fn main() -> Result<(), GameError> {
                 half_extent_z: 0.5,
             }),
         }),
-        transform: Transform::from_translation(Vec3::new(0.0, 10.0, 0.0)),
+        transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
     });
 
     physics.register(cube, &entities);
@@ -119,7 +119,7 @@ fn main() -> Result<(), GameError> {
             body_status: BodyStatus::Dynamic,
             body: Body::Sphere(Sphere { radius: 0.5 }),
         }),
-        transform: Transform::from_translation(Vec3::new(0.0, 10.0, 4.0)),
+        transform: Transform::from_translation(Vec3::new(0.0, 0.0, 4.0)),
     });
     physics.register(character.clone(), &entities);
     physics.register_character(character.clone());
