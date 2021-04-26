@@ -226,23 +226,27 @@ pub fn load_test_vox_files_culling(mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh
     voxel_grid.set(0, 4, 1, 1);
     voxel_grid.set(0, 5, 1, 2);
     voxel_grid.set(0, 6, 1, 2);
+    voxel_grid.set(1, 4, 1, 1);
+    voxel_grid.set(1, 5, 1, 2);
+    voxel_grid.set(1, 6, 1, 2);
 
     for norm in 0..3 {
-        let tan = (norm + 1) % 3;
-        let bi_tan = (norm + 2) % 3;
+        let u = (norm + 0) % 3;
+        let v = (norm + 1) % 3;
+        let w = (norm + 2) % 3;
         let mut normal = [0, 0, 0];
-        normal[norm] = 1;
+        normal[u] = 1;
         let normal = normal;
         let normal_outside = [-(normal[0] as f32), -(normal[1] as f32), -(normal[2] as f32)];
 
         for slice in 0..chunk_size {
             let mut cursor = [0, 0, 0];
-            cursor[norm] = slice;
+            cursor[u] = slice;
             let mut mask = Mask::new(chunk_size as usize);
-            for cursor_bi_tan in 0..chunk_size {
-                for cursor_tan in 0..chunk_size {
-                    cursor[tan] = cursor_tan;
-                    cursor[bi_tan] = cursor_bi_tan;
+            for cursor_w in 0..chunk_size {
+                for cursor_v in 0..chunk_size {
+                    cursor[v] = cursor_v;
+                    cursor[w] = cursor_w;
                     let voxel_back = voxel_grid.get(
                         cursor[0] as i32 - normal[0] as i32,
                         cursor[1] as i32 - normal[1] as i32,
@@ -254,7 +258,7 @@ pub fn load_test_vox_files_culling(mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh
                     } else {
                         voxel
                     };
-                    mask.set(cursor[tan], cursor[bi_tan], color_id);
+                    mask.set(cursor[v], cursor[w], color_id);
                 }
             }
             for y in 0..chunk_size {
@@ -281,14 +285,14 @@ pub fn load_test_vox_files_culling(mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh
                             }
                         }
                         let mut base = [0.0, 0.0, 0.0];
-                        base[norm] = slice as f32;
-                        base[tan] = x as f32;
-                        base[bi_tan] = y as f32;
+                        base[u] = slice as f32;
+                        base[v] = x as f32;
+                        base[w] = y as f32;
 
-                        let mut du = [0.0, 0.0, 0.0];
-                        du[tan] = width as f32;
                         let mut dv = [0.0, 0.0, 0.0];
-                        dv[bi_tan] = height as f32;
+                        dv[v] = width as f32;
+                        let mut dw = [0.0, 0.0, 0.0];
+                        dw[w] = height as f32;
 
                         let color = color_table[m as usize];
                         print!(". ");
@@ -296,29 +300,29 @@ pub fn load_test_vox_files_culling(mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh
                             Vertex::new([base[0], base[1], base[2]], normal_outside, color),
                             Vertex::new(
                                 [
-                                    base[0] + du[0] + dv[0],
-                                    base[1] + du[1] + dv[1],
-                                    base[2] + du[2] + dv[2],
+                                    base[0] + dv[0] + dw[0],
+                                    base[1] + dv[1] + dw[1],
+                                    base[2] + dv[2] + dw[2],
                                 ],
                                 normal_outside,
                                 color,
                             ),
                             Vertex::new(
-                                [base[0] + du[0], base[1] + du[1], base[2] + du[2]],
+                                [base[0] + dv[0], base[1] + dv[1], base[2] + dv[2]],
                                 normal_outside,
                                 color,
                             ),
                             Vertex::new([base[0], base[1], base[2]], normal_outside, color),
                             Vertex::new(
-                                [base[0] + dv[0], base[1] + dv[1], base[2] + dv[2]],
+                                [base[0] + dw[0], base[1] + dw[1], base[2] + dw[2]],
                                 normal_outside,
                                 color,
                             ),
                             Vertex::new(
                                 [
-                                    base[0] + du[0] + dv[0],
-                                    base[1] + du[1] + dv[1],
-                                    base[2] + du[2] + dv[2],
+                                    base[0] + dv[0] + dw[0],
+                                    base[1] + dv[1] + dw[1],
+                                    base[2] + dv[2] + dw[2],
                                 ],
                                 normal_outside,
                                 color,
