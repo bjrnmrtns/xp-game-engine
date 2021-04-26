@@ -217,9 +217,17 @@ pub fn load_test_vox_files_culling(mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh
 
     voxel_grid.set(0, 2, 0, 0);
     voxel_grid.set(0, 3, 0, 0);
-    //    voxel_grid.set(0, 4, 0, 1);
-    //    voxel_grid.set(0, 5, 0, 2);
-    for norm in 0..1 {
+    voxel_grid.set(0, 4, 0, 1);
+    voxel_grid.set(0, 5, 0, 2);
+    voxel_grid.set(0, 6, 0, 2);
+    voxel_grid.set(1, 4, 0, 1);
+    voxel_grid.set(1, 5, 0, 2);
+    voxel_grid.set(1, 6, 0, 2);
+    voxel_grid.set(0, 4, 1, 1);
+    voxel_grid.set(0, 5, 1, 2);
+    voxel_grid.set(0, 6, 1, 2);
+
+    for norm in 0..3 {
         let tan = (norm + 1) % 3;
         let bi_tan = (norm + 2) % 3;
         let mut normal = [0, 0, 0];
@@ -316,8 +324,8 @@ pub fn load_test_vox_files_culling(mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh
                                 color,
                             ),
                         ]);
-                        for yy in y..height {
-                            for xx in x..width {
+                        for yy in y..y + height {
+                            for xx in x..x + width {
                                 mask.set(xx, yy, None);
                             }
                         }
