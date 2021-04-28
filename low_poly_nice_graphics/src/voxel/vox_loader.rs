@@ -141,7 +141,7 @@ impl VoxelGrid {
     }
 
     pub fn get(&mut self, x: i32, y: i32, z: i32) -> Option<u8> {
-        if x >= 0 && y >= 0 && z >= 0 {
+        if x >= 0 && y >= 0 && z >= 0 && x < self.size as i32 && y < self.size as i32 && z < self.size as i32 {
             self.data[z as usize * self.size * self.size + y as usize * self.size + x as usize]
         } else {
             None
@@ -209,6 +209,28 @@ pub fn load_test_vox_files(mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh>) {
     });
 }
 
+struct Descriptor {
+    pub u: usize,
+    pub v: usize,
+    pub w: usize,
+    pub step: i32,
+    pub normal: [i32; 3],
+    pub q: [i32; 3],
+}
+
+impl Descriptor {
+    pub fn new(u: usize, v: usize, w: usize, step: i32, normal: [i32; 3], q: [i32; 3]) -> Self {
+        Self {
+            u,
+            v,
+            w,
+            step,
+            normal,
+            q,
+        }
+    }
+}
+
 pub fn load_test_vox_files_culling(mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh>) {
     let mut vertices = Vec::new();
     let chunk_size = 8;
@@ -230,16 +252,24 @@ pub fn load_test_vox_files_culling(mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh
     voxel_grid.set(1, 5, 1, 2);
     voxel_grid.set(1, 6, 1, 2);
 
-    for norm in 0..3 {
-        let u = (norm + 0) % 3;
-        let v = (norm + 1) % 3;
-        let w = (norm + 2) % 3;
-        let mut normal = [0, 0, 0];
-        normal[u] = 1;
-        let normal = normal;
+    let descriptors = [
+        Descriptor::new(0, 1, 2, 1, [1, 0, 0], [0, 0, 0]),
+        Descriptor::new(0, 1, 2, -1, [-1, 0, 0], [1, 0, 0]),
+        Descriptor::new(1, 2, 0, 1, [0, 1, 0], [0, 0, 0]),
+        Descriptor::new(1, 2, 0, -1, [0, -1, 0], [1, 0, 0]),
+        Descriptor::new(2, 0, 1, 1, [0, 0, 1], [0, 0, 0]),
+        Descriptor::new(2, 0, 1, -1, [0, 0, -1], [1, 0, 0]),
+    ];
+
+    for d in descriptors.iter() {
+        let u = d.u;
+        let v = d.v;
+        let w = d.w;
+        let normal = d.normal;
         let normal_outside = [-(normal[0] as f32), -(normal[1] as f32), -(normal[2] as f32)];
 
         for slice in 0..chunk_size {
+            let slice = if d.step == 1 { slice } else { chunk_size - (slice + 1) };
             let mut cursor = [0, 0, 0];
             cursor[u] = slice;
             let mut mask = Mask::new(chunk_size as usize);
@@ -285,9 +315,9 @@ pub fn load_test_vox_files_culling(mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh
                             }
                         }
                         let mut base = [0.0, 0.0, 0.0];
-                        base[u] = slice as f32;
-                        base[v] = x as f32;
-                        base[w] = y as f32;
+                        base[u] = slice as f32 + d.q[0] as f32;
+                        base[v] = x as f32 + d.q[1] as f32;
+                        base[w] = y as f32 + d.q[2] as f32;
 
                         let mut dv = [0.0, 0.0, 0.0];
                         dv[v] = width as f32;
@@ -296,38 +326,73 @@ pub fn load_test_vox_files_culling(mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh
 
                         let color = color_table[m as usize];
                         print!(". ");
-                        vertices.extend_from_slice(&[
-                            Vertex::new([base[0], base[1], base[2]], normal_outside, color),
-                            Vertex::new(
-                                [
-                                    base[0] + dv[0] + dw[0],
-                                    base[1] + dv[1] + dw[1],
-                                    base[2] + dv[2] + dw[2],
-                                ],
-                                normal_outside,
-                                color,
-                            ),
-                            Vertex::new(
-                                [base[0] + dv[0], base[1] + dv[1], base[2] + dv[2]],
-                                normal_outside,
-                                color,
-                            ),
-                            Vertex::new([base[0], base[1], base[2]], normal_outside, color),
-                            Vertex::new(
-                                [base[0] + dw[0], base[1] + dw[1], base[2] + dw[2]],
-                                normal_outside,
-                                color,
-                            ),
-                            Vertex::new(
-                                [
-                                    base[0] + dv[0] + dw[0],
-                                    base[1] + dv[1] + dw[1],
-                                    base[2] + dv[2] + dw[2],
-                                ],
-                                normal_outside,
-                                color,
-                            ),
-                        ]);
+                        if d.step == 1 {
+                            vertices.extend_from_slice(&[
+                                Vertex::new([base[0], base[1], base[2]], normal_outside, color),
+                                Vertex::new(
+                                    [
+                                        base[0] + dv[0] + dw[0],
+                                        base[1] + dv[1] + dw[1],
+                                        base[2] + dv[2] + dw[2],
+                                    ],
+                                    normal_outside,
+                                    color,
+                                ),
+                                Vertex::new(
+                                    [base[0] + dv[0], base[1] + dv[1], base[2] + dv[2]],
+                                    normal_outside,
+                                    color,
+                                ),
+                                Vertex::new([base[0], base[1], base[2]], normal_outside, color),
+                                Vertex::new(
+                                    [base[0] + dw[0], base[1] + dw[1], base[2] + dw[2]],
+                                    normal_outside,
+                                    color,
+                                ),
+                                Vertex::new(
+                                    [
+                                        base[0] + dv[0] + dw[0],
+                                        base[1] + dv[1] + dw[1],
+                                        base[2] + dv[2] + dw[2],
+                                    ],
+                                    normal_outside,
+                                    color,
+                                ),
+                            ]);
+                        } else {
+                            vertices.extend_from_slice(&[
+                                Vertex::new([base[0], base[1], base[2]], normal_outside, color),
+                                Vertex::new(
+                                    [base[0] + dv[0], base[1] + dv[1], base[2] + dv[2]],
+                                    normal_outside,
+                                    color,
+                                ),
+                                Vertex::new(
+                                    [
+                                        base[0] + dv[0] + dw[0],
+                                        base[1] + dv[1] + dw[1],
+                                        base[2] + dv[2] + dw[2],
+                                    ],
+                                    normal_outside,
+                                    color,
+                                ),
+                                Vertex::new([base[0], base[1], base[2]], normal_outside, color),
+                                Vertex::new(
+                                    [
+                                        base[0] + dv[0] + dw[0],
+                                        base[1] + dv[1] + dw[1],
+                                        base[2] + dv[2] + dw[2],
+                                    ],
+                                    normal_outside,
+                                    color,
+                                ),
+                                Vertex::new(
+                                    [base[0] + dw[0], base[1] + dw[1], base[2] + dw[2]],
+                                    normal_outside,
+                                    color,
+                                ),
+                            ]);
+                        }
                         for yy in y..y + height {
                             for xx in x..x + width {
                                 mask.set(xx, yy, None);
@@ -368,17 +433,11 @@ fn test_files() -> &'static [&'static str] {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        registry::Registry,
-        voxel::vox_loader::{load_test_vox_files_culling, load_vox},
-    };
 
     #[test]
     fn test() {
-        load_test_vox_files_culling(|mesh| {
-            let mut registry = Registry::new();
-            let mesh = registry.add(mesh);
-            mesh
-        });
+        for i in 10..0 {
+            println!("{}", i);
+        }
     }
 }
