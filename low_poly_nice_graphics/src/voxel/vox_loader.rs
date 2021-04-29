@@ -90,9 +90,21 @@ fn back_face(pos: [f32; 3], color: [f32; 3], size: f32) -> Vec<Vertex> {
     vertices
 }
 
+fn make_cube(vertices: &mut Vec<Vertex>, indices: &mut Vec<u32>, pos: [f32; 3], color: [f32; 3], size: f32) {
+    let count = vertices.len() as u32;
+    vertices.extend_from_slice(front_face(pos, color, size).as_slice());
+    vertices.extend_from_slice(top_face(pos, color, size).as_slice());
+    vertices.extend_from_slice(bottom_face(pos, color, size).as_slice());
+    vertices.extend_from_slice(back_face(pos, color, size).as_slice());
+    vertices.extend_from_slice(left_face(pos, color, size).as_slice());
+    vertices.extend_from_slice(right_face(pos, color, size).as_slice());
+    indices.extend((0..36).into_iter().map(|i| count + i));
+}
+
 pub fn load_vox(buffer: &[u8], mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh>) {
     let data = dot_vox::load_bytes(buffer).unwrap();
     let mut vertices = Vec::new();
+    let mut indices = Vec::new();
     let mut count = 0;
     for model in data.models.iter() {
         for voxel in model.voxels.iter() {
@@ -100,12 +112,7 @@ pub fn load_vox(buffer: &[u8], mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh>) {
             let color = palette_to_color(data.palette[voxel.i as usize]);
             let size = 0.1;
             let pos = [voxel.x as f32 * size, voxel.z as f32 * size, voxel.y as f32 * size];
-            vertices.extend_from_slice(front_face(pos, color, size).as_slice());
-            vertices.extend_from_slice(top_face(pos, color, size).as_slice());
-            vertices.extend_from_slice(bottom_face(pos, color, size).as_slice());
-            vertices.extend_from_slice(back_face(pos, color, size).as_slice());
-            vertices.extend_from_slice(left_face(pos, color, size).as_slice());
-            vertices.extend_from_slice(right_face(pos, color, size).as_slice());
+            make_cube(&mut vertices, &mut indices, pos, color, size);
         }
     }
     println!(
@@ -116,6 +123,7 @@ pub fn load_vox(buffer: &[u8], mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh>) {
     );
     add_mesh(Mesh {
         vertices,
+        indices,
         just_loaded: true,
     });
 }
@@ -172,7 +180,7 @@ impl Mask {
     }
 }
 
-pub fn load_test_vox_files(mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh>) {
+/*pub fn load_test_vox_files(mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh>) {
     let mut count = 0;
     let mut vertices = Vec::new();
     let mut offset = 0;
@@ -207,7 +215,7 @@ pub fn load_test_vox_files(mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh>) {
         vertices,
         just_loaded: true,
     });
-}
+}*/
 
 struct Descriptor {
     pub u: usize,
@@ -233,6 +241,7 @@ impl Descriptor {
 
 pub fn load_test_vox_files_culling(mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh>) {
     let mut vertices = Vec::new();
+    let mut indices = Vec::new();
     let chunk_size = 8;
     let mut voxel_grid = VoxelGrid::new(chunk_size);
     let color_table = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
@@ -326,6 +335,7 @@ pub fn load_test_vox_files_culling(mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh
 
                         let color = color_table[m as usize];
                         print!(". ");
+                        let count = vertices.len() as u32;
                         if d.step == 1 {
                             vertices.extend_from_slice(&[
                                 Vertex::new([base[0], base[1], base[2]], normal_outside, color),
@@ -393,6 +403,7 @@ pub fn load_test_vox_files_culling(mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh
                                 ),
                             ]);
                         }
+                        indices.extend((0..6).into_iter().map(|i| count + i));
                         for yy in y..y + height {
                             for xx in x..x + width {
                                 mask.set(xx, yy, None);
@@ -406,6 +417,7 @@ pub fn load_test_vox_files_culling(mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh
     }
     add_mesh(Mesh {
         vertices,
+        indices,
         just_loaded: true,
     });
 }

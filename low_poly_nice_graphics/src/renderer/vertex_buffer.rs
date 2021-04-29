@@ -8,6 +8,7 @@ use wgpu::util::DeviceExt;
 #[derive(Debug)]
 pub struct VertexBuffer {
     pub vertex_buffer: wgpu::Buffer,
+    pub index_buffer: wgpu::Buffer,
     pub len: u32,
 }
 
@@ -18,9 +19,15 @@ impl VertexBuffer {
             contents: bytemuck::cast_slice(mesh.vertices.as_slice()),
             usage: wgpu::BufferUsage::VERTEX,
         });
+        let index_buffer = renderer.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: None,
+            contents: bytemuck::cast_slice(mesh.indices.as_slice()),
+            usage: wgpu::BufferUsage::INDEX,
+        });
         Self {
             vertex_buffer,
-            len: mesh.vertices.len() as u32,
+            index_buffer,
+            len: mesh.indices.len() as u32,
         }
     }
 }

@@ -8,6 +8,7 @@ use crate::{
 };
 use glam::{Mat4, Vec3};
 use std::io::Read;
+use wgpu::BufferSlice;
 
 pub struct LightPipeline {
     render_pipeline: wgpu::RenderPipeline,
@@ -62,7 +63,7 @@ impl LightPipeline {
             },
             primitive: wgpu::PrimitiveState {
                 topology: wgpu::PrimitiveTopology::TriangleList,
-                strip_index_format: None,
+                strip_index_format: Some(wgpu::IndexFormat::Uint32),
                 front_face: wgpu::FrontFace::Ccw,
                 cull_mode: wgpu::CullMode::Back,
                 polygon_mode: wgpu::PolygonMode::Fill,
@@ -155,8 +156,9 @@ impl LightPipeline {
             let vb = renderer.vertex_buffers.get(&light_handle.id).unwrap();
             render_pass.set_pipeline(&self.render_pipeline);
             render_pass.set_vertex_buffer(0, vb.vertex_buffer.slice(..));
+            render_pass.set_index_buffer(vb.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
             render_pass.set_bind_group(0, &bindgroup.bind_group, &[]);
-            render_pass.draw(0..vb.len, 0..transforms.len() as u32);
+            render_pass.draw_indexed(0..vb.len, 0, 0..transforms.len() as u32);
         }
         renderer.queue.submit(std::iter::once(encoder.finish()));
     }

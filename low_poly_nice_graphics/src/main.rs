@@ -8,7 +8,6 @@ pub mod mesh;
 mod physics;
 pub mod registry;
 pub mod renderer;
-pub mod tiles;
 pub mod transform;
 mod voxel;
 pub mod winit_impl;
@@ -23,7 +22,6 @@ use crate::{
     physics::{Body, BodyStatus, CollisionShape, Cuboid, Physics, Sphere},
     registry::Registry,
     renderer::{BindGroup, DirectionalProperties, Light, LightBindGroup, PointProperties, SpotProperties},
-    tiles::LoadError,
     transform::Transform,
 };
 use glam::Vec3;
@@ -34,15 +32,7 @@ use winit::{
 };
 
 #[derive(Debug)]
-pub enum GameError {
-    TileLoadError(LoadError),
-}
-
-impl From<LoadError> for GameError {
-    fn from(e: LoadError) -> GameError {
-        GameError::TileLoadError(e)
-    }
-}
+pub enum GameError {}
 
 fn main() -> Result<(), GameError> {
     let event_loop = EventLoop::new();

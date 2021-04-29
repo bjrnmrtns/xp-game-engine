@@ -1,7 +1,6 @@
 use crate::{
     generators::{Height, Zero},
     mesh::Vertex,
-    tiles::{Tile, TileConfiguration, TileType},
 };
 use glam::Vec3;
 use std::collections::HashMap;
@@ -9,6 +8,7 @@ use std::collections::HashMap;
 #[derive(Clone)]
 pub struct Mesh {
     pub vertices: Vec<Vertex>,
+    pub indices: Vec<u32>,
     pub just_loaded: bool,
 }
 
@@ -47,6 +47,8 @@ impl From<Plane> for Mesh {
         let increments = 2i32.pow(plane.subdivisions);
         let increment = plane.size / increments as f32;
         let mut vertices = Vec::new();
+        let mut indices = Vec::new();
+        let mut index_count = 0;
         for x in 0..increments {
             for z in 0..increments {
                 let x = x as f32 - increments as f32 / 2.0;
@@ -108,10 +110,20 @@ impl From<Plane> for Mesh {
                         color: [0.86, 0.86, 0.86],
                     },
                 ]);
+                indices.extend_from_slice(&[
+                    index_count,
+                    index_count + 1,
+                    index_count + 2,
+                    index_count + 3,
+                    index_count + 4,
+                    index_count + 5,
+                ]);
+                index_count += 6;
             }
         }
         Self {
             vertices,
+            indices,
             just_loaded: true,
         }
     }
@@ -133,6 +145,7 @@ impl From<Cube> for Mesh {
         let min = -max;
         let color = [1.0, 1.0, 1.0];
         let mut vertices = Vec::new();
+        let mut indices = Vec::new();
         let normal_top = [0.0, 1.0, 0.0];
         let normal_bottom = [0.0, -1.0, 0.0];
         let normal_right = [1.0, 0.0, 0.0];
@@ -183,8 +196,13 @@ impl From<Cube> for Mesh {
             Vertex::new([max, min, min], normal_back, color),
             Vertex::new([min, min, min], normal_back, color),
         ]);
+        indices.extend_from_slice(&[
+            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28,
+            29, 30, 31, 32, 33, 34, 35,
+        ]);
         Self {
             vertices,
+            indices,
             just_loaded: true,
         }
     }
@@ -288,8 +306,10 @@ impl From<IcoSphere> for Mesh {
             triangles = sphere_subdivide(&mut points, triangles.as_slice());
         }
         let mut vertices = Vec::new();
+        let mut indices = Vec::new();
         for triangle in &triangles {
             let normal = triangle_normal(points[triangle[0]], points[triangle[1]], points[triangle[2]]);
+            let mut count = vertices.len() as u32;
             vertices.push(Vertex::new(
                 scale_vertex(points[triangle[0]], sphere.radius),
                 normal,
@@ -305,209 +325,11 @@ impl From<IcoSphere> for Mesh {
                 normal,
                 color,
             ));
+            indices.extend((0..3).into_iter().map(|i| count + i));
         }
         Self {
             vertices,
-            just_loaded: true,
-        }
-    }
-}
-
-impl From<Tile> for Mesh {
-    fn from(tile: Tile) -> Self {
-        let mut vertices = Vec::new();
-        let max = 0.5;
-        let min = -0.5;
-        let green = [0.0, 1.0, 0.0];
-        let grey = [0.5, 0.5, 0.5];
-        let pink = [1.0, 0.0, 1.0];
-        let normal_left = [-1.0, 0.0, 0.0];
-        let normal_right = [1.0, 0.0, 0.0];
-        let normal_front = [0.0, 0.0, 1.0];
-        let normal_back = [0.0, 0.0, -1.0];
-        let normal_top = [0.0, 1.0, 0.0];
-        match tile.tile_type {
-            TileType::Empty => {
-                vertices.extend_from_slice(&[
-                    // ground plane
-                    Vertex::new([min, 0.0, min], normal_top, pink),
-                    Vertex::new([min, 0.0, max], normal_top, pink),
-                    Vertex::new([max, 0.0, max], normal_top, pink),
-                    Vertex::new([min, 0.0, min], normal_top, pink),
-                    Vertex::new([max, 0.0, max], normal_top, pink),
-                    Vertex::new([max, 0.0, min], normal_top, pink),
-                ]);
-            }
-            TileType::Grass => match tile.configuration {
-                _ => {
-                    vertices.extend_from_slice(&[
-                        // ground plane
-                        Vertex::new([min, 0.0, min], normal_top, green),
-                        Vertex::new([min, 0.0, max], normal_top, green),
-                        Vertex::new([max, 0.0, max], normal_top, green),
-                        Vertex::new([min, 0.0, min], normal_top, green),
-                        Vertex::new([max, 0.0, max], normal_top, green),
-                        Vertex::new([max, 0.0, min], normal_top, green),
-                    ]);
-                }
-            },
-            TileType::Stone => match tile.configuration {
-                TileConfiguration::NoSides => {
-                    vertices.extend_from_slice(&[
-                        // ground plane
-                        Vertex::new([min, 0.1, min], normal_top, grey),
-                        Vertex::new([min, 0.1, max], normal_top, grey),
-                        Vertex::new([max, 0.1, max], normal_top, grey),
-                        Vertex::new([min, 0.1, min], normal_top, grey),
-                        Vertex::new([max, 0.1, max], normal_top, grey),
-                        Vertex::new([max, 0.1, min], normal_top, grey),
-                    ]);
-                }
-                TileConfiguration::OneSide => {
-                    vertices.extend_from_slice(&[
-                        // ground plane
-                        Vertex::new([min, 0.1, min], normal_top, grey),
-                        Vertex::new([min, 0.1, max], normal_top, grey),
-                        Vertex::new([max, 0.1, max], normal_top, grey),
-                        Vertex::new([min, 0.1, min], normal_top, grey),
-                        Vertex::new([max, 0.1, max], normal_top, grey),
-                        Vertex::new([max, 0.1, min], normal_top, grey),
-                        // back
-                        Vertex::new([min, 0.0, min], normal_back, grey),
-                        Vertex::new([min, 0.1, min], normal_back, grey),
-                        Vertex::new([max, 0.0, min], normal_back, grey),
-                        Vertex::new([max, 0.0, min], normal_back, grey),
-                        Vertex::new([min, 0.1, min], normal_back, grey),
-                        Vertex::new([max, 0.1, min], normal_back, grey),
-                    ]);
-                }
-
-                TileConfiguration::BothSides => {
-                    vertices.extend_from_slice(&[
-                        // ground plane
-                        Vertex::new([min, 0.1, min], normal_top, grey),
-                        Vertex::new([min, 0.1, max], normal_top, grey),
-                        Vertex::new([max, 0.1, max], normal_top, grey),
-                        Vertex::new([min, 0.1, min], normal_top, grey),
-                        Vertex::new([max, 0.1, max], normal_top, grey),
-                        Vertex::new([max, 0.1, min], normal_top, grey),
-                        // left
-                        Vertex::new([min, 0.0, min], normal_left, grey),
-                        Vertex::new([min, 0.0, max], normal_left, grey),
-                        Vertex::new([min, 0.1, min], normal_left, grey),
-                        Vertex::new([min, 0.1, min], normal_left, grey),
-                        Vertex::new([min, 0.0, max], normal_left, grey),
-                        Vertex::new([min, 0.1, max], normal_left, grey),
-                        // right
-                        Vertex::new([max, 0.0, min], normal_right, grey),
-                        Vertex::new([max, 0.1, min], normal_right, grey),
-                        Vertex::new([max, 0.0, max], normal_right, grey),
-                        Vertex::new([max, 0.1, min], normal_right, grey),
-                        Vertex::new([max, 0.1, max], normal_right, grey),
-                        Vertex::new([max, 0.0, max], normal_right, grey),
-                    ]);
-                }
-                TileConfiguration::Corner => {
-                    vertices.extend_from_slice(&[
-                        // ground plane
-                        Vertex::new([min, 0.1, min], normal_top, grey),
-                        Vertex::new([min, 0.1, max], normal_top, grey),
-                        Vertex::new([max, 0.1, max], normal_top, grey),
-                        Vertex::new([min, 0.1, min], normal_top, grey),
-                        Vertex::new([max, 0.1, max], normal_top, grey),
-                        Vertex::new([max, 0.1, min], normal_top, grey),
-                        // back
-                        Vertex::new([min, 0.0, min], normal_back, grey),
-                        Vertex::new([min, 0.1, min], normal_back, grey),
-                        Vertex::new([max, 0.0, min], normal_back, grey),
-                        Vertex::new([max, 0.0, min], normal_back, grey),
-                        Vertex::new([min, 0.1, min], normal_back, grey),
-                        Vertex::new([max, 0.1, min], normal_back, grey),
-                        // left
-                        Vertex::new([min, 0.0, min], normal_left, grey),
-                        Vertex::new([min, 0.0, max], normal_left, grey),
-                        Vertex::new([min, 0.1, min], normal_left, grey),
-                        Vertex::new([min, 0.1, min], normal_left, grey),
-                        Vertex::new([min, 0.0, max], normal_left, grey),
-                        Vertex::new([min, 0.1, max], normal_left, grey),
-                    ]);
-                }
-                TileConfiguration::USide => {
-                    vertices.extend_from_slice(&[
-                        // ground plane
-                        Vertex::new([min, 0.1, min], normal_top, grey),
-                        Vertex::new([min, 0.1, max], normal_top, grey),
-                        Vertex::new([max, 0.1, max], normal_top, grey),
-                        Vertex::new([min, 0.1, min], normal_top, grey),
-                        Vertex::new([max, 0.1, max], normal_top, grey),
-                        Vertex::new([max, 0.1, min], normal_top, grey),
-                        // back
-                        Vertex::new([min, 0.0, min], normal_back, grey),
-                        Vertex::new([min, 0.1, min], normal_back, grey),
-                        Vertex::new([max, 0.0, min], normal_back, grey),
-                        Vertex::new([max, 0.0, min], normal_back, grey),
-                        Vertex::new([min, 0.1, min], normal_back, grey),
-                        Vertex::new([max, 0.1, min], normal_back, grey),
-                        // left
-                        Vertex::new([min, 0.0, min], normal_left, grey),
-                        Vertex::new([min, 0.0, max], normal_left, grey),
-                        Vertex::new([min, 0.1, min], normal_left, grey),
-                        Vertex::new([min, 0.1, min], normal_left, grey),
-                        Vertex::new([min, 0.0, max], normal_left, grey),
-                        Vertex::new([min, 0.1, max], normal_left, grey),
-                        // right
-                        Vertex::new([max, 0.0, min], normal_right, grey),
-                        Vertex::new([max, 0.1, min], normal_right, grey),
-                        Vertex::new([max, 0.0, max], normal_right, grey),
-                        Vertex::new([max, 0.1, min], normal_right, grey),
-                        Vertex::new([max, 0.1, max], normal_right, grey),
-                        Vertex::new([max, 0.0, max], normal_right, grey),
-                    ]);
-                }
-                TileConfiguration::All => {
-                    vertices.extend_from_slice(&[
-                        // ground plane
-                        Vertex::new([min, 0.1, min], normal_top, grey),
-                        Vertex::new([min, 0.1, max], normal_top, grey),
-                        Vertex::new([max, 0.1, max], normal_top, grey),
-                        Vertex::new([min, 0.1, min], normal_top, grey),
-                        Vertex::new([max, 0.1, max], normal_top, grey),
-                        Vertex::new([max, 0.1, min], normal_top, grey),
-                        // front
-                        Vertex::new([min, 0.0, max], normal_front, grey),
-                        Vertex::new([max, 0.0, max], normal_front, grey),
-                        Vertex::new([min, 0.1, max], normal_front, grey),
-                        Vertex::new([max, 0.0, max], normal_front, grey),
-                        Vertex::new([max, 0.1, max], normal_front, grey),
-                        Vertex::new([min, 0.1, max], normal_front, grey),
-                        // back
-                        Vertex::new([min, 0.0, min], normal_back, grey),
-                        Vertex::new([min, 0.1, min], normal_back, grey),
-                        Vertex::new([max, 0.0, min], normal_back, grey),
-                        Vertex::new([max, 0.0, min], normal_back, grey),
-                        Vertex::new([min, 0.1, min], normal_back, grey),
-                        Vertex::new([max, 0.1, min], normal_back, grey),
-                        // left
-                        Vertex::new([min, 0.0, min], normal_left, grey),
-                        Vertex::new([min, 0.0, max], normal_left, grey),
-                        Vertex::new([min, 0.1, min], normal_left, grey),
-                        Vertex::new([min, 0.1, min], normal_left, grey),
-                        Vertex::new([min, 0.0, max], normal_left, grey),
-                        Vertex::new([min, 0.1, max], normal_left, grey),
-                        // right
-                        Vertex::new([max, 0.0, min], normal_right, grey),
-                        Vertex::new([max, 0.1, min], normal_right, grey),
-                        Vertex::new([max, 0.0, max], normal_right, grey),
-                        Vertex::new([max, 0.1, min], normal_right, grey),
-                        Vertex::new([max, 0.1, max], normal_right, grey),
-                        Vertex::new([max, 0.0, max], normal_right, grey),
-                    ]);
-                }
-            },
-            TileType::Test => assert!(false),
-        }
-        Self {
-            vertices,
+            indices,
             just_loaded: true,
         }
     }

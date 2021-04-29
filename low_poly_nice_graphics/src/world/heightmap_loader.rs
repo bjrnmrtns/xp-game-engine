@@ -14,6 +14,7 @@ impl Heightmap {
         let width = 200;
         let height = 200;
         let mut vertices = Vec::new();
+        let mut indices = Vec::new();
         let height_divisor = 10.0;
         for x in 0..height {
             for z in 0..width {
@@ -51,6 +52,7 @@ impl Heightmap {
                 let color = [0.0, 0.0, 1.0];
                 let normal_first: [f32; 3] = triangle_normal(p00, p01, p11);
                 let normal_second: [f32; 3] = triangle_normal(p00, p11, p10);
+                let count = vertices.len() as u32;
                 vertices.extend_from_slice(&[
                     Vertex::new(p00, normal_first, color),
                     Vertex::new(p01, normal_first, color),
@@ -59,10 +61,12 @@ impl Heightmap {
                     Vertex::new(p11, normal_second, color),
                     Vertex::new(p10, normal_second, color),
                 ]);
+                indices.extend((0..6).into_iter().map(|i| count + i));
             }
         }
         add_mesh(Mesh {
             vertices,
+            indices,
             just_loaded: true,
         });
     }

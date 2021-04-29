@@ -29,6 +29,7 @@ pub fn load_gltf(bytes: &[u8], mut named_mesh: impl FnMut(String, Mesh)) -> Resu
         if let Some(node_name) = node.name() {
             let mesh = node.mesh().unwrap();
             let mut vertices = Vec::new();
+            let mut indices = Vec::new();
             for primitive in mesh.primitives() {
                 if primitive.mode() != Mode::Triangles {
                     return Err(MeshLoadError::UnsupportedPrimitiveMode);
@@ -36,12 +37,13 @@ pub fn load_gltf(bytes: &[u8], mut named_mesh: impl FnMut(String, Mesh)) -> Resu
                 let reader = primitive.reader(|buffer| Some(&buffer_data[buffer.index()]));
 
                 if let Some(positions) = reader.read_positions().map(|v| v.collect::<Vec<[f32; 3]>>()) {
-                    if let Some(indices) = reader
+                    if let Some(gltf_indices) = reader
                         .read_indices()
                         .map(|indices| indices.into_u32().collect::<Vec<u32>>())
                     {
-                        assert!(indices.len() % 3 == 0);
-                        for i in indices.chunks(3) {
+                        assert!(gltf_indices.len() % 3 == 0);
+                        let mut count = 0;
+                        for i in gltf_indices.chunks(3) {
                             let v0 = positions[i[0] as usize];
                             let v1 = positions[i[1] as usize];
                             let v2 = positions[i[2] as usize];
@@ -63,6 +65,8 @@ pub fn load_gltf(bytes: &[u8], mut named_mesh: impl FnMut(String, Mesh)) -> Resu
                                     color: [1.0, 0.0, 0.0],
                                 },
                             ]);
+                            indices.extend_from_slice(&[count, count + 1, count + 2]);
+                            count += 3;
                         }
                     }
                 }
@@ -71,6 +75,7 @@ pub fn load_gltf(bytes: &[u8], mut named_mesh: impl FnMut(String, Mesh)) -> Resu
                 node_name.to_string(),
                 Mesh {
                     vertices,
+                    indices,
                     just_loaded: true,
                 },
             );
