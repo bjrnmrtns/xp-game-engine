@@ -148,7 +148,7 @@ impl VoxelGrid {
         self.data[z as usize * self.size * self.size + y as usize * self.size + x as usize] = Some(color_id);
     }
 
-    pub fn get(&mut self, x: i32, y: i32, z: i32) -> Option<u8> {
+    pub fn get(&self, x: i32, y: i32, z: i32) -> Option<u8> {
         if x >= 0 && y >= 0 && z >= 0 && x < self.size as i32 && y < self.size as i32 && z < self.size as i32 {
             self.data[z as usize * self.size * self.size + y as usize * self.size + x as usize]
         } else {
@@ -239,14 +239,21 @@ impl Descriptor {
     }
 }
 
-pub fn load_test_vox_files_culling(mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh>) {
-    let mut vertices = Vec::new();
-    let mut indices = Vec::new();
-    let chunk_size = 8;
-    let mut voxel_grid = VoxelGrid::new(chunk_size);
-    let color_table = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
-
-    voxel_grid.set(0, 2, 0, 0);
+pub fn load_voxel_grid_as_mesh(mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh>) {
+    let chunk_size = 128;
+    for file in test_files() {
+        let mut voxel_grid = VoxelGrid::new(chunk_size);
+        let buffer = std::fs::read(file).unwrap();
+        if let Ok(data) = dot_vox::load_bytes(buffer.as_slice()) {
+            for model in data.models.iter() {
+                for voxel in model.voxels.iter() {
+                    voxel_grid.set(voxel.x as i32, voxel.z as i32, voxel.y as i32, voxel.i);
+                }
+            }
+            greedy_mesh(voxel_grid, data.palette.as_slice(), &mut add_mesh);
+        }
+    }
+    /*voxel_grid.set(0, 2, 0, 0);
     voxel_grid.set(0, 3, 0, 0);
     voxel_grid.set(0, 4, 0, 1);
     voxel_grid.set(0, 5, 0, 2);
@@ -260,6 +267,13 @@ pub fn load_test_vox_files_culling(mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh
     voxel_grid.set(1, 4, 1, 1);
     voxel_grid.set(1, 5, 1, 2);
     voxel_grid.set(1, 6, 1, 2);
+
+     */
+}
+
+fn greedy_mesh(voxel_grid: VoxelGrid, color_table: &[u32], mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh>) {
+    let mut vertices = Vec::new();
+    let mut indices = Vec::new();
 
     let descriptors = [
         Descriptor::new(0, 1, 2, 1, [1, 0, 0], [0, 0, 0]),
@@ -277,13 +291,17 @@ pub fn load_test_vox_files_culling(mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh
         let normal = d.normal;
         let normal_outside = [-(normal[0] as f32), -(normal[1] as f32), -(normal[2] as f32)];
 
-        for slice in 0..chunk_size {
-            let slice = if d.step == 1 { slice } else { chunk_size - (slice + 1) };
+        for slice in 0..voxel_grid.size {
+            let slice = if d.step == 1 {
+                slice
+            } else {
+                voxel_grid.size - (slice + 1)
+            };
             let mut cursor = [0, 0, 0];
             cursor[u] = slice;
-            let mut mask = Mask::new(chunk_size as usize);
-            for cursor_w in 0..chunk_size {
-                for cursor_v in 0..chunk_size {
+            let mut mask = Mask::new(voxel_grid.size as usize);
+            for cursor_w in 0..voxel_grid.size {
+                for cursor_v in 0..voxel_grid.size {
                     cursor[v] = cursor_v;
                     cursor[w] = cursor_w;
                     let voxel_back = voxel_grid.get(
@@ -300,17 +318,17 @@ pub fn load_test_vox_files_culling(mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh
                     mask.set(cursor[v], cursor[w], color_id);
                 }
             }
-            for y in 0..chunk_size {
-                for mut x in 0..chunk_size {
+            for y in 0..voxel_grid.size {
+                for mut x in 0..voxel_grid.size {
                     let color_id = mask.get(x, y);
                     if let Some(m) = color_id {
                         let mut width = 1;
-                        while x + width < chunk_size && mask.get(x + width, y) == color_id {
+                        while x + width < voxel_grid.size && mask.get(x + width, y) == color_id {
                             width += 1;
                         }
                         let mut height = 1;
                         let mut done = false;
-                        while y + height < chunk_size && !done {
+                        while y + height < voxel_grid.size && !done {
                             let mut k = 0;
                             while k < width && !done {
                                 if mask.get(x + k, y + height) == color_id {
@@ -333,7 +351,7 @@ pub fn load_test_vox_files_culling(mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh
                         let mut dw = [0.0, 0.0, 0.0];
                         dw[w] = height as f32;
 
-                        let color = color_table[m as usize];
+                        let color = palette_to_color(color_table[m as usize]);
                         print!(". ");
                         let count = vertices.len() as u32;
                         vertices.extend_from_slice(&[
@@ -388,17 +406,16 @@ fn palette_to_color(from: u32) -> [f32; 3] {
 
 fn test_files() -> &'static [&'static str] {
     &[
-        /*"res/vox-models/#skyscraper/#skyscraper_01_000.vox",
+        "res/vox-models/#skyscraper/#skyscraper_01_000.vox",
         "res/vox-models/#skyscraper/#skyscraper_02_000.vox",
         "res/vox-models/#skyscraper/#skyscraper_03_000.vox",
         "res/vox-models/#skyscraper/#skyscraper_06_000.vox",
         "res/vox-models/#skyscraper/#skyscraper_05_000.vox",
         "res/vox-models/#skyscraper/#skyscraper_04_000.vox",
-         */
-        //"res/vox-models/#haunted_house/#haunted_house.vox",
-        //        "res/vox-models/#treehouse/#treehouse.vox",
+        "res/vox-models/#haunted_house/#haunted_house.vox",
+        "res/vox-models/#treehouse/#treehouse.vox",
         "res/vox-models/#phantom_mansion/#phantom_mansion.vox",
-        //"res/vox-models/castle.vox",
+        "res/vox-models/castle.vox",
     ]
 }
 
@@ -406,9 +423,5 @@ fn test_files() -> &'static [&'static str] {
 mod tests {
 
     #[test]
-    fn test() {
-        for i in 10..0 {
-            println!("{}", i);
-        }
-    }
+    fn test() {}
 }

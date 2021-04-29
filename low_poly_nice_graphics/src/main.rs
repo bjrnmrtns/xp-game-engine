@@ -78,7 +78,7 @@ fn main() -> Result<(), GameError> {
             mesh
         });
     */
-    voxel::load_test_vox_files_culling(|mesh| {
+    voxel::load_voxel_grid_as_mesh(|mesh| {
         let mesh = meshes.add(mesh);
         entities.add(Entity {
             mesh_handle: mesh.clone(),

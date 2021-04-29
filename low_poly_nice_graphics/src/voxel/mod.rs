@@ -1,3 +1,3 @@
 mod vox_loader;
 
-pub use vox_loader::{load_test_vox_files_culling, load_vox};
+pub use vox_loader::{load_vox, load_voxel_grid_as_mesh};
