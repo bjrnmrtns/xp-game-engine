@@ -336,74 +336,33 @@ pub fn load_test_vox_files_culling(mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh
                         let color = color_table[m as usize];
                         print!(". ");
                         let count = vertices.len() as u32;
+                        vertices.extend_from_slice(&[
+                            Vertex::new([base[0], base[1], base[2]], normal_outside, color),
+                            Vertex::new(
+                                [
+                                    base[0] + dv[0] + dw[0],
+                                    base[1] + dv[1] + dw[1],
+                                    base[2] + dv[2] + dw[2],
+                                ],
+                                normal_outside,
+                                color,
+                            ),
+                            Vertex::new(
+                                [base[0] + dv[0], base[1] + dv[1], base[2] + dv[2]],
+                                normal_outside,
+                                color,
+                            ),
+                            Vertex::new(
+                                [base[0] + dw[0], base[1] + dw[1], base[2] + dw[2]],
+                                normal_outside,
+                                color,
+                            ),
+                        ]);
                         if d.step == 1 {
-                            vertices.extend_from_slice(&[
-                                Vertex::new([base[0], base[1], base[2]], normal_outside, color),
-                                Vertex::new(
-                                    [
-                                        base[0] + dv[0] + dw[0],
-                                        base[1] + dv[1] + dw[1],
-                                        base[2] + dv[2] + dw[2],
-                                    ],
-                                    normal_outside,
-                                    color,
-                                ),
-                                Vertex::new(
-                                    [base[0] + dv[0], base[1] + dv[1], base[2] + dv[2]],
-                                    normal_outside,
-                                    color,
-                                ),
-                                Vertex::new([base[0], base[1], base[2]], normal_outside, color),
-                                Vertex::new(
-                                    [base[0] + dw[0], base[1] + dw[1], base[2] + dw[2]],
-                                    normal_outside,
-                                    color,
-                                ),
-                                Vertex::new(
-                                    [
-                                        base[0] + dv[0] + dw[0],
-                                        base[1] + dv[1] + dw[1],
-                                        base[2] + dv[2] + dw[2],
-                                    ],
-                                    normal_outside,
-                                    color,
-                                ),
-                            ]);
+                            indices.extend_from_slice(&[count, count + 1, count + 2, count, count + 3, count + 1]);
                         } else {
-                            vertices.extend_from_slice(&[
-                                Vertex::new([base[0], base[1], base[2]], normal_outside, color),
-                                Vertex::new(
-                                    [base[0] + dv[0], base[1] + dv[1], base[2] + dv[2]],
-                                    normal_outside,
-                                    color,
-                                ),
-                                Vertex::new(
-                                    [
-                                        base[0] + dv[0] + dw[0],
-                                        base[1] + dv[1] + dw[1],
-                                        base[2] + dv[2] + dw[2],
-                                    ],
-                                    normal_outside,
-                                    color,
-                                ),
-                                Vertex::new([base[0], base[1], base[2]], normal_outside, color),
-                                Vertex::new(
-                                    [
-                                        base[0] + dv[0] + dw[0],
-                                        base[1] + dv[1] + dw[1],
-                                        base[2] + dv[2] + dw[2],
-                                    ],
-                                    normal_outside,
-                                    color,
-                                ),
-                                Vertex::new(
-                                    [base[0] + dw[0], base[1] + dw[1], base[2] + dw[2]],
-                                    normal_outside,
-                                    color,
-                                ),
-                            ]);
+                            indices.extend_from_slice(&[count, count + 2, count + 1, count, count + 1, count + 3]);
                         }
-                        indices.extend((0..6).into_iter().map(|i| count + i));
                         for yy in y..y + height {
                             for xx in x..x + width {
                                 mask.set(xx, yy, None);
