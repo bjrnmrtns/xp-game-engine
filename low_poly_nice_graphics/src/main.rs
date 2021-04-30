@@ -9,7 +9,7 @@ mod physics;
 pub mod registry;
 pub mod renderer;
 pub mod transform;
-mod voxel;
+mod vox;
 pub mod winit_impl;
 mod world;
 
@@ -23,6 +23,8 @@ use crate::{
     registry::Registry,
     renderer::{BindGroup, DirectionalProperties, Light, LightBindGroup, PointProperties, SpotProperties},
     transform::Transform,
+    vox::load_voxel_grid_as_mesh,
+    world::World,
 };
 use glam::Vec3;
 use winit::{
@@ -49,10 +51,12 @@ fn main() -> Result<(), GameError> {
         futures::executor::block_on(renderer::LightPipeline::new(&renderer, &light_pipeline_bindgroup))
             .expect("Could not create pipeline light");
 
+    let mut vox_models = Registry::new();
     let mut physics = Physics::default();
     let mut meshes = Registry::new();
     let mut lights = Registry::new();
     let mut entities = Registry::new();
+    let mut world = World::new();
     let light_mesh_handle = meshes.add(Mesh::from(Cube::new(0.25)));
     lights.add(Light::Directional(DirectionalProperties::new([-1.0, -0.5, -1.0, 1.0])));
 
@@ -67,18 +71,7 @@ fn main() -> Result<(), GameError> {
     lights.add(Light::Point(PointProperties::new([8.0, 4.0, 8.0, 1.0])));
     lights.add(Light::Point(PointProperties::new([-8.0, 4.0, 8.0, 1.0])));
 
-    /*    let vox_data = std::fs::read("res/example.vox").unwrap();
-        voxel::load_vox(&vox_data, |mesh| {
-            let mesh = meshes.add(mesh);
-            entities.add(Entity {
-                mesh_handle: mesh.clone(),
-                collision_shape: None,
-                transform: Transform::default(),
-            });
-            mesh
-        });
-    */
-    voxel::load_voxel_grid_as_mesh(|mesh| {
+    load_voxel_grid_as_mesh(|mesh| {
         let mesh = meshes.add(mesh);
         entities.add(Entity {
             mesh_handle: mesh.clone(),
@@ -87,6 +80,18 @@ fn main() -> Result<(), GameError> {
         });
         mesh
     });
+
+    let tree_house_hanlde = vox::load_dotvox_model(
+        &dot_vox::load_bytes(
+            std::fs::read("res/vox-models/#treehouse/#treehouse.vox")
+                .unwrap()
+                .as_slice(),
+        )
+        .unwrap(),
+        &mut vox_models,
+    );
+    world.add(tree_house_hanlde, [-10, -10, -10], vox_models);
+    // generate meshes around current position in 32x32x32 meshes
 
     let cube = entities.add(Entity {
         mesh_handle: meshes.add(Mesh::from(Cube::new(1.0))),
@@ -167,7 +172,7 @@ fn main() -> Result<(), GameError> {
                     &mut renderer,
                     target,
                 );
-                //println!("render-time: {}", (after_render - before_render).as_millis());
+                println!("render-time: {}", (after_render - before_render).as_millis());
             }
             Event::MainEventsCleared => {
                 window.request_redraw();

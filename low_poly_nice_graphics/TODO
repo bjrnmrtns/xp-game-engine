@@ -40,12 +40,11 @@ DONE 17: Basic physics, walking around with sphere and hitting cubes and sliding
 DONE 23: Render heightmap
 [x] render heightmap from image quick and dirty
 [x] add heightmap to physics engine
-TODO 28: Render voxels naive / try greedy meshing / measure difference
+DONE 28: Render voxels naive / try greedy meshing / measure difference
 [x] Render naive voxel world
-[] create bigger test scene with generated voxels from heightmap and a few vox models
-[] measure naive implementation
-[] start on greedy  meshing
-TODO 27: Render height map in correct way with streaming, make height map irregular by removing points randomly
+[x] create bigger test scene with generated voxels from heightmap and a few vox models
+[x] measure naive implementation
+[x] greedy  meshing
 TODO 15: Terrain generation using blue noise (can be implemented using poison disc sampling, use blue noise texture from noise-test) voronoi redblobgames
 TODO 25: Character animation
 TODO 24: sync rotation of Transform between entity and physics // check bevy_rapier
@@ -57,3 +56,4 @@ TODO 6: Add Graph so entities can have parent child relation
 TODO 18: Check if MainEventsCleared is a better place to do all redrawing iso RedrawRequested (or maybe only physics update)
 TODO 26: Figure out voxel rendering big world
 [] try use meshing 32x32x32 chunks
+TODO 29: simulate ax trees, by left mouse click and remove all trees in a certain range from the player

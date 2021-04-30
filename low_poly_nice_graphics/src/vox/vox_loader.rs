@@ -1,7 +1,8 @@
 use crate::{
     mesh::{Cube, Mesh, Vertex},
-    registry::Handle,
+    registry::{Handle, Registry},
 };
+use std::collections::{HashMap, HashSet};
 
 fn front_face(pos: [f32; 3], color: [f32; 3], size: f32) -> Vec<Vertex> {
     let normal_front = [0.0, 0.0, 1.0];
@@ -128,12 +129,45 @@ pub fn load_vox(buffer: &[u8], mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh>) {
     });
 }
 
-struct VoxelGrid {
+pub struct Vox {
+    data: Vec<Option<u8>>,
+    palette: HashMap<u8, [f32; 3]>,
+    pub x_size: usize,
+    pub y_size: usize,
+    pub z_size: usize,
+}
+
+impl Vox {
+    pub fn new(x_size: usize, y_size: usize, z_size: usize) -> Self {
+        Self {
+            data: vec![None; z_size * y_size * x_size],
+            palette: HashMap::default(),
+            x_size,
+            y_size,
+            z_size,
+        }
+    }
+
+    pub fn set(&mut self, x: usize, y: usize, z: usize, color_id: u8, color: [f32; 3]) {
+        self.data[z * self.y_size * self.x_size + y * self.x_size + x] = Some(color_id);
+        self.palette.insert(color_id, color);
+    }
+
+    pub fn get(&self, x: usize, y: usize, z: usize) -> Option<u8> {
+        self.data[z * self.y_size * self.x_size + y * self.x_size + x]
+    }
+
+    pub fn get_color(&self, color_id: u8) -> [f32; 3] {
+        self.palette[&color_id]
+    }
+}
+
+pub struct VoxModel {
     data: Vec<Option<u8>>,
     size: usize,
 }
 
-impl VoxelGrid {
+impl VoxModel {
     pub fn new(size: usize) -> Self {
         Self {
             data: vec![None; size * size * size],
@@ -180,43 +214,6 @@ impl Mask {
     }
 }
 
-/*pub fn load_test_vox_files(mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh>) {
-    let mut count = 0;
-    let mut vertices = Vec::new();
-    let mut offset = 0;
-    for file in test_files() {
-        let buffer = std::fs::read(file).unwrap();
-        if let Ok(data) = dot_vox::load_bytes(buffer.as_slice()) {
-            for model in data.models.iter() {
-                for voxel in model.voxels.iter() {
-                    count += 1;
-                    let color = palette_to_color(data.palette[voxel.i as usize]);
-                    let size = 0.1;
-                    let pos = [voxel.x as u32, voxel.z as u32, voxel.y as u32 + offset];
-                    let pos = [pos[0] as f32 * size, pos[1] as f32 * size, pos[2] as f32 * size];
-                    vertices.extend_from_slice(front_face(pos, color, size).as_slice());
-                    vertices.extend_from_slice(top_face(pos, color, size).as_slice());
-                    vertices.extend_from_slice(bottom_face(pos, color, size).as_slice());
-                    vertices.extend_from_slice(back_face(pos, color, size).as_slice());
-                    vertices.extend_from_slice(left_face(pos, color, size).as_slice());
-                    vertices.extend_from_slice(right_face(pos, color, size).as_slice());
-                }
-                offset += 128;
-            }
-        }
-    }
-    println!(
-        "cubes: {}, triangles: {}, vertices: {}",
-        count,
-        count * 12,
-        count * 12 * 3
-    );
-    add_mesh(Mesh {
-        vertices,
-        just_loaded: true,
-    });
-}*/
-
 struct Descriptor {
     pub u: usize,
     pub v: usize,
@@ -239,39 +236,51 @@ impl Descriptor {
     }
 }
 
+pub fn load_world(mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh>) {
+    let buffer = std::fs::read("res/vox-models/#treehouse/#treehouse.vox").unwrap();
+    if let Ok(data) = dot_vox::load_bytes(buffer.as_slice()) {
+        if data.models.len() > 0 {
+            println!(
+                "{} {} {}",
+                data.models[0].size.x, data.models[0].size.z, data.models[0].size.y
+            );
+            for voxel in data.models[0].voxels.iter() {}
+        }
+    }
+}
+
+pub fn load_dotvox_model(data: &dot_vox::DotVoxData, registry: &mut Registry<Vox>) -> Handle<Vox> {
+    let model = &data.models[0];
+    let mut vox_model = Vox::new(model.size.x as usize, model.size.z as usize, model.size.y as usize);
+    for v in &model.voxels {
+        let color = palette_to_color(data.palette[v.i as usize]);
+        vox_model.set(v.x as usize, v.z as usize, v.y as usize, v.i, color);
+    }
+    registry.add(vox_model)
+}
+
 pub fn load_voxel_grid_as_mesh(mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh>) {
     let chunk_size = 128;
     for file in test_files() {
-        let mut voxel_grid = VoxelGrid::new(chunk_size);
+        let mut voxel_grid = VoxModel::new(chunk_size);
         let buffer = std::fs::read(file).unwrap();
         if let Ok(data) = dot_vox::load_bytes(buffer.as_slice()) {
-            for model in data.models.iter() {
-                for voxel in model.voxels.iter() {
+            // only load the first model
+            if data.models.len() > 0 {
+                println!(
+                    "{} {} {}",
+                    data.models[0].size.x, data.models[0].size.z, data.models[0].size.y
+                );
+                for voxel in data.models[0].voxels.iter() {
                     voxel_grid.set(voxel.x as i32, voxel.z as i32, voxel.y as i32, voxel.i);
                 }
+                greedy_mesh(voxel_grid, data.palette.as_slice(), &mut add_mesh);
             }
-            greedy_mesh(voxel_grid, data.palette.as_slice(), &mut add_mesh);
         }
     }
-    /*voxel_grid.set(0, 2, 0, 0);
-    voxel_grid.set(0, 3, 0, 0);
-    voxel_grid.set(0, 4, 0, 1);
-    voxel_grid.set(0, 5, 0, 2);
-    voxel_grid.set(0, 6, 0, 2);
-    voxel_grid.set(1, 4, 0, 1);
-    voxel_grid.set(1, 5, 0, 2);
-    voxel_grid.set(1, 6, 0, 2);
-    voxel_grid.set(0, 4, 1, 1);
-    voxel_grid.set(0, 5, 1, 2);
-    voxel_grid.set(0, 6, 1, 2);
-    voxel_grid.set(1, 4, 1, 1);
-    voxel_grid.set(1, 5, 1, 2);
-    voxel_grid.set(1, 6, 1, 2);
-
-     */
 }
 
-fn greedy_mesh(voxel_grid: VoxelGrid, color_table: &[u32], mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh>) {
+fn greedy_mesh(voxel_grid: VoxModel, color_table: &[u32], mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh>) {
     let mut vertices = Vec::new();
     let mut indices = Vec::new();
 
@@ -342,17 +351,16 @@ fn greedy_mesh(voxel_grid: VoxelGrid, color_table: &[u32], mut add_mesh: impl Fn
                             }
                         }
                         let mut base = [0.0, 0.0, 0.0];
-                        base[u] = slice as f32 + d.q[0] as f32;
-                        base[v] = x as f32 + d.q[1] as f32;
-                        base[w] = y as f32 + d.q[2] as f32;
+                        base[u] = slice as f32 / 10.0 + d.q[0] as f32 / 10.0;
+                        base[v] = x as f32 / 10.0 + d.q[1] as f32 / 10.0;
+                        base[w] = y as f32 / 10.0 + d.q[2] as f32 / 10.0;
 
                         let mut dv = [0.0, 0.0, 0.0];
-                        dv[v] = width as f32;
+                        dv[v] = width as f32 / 10.0;
                         let mut dw = [0.0, 0.0, 0.0];
-                        dw[w] = height as f32;
+                        dw[w] = height as f32 / 10.0;
 
                         let color = palette_to_color(color_table[m as usize]);
-                        print!(". ");
                         let count = vertices.len() as u32;
                         vertices.extend_from_slice(&[
                             Vertex::new([base[0], base[1], base[2]], normal_outside, color),
@@ -406,16 +414,19 @@ fn palette_to_color(from: u32) -> [f32; 3] {
 
 fn test_files() -> &'static [&'static str] {
     &[
-        "res/vox-models/#skyscraper/#skyscraper_01_000.vox",
+        /*"res/vox-models/#skyscraper/#skyscraper_01_000.vox",
         "res/vox-models/#skyscraper/#skyscraper_02_000.vox",
         "res/vox-models/#skyscraper/#skyscraper_03_000.vox",
         "res/vox-models/#skyscraper/#skyscraper_06_000.vox",
         "res/vox-models/#skyscraper/#skyscraper_05_000.vox",
         "res/vox-models/#skyscraper/#skyscraper_04_000.vox",
         "res/vox-models/#haunted_house/#haunted_house.vox",
+         */
         "res/vox-models/#treehouse/#treehouse.vox",
+        /*
         "res/vox-models/#phantom_mansion/#phantom_mansion.vox",
         "res/vox-models/castle.vox",
+         */
     ]
 }
 
