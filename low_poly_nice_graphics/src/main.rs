@@ -23,7 +23,6 @@ use crate::{
     registry::Registry,
     renderer::{BindGroup, DirectionalProperties, Light, LightBindGroup, PointProperties, SpotProperties},
     transform::Transform,
-    vox::load_voxel_grid_as_mesh,
     world::World,
 };
 use glam::Vec3;
@@ -83,7 +82,7 @@ fn main() -> Result<(), GameError> {
 
      */
 
-    let tree_house_hanlde = vox::load_dotvox_model(
+    let tree_house_hanlde = vox::load_vox(
         &dot_vox::load_bytes(
             std::fs::read("res/vox-models/#treehouse/#treehouse.vox")
                 .unwrap()

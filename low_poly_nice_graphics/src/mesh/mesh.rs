@@ -309,7 +309,7 @@ impl From<IcoSphere> for Mesh {
         let mut indices = Vec::new();
         for triangle in &triangles {
             let normal = triangle_normal(points[triangle[0]], points[triangle[1]], points[triangle[2]]);
-            let mut count = vertices.len() as u32;
+            let count = vertices.len() as u32;
             vertices.push(Vertex::new(
                 scale_vertex(points[triangle[0]], sphere.radius),
                 normal,

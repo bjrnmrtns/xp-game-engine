@@ -8,7 +8,6 @@ use crate::{
 };
 use glam::{Mat4, Vec3};
 use std::io::Read;
-use wgpu::BufferSlice;
 
 pub struct LightPipeline {
     render_pipeline: wgpu::RenderPipeline,

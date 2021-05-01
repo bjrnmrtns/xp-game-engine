@@ -218,7 +218,7 @@ fn greedy_mesh(vox: vox::Vox) -> Mesh {
                 }
             }
             for y in 0..vox_size[w] {
-                for mut x in 0..vox_size[v] {
+                for x in 0..vox_size[v] {
                     let color_id = mask.get(x, y);
                     if let Some(m) = color_id {
                         let mut width = 1;
@@ -284,7 +284,6 @@ fn greedy_mesh(vox: vox::Vox) -> Mesh {
                                 mask.set(xx, yy, None);
                             }
                         }
-                        x += width;
                     }
                 }
             }
