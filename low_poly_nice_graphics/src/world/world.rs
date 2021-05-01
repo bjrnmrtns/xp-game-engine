@@ -1,9 +1,11 @@
 use crate::{
     mesh::{Mesh, Vertex},
     registry::{Handle, Registry},
+    transform::Transform,
     vox,
     vox::Vox,
 };
+use glam::Vec3;
 use std::collections::HashMap;
 
 struct Descriptor {
@@ -129,7 +131,7 @@ impl World {
         }
     }
 
-    pub fn generate(&mut self, registry: &Registry<Vox>) {
+    pub fn generate(&mut self, registry: &Registry<Vox>, mut add_mesh: impl FnMut(Mesh, Transform)) {
         for (chunk, (vox_id, source_offset, target_offset, size)) in &self.chunk_entity_map {
             let (handle, _, _) = &self.entities[*vox_id];
             let vox = registry.get(handle).unwrap();
@@ -153,6 +155,14 @@ impl World {
                 }
             }
             let mesh = greedy_mesh(vox_to_gen);
+            add_mesh(
+                mesh,
+                Transform::from_translation(Vec3::new(
+                    chunk.0 as f32 * self.chunk_size as f32 * 0.1,
+                    chunk.1 as f32 * self.chunk_size as f32 * 0.1,
+                    chunk.2 as f32 * self.chunk_size as f32 * 0.1,
+                )),
+            );
         }
     }
 }
