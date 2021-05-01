@@ -90,7 +90,8 @@ fn main() -> Result<(), GameError> {
         .unwrap(),
         &mut vox_models,
     );
-    world.add(tree_house_hanlde, [-10, -10, -10], vox_models);
+    world.add(tree_house_hanlde, [-10, -10, -10], &vox_models);
+    world.generate(&vox_models);
     // generate meshes around current position in 32x32x32 meshes
 
     let cube = entities.add(Entity {

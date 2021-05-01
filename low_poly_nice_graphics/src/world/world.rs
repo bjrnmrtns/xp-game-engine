@@ -81,7 +81,7 @@ impl World {
         }
     }
 
-    pub fn add(&mut self, handle: Handle<Vox>, position: [i32; 3], registry: Registry<Vox>) {
+    pub fn add(&mut self, handle: Handle<Vox>, position: [i32; 3], registry: &Registry<Vox>) {
         let vox = registry.get(&handle).unwrap();
         self.entities
             .push((handle, [vox.x_size, vox.y_size, vox.z_size], position));
@@ -106,7 +106,7 @@ impl World {
                     self.chunk_entity_map.insert(
                         (x_number, y_number, z_number),
                         (
-                            self.entities.len(),
+                            self.entities.len() - 1,
                             [source_x_offset, source_y_offset, source_z_offset],
                             [target_x_offset, target_y_offset, target_z_offset],
                             [x_current_size, y_current_size, z_current_size],
@@ -129,10 +129,35 @@ impl World {
         }
     }
 
-    pub fn generate(&mut self, handle: Handle<Vox>, position: [i32; 3], registry: Registry<Vox>) {}
+    pub fn generate(&mut self, registry: &Registry<Vox>) {
+        for (chunk, (vox_id, source_offset, target_offset, size)) in &self.chunk_entity_map {
+            let (handle, _, _) = &self.entities[*vox_id];
+            let vox = registry.get(handle).unwrap();
+            let mut vox_to_gen = Vox::new(self.chunk_size, self.chunk_size, self.chunk_size);
+            for z in 0..size[2] {
+                for y in 0..size[1] {
+                    for x in 0..size[0] {
+                        if let Some(color_id) =
+                            vox.get(source_offset[0] + x, source_offset[1] + y, source_offset[2] + z)
+                        {
+                            let color = vox.get_color(color_id);
+                            vox_to_gen.set(
+                                target_offset[0] + x,
+                                target_offset[1] + y,
+                                target_offset[2] + z,
+                                color_id,
+                                color,
+                            );
+                        }
+                    }
+                }
+            }
+            let mesh = greedy_mesh(vox_to_gen);
+        }
+    }
 }
 
-fn greedy_mesh(vox: vox::Vox, color_table: &[u32], mut add_mesh: impl FnMut(Mesh) -> Handle<Mesh>) {
+fn greedy_mesh(vox: vox::Vox) -> Mesh {
     let mut vertices = Vec::new();
     let mut indices = Vec::new();
 
@@ -255,11 +280,11 @@ fn greedy_mesh(vox: vox::Vox, color_table: &[u32], mut add_mesh: impl FnMut(Mesh
             }
         }
     }
-    add_mesh(Mesh {
+    Mesh {
         vertices,
         indices,
         just_loaded: true,
-    });
+    }
 }
 #[cfg(test)]
 mod tests {
