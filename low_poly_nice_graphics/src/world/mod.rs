@@ -1,3 +1,4 @@
+mod chunks;
 mod heightmap_loader;
 mod world;
 
