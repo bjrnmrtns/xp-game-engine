@@ -70,18 +70,6 @@ fn main() -> Result<(), GameError> {
     lights.add(Light::Point(PointProperties::new([8.0, 4.0, 8.0, 1.0])));
     lights.add(Light::Point(PointProperties::new([-8.0, 4.0, 8.0, 1.0])));
 
-    /*load_voxel_grid_as_mesh(|mesh| {
-        let mesh = meshes.add(mesh);
-        entities.add(Entity {
-            mesh_handle: mesh.clone(),
-            collision_shape: None,
-            transform: Transform::default(),
-        });
-        mesh
-    });
-
-     */
-
     let tree_house_hanlde = vox::load_vox(
         &dot_vox::load_bytes(
             std::fs::read("res/vox-models/#treehouse/#treehouse.vox")
@@ -91,16 +79,7 @@ fn main() -> Result<(), GameError> {
         .unwrap(),
         &mut vox_models,
     );
-    world.add(tree_house_hanlde, [-10, -10, -10], &vox_models);
-    world.generate(&vox_models, |mesh, transform| {
-        let mesh_handle = meshes.add(mesh);
-        entities.add(Entity {
-            mesh_handle: mesh_handle.clone(),
-            collision_shape: None,
-            transform,
-        });
-    });
-    // generate meshes around current position in 32x32x32 meshes
+    world.add(tree_house_hanlde, [0, 0, 0], &vox_models);
 
     let cube = entities.add(Entity {
         mesh_handle: meshes.add(Mesh::from(Cube::new(1.0))),
@@ -154,6 +133,19 @@ fn main() -> Result<(), GameError> {
                 steps_taken = steps_since_start;
                 follow_camera.follow(entities.get(&character).unwrap().transform.clone());
                 input_all.clear_events();
+                let player_position = entities.get(&character).unwrap().transform.clone().translation;
+                world.generate_around(
+                    &vox_models,
+                    [player_position.x, player_position.y, player_position.z],
+                    |mesh, transform| {
+                        let mesh_handle = meshes.add(mesh);
+                        entities.add(Entity {
+                            mesh_handle: mesh_handle.clone(),
+                            collision_shape: None,
+                            transform,
+                        })
+                    },
+                );
 
                 let before_render = std::time::Instant::now();
                 let target = &renderer

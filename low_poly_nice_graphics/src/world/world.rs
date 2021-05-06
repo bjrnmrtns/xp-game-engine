@@ -1,9 +1,11 @@
 use crate::{
+    entity::Entity,
     mesh::{Mesh, Vertex},
     registry::{Handle, Registry},
     transform::Transform,
     vox,
     vox::Vox,
+    world::Chunks,
 };
 use glam::Vec3;
 use std::collections::HashMap;
@@ -60,6 +62,7 @@ pub struct World {
     entities: Vec<(Handle<Vox>, [usize; 3], [i32; 3])>,
     chunk_entity_map: HashMap<(i32, i32, i32), (usize, [usize; 3], [usize; 3], [usize; 3])>,
     chunk_size: usize,
+    chunks: Chunks,
 }
 
 impl World {
@@ -68,6 +71,7 @@ impl World {
             entities: vec![],
             chunk_entity_map: HashMap::new(),
             chunk_size: 32,
+            chunks: Chunks::new(4, 32, 0.1),
         }
     }
 
@@ -131,38 +135,51 @@ impl World {
         }
     }
 
-    pub fn generate(&mut self, registry: &Registry<Vox>, mut add_mesh: impl FnMut(Mesh, Transform)) {
-        for (chunk, (vox_id, source_offset, target_offset, size)) in &self.chunk_entity_map {
-            let (handle, _, _) = &self.entities[*vox_id];
-            let vox = registry.get(handle).unwrap();
-            let mut vox_to_gen = Vox::new(self.chunk_size, self.chunk_size, self.chunk_size);
-            for z in 0..size[2] {
-                for y in 0..size[1] {
-                    for x in 0..size[0] {
-                        if let Some(color_id) =
-                            vox.get(source_offset[0] + x, source_offset[1] + y, source_offset[2] + z)
-                        {
-                            let color = vox.get_color(color_id);
-                            vox_to_gen.set(
-                                target_offset[0] + x,
-                                target_offset[1] + y,
-                                target_offset[2] + z,
-                                color_id,
-                                color,
-                            );
+    pub fn generate_around(
+        &mut self,
+        registry: &Registry<Vox>,
+        position: [f32; 3],
+        mut add_mesh: impl FnMut(Mesh, Transform) -> Handle<Entity>,
+    ) {
+        self.chunks.set_position(position);
+        let diff = self.chunks.range_diff();
+        for z in diff.added[2].clone() {
+            for y in diff.added[1].clone() {
+                for x in diff.added[0].clone() {
+                    if let Some((vox_id, source_offset, target_offset, size)) = &self.chunk_entity_map.get(&(x, y, z)) {
+                        let (handle, _, _) = &self.entities[*vox_id];
+                        let vox = registry.get(handle).unwrap();
+                        let mut vox_to_gen = Vox::new(self.chunk_size, self.chunk_size, self.chunk_size);
+                        for z in 0..size[2] {
+                            for y in 0..size[1] {
+                                for x in 0..size[0] {
+                                    if let Some(color_id) =
+                                        vox.get(source_offset[0] + x, source_offset[1] + y, source_offset[2] + z)
+                                    {
+                                        let color = vox.get_color(color_id);
+                                        vox_to_gen.set(
+                                            target_offset[0] + x,
+                                            target_offset[1] + y,
+                                            target_offset[2] + z,
+                                            color_id,
+                                            color,
+                                        );
+                                    }
+                                }
+                            }
                         }
+                        let mesh = greedy_mesh(vox_to_gen);
+                        add_mesh(
+                            mesh,
+                            Transform::from_translation(Vec3::new(
+                                x as f32 * self.chunk_size as f32 * 0.1,
+                                y as f32 * self.chunk_size as f32 * 0.1,
+                                z as f32 * self.chunk_size as f32 * 0.1,
+                            )),
+                        );
                     }
                 }
             }
-            let mesh = greedy_mesh(vox_to_gen);
-            add_mesh(
-                mesh,
-                Transform::from_translation(Vec3::new(
-                    chunk.0 as f32 * self.chunk_size as f32 * 0.1,
-                    chunk.1 as f32 * self.chunk_size as f32 * 0.1,
-                    chunk.2 as f32 * self.chunk_size as f32 * 0.1,
-                )),
-            );
         }
     }
 }
