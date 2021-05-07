@@ -79,7 +79,7 @@ fn main() -> Result<(), GameError> {
         .unwrap(),
         &mut vox_models,
     );
-    world.add(tree_house_hanlde, [0, 0, 0], &vox_models);
+    world.add(tree_house_hanlde, [-32, 0, -32], &vox_models);
 
     let cube = entities.add(Entity {
         mesh_handle: meshes.add(Mesh::from(Cube::new(1.0))),
@@ -137,14 +137,8 @@ fn main() -> Result<(), GameError> {
                 world.generate_around(
                     &vox_models,
                     [player_position.x, player_position.y, player_position.z],
-                    |mesh, transform| {
-                        let mesh_handle = meshes.add(mesh);
-                        entities.add(Entity {
-                            mesh_handle: mesh_handle.clone(),
-                            collision_shape: None,
-                            transform,
-                        })
-                    },
+                    &mut meshes,
+                    &mut entities,
                 );
 
                 let before_render = std::time::Instant::now();

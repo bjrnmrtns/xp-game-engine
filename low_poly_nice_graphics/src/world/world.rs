@@ -5,7 +5,7 @@ use crate::{
     transform::Transform,
     vox,
     vox::Vox,
-    world::Chunks,
+    world::{chunks::Chunk, Chunks},
 };
 use glam::Vec3;
 use std::collections::HashMap;
@@ -71,7 +71,7 @@ impl World {
             entities: vec![],
             chunk_entity_map: HashMap::new(),
             chunk_size: 32,
-            chunks: Chunks::new(4, 32, 0.1),
+            chunks: Chunks::new(2, 32, 0.1),
         }
     }
 
@@ -82,7 +82,7 @@ impl World {
             (chunk_number, offset)
         } else {
             let chunk_number = (start + 1) / chunk_size as i32 - 1;
-            let offset = chunk_size - (-start as usize % chunk_size);
+            let offset = chunk_size - (-start as usize % (chunk_size + 1));
             (chunk_number, offset)
         }
     }
@@ -135,48 +135,79 @@ impl World {
         }
     }
 
+    pub fn generate_chunk(
+        &mut self,
+        registry: &Registry<Vox>,
+        chunk: (i32, i32, i32),
+        meshes: &mut Registry<Mesh>,
+        entities: &mut Registry<Entity>,
+    ) -> Option<Chunk> {
+        if let Some((vox_id, source_offset, target_offset, size)) = &self.chunk_entity_map.get(&chunk) {
+            let (handle, _, _) = &self.entities[*vox_id];
+            let vox = registry.get(handle).unwrap();
+            let mut vox_to_gen = Vox::new(self.chunk_size, self.chunk_size, self.chunk_size);
+            for z in 0..size[2] {
+                for y in 0..size[1] {
+                    for x in 0..size[0] {
+                        if let Some(color_id) =
+                            vox.get(source_offset[0] + x, source_offset[1] + y, source_offset[2] + z)
+                        {
+                            let color = vox.get_color(color_id);
+                            vox_to_gen.set(
+                                target_offset[0] + x,
+                                target_offset[1] + y,
+                                target_offset[2] + z,
+                                color_id,
+                                color,
+                            );
+                        }
+                    }
+                }
+            }
+            let mesh = greedy_mesh(vox_to_gen);
+            let mesh_handle = meshes.add(mesh);
+            Some(Chunk {
+                entity: entities.add(Entity {
+                    mesh_handle,
+                    collision_shape: None,
+                    transform: Transform::from_translation(Vec3::new(
+                        chunk.0 as f32 * self.chunk_size as f32 * 0.1,
+                        chunk.1 as f32 * self.chunk_size as f32 * 0.1,
+                        chunk.2 as f32 * self.chunk_size as f32 * 0.1,
+                    )),
+                }),
+            })
+        } else {
+            None
+        }
+    }
+
     pub fn generate_around(
         &mut self,
         registry: &Registry<Vox>,
         position: [f32; 3],
-        mut add_mesh: impl FnMut(Mesh, Transform) -> Handle<Entity>,
+        meshes: &mut Registry<Mesh>,
+        entities: &mut Registry<Entity>,
     ) {
         self.chunks.set_position(position);
         let diff = self.chunks.range_diff();
-        for z in diff.added[2].clone() {
-            for y in diff.added[1].clone() {
-                for x in diff.added[0].clone() {
-                    if let Some((vox_id, source_offset, target_offset, size)) = &self.chunk_entity_map.get(&(x, y, z)) {
-                        let (handle, _, _) = &self.entities[*vox_id];
-                        let vox = registry.get(handle).unwrap();
-                        let mut vox_to_gen = Vox::new(self.chunk_size, self.chunk_size, self.chunk_size);
-                        for z in 0..size[2] {
-                            for y in 0..size[1] {
-                                for x in 0..size[0] {
-                                    if let Some(color_id) =
-                                        vox.get(source_offset[0] + x, source_offset[1] + y, source_offset[2] + z)
-                                    {
-                                        let color = vox.get_color(color_id);
-                                        vox_to_gen.set(
-                                            target_offset[0] + x,
-                                            target_offset[1] + y,
-                                            target_offset[2] + z,
-                                            color_id,
-                                            color,
-                                        );
-                                    }
-                                }
-                            }
+        for removed in diff.removed.iter() {
+            for z in removed[2].clone() {
+                for y in removed[1].clone() {
+                    for x in removed[0].clone() {
+                        self.chunks.set_chunk([x, y, z], None);
+                    }
+                }
+            }
+        }
+        for added in diff.added.iter() {
+            for z in added[2].clone() {
+                for y in added[1].clone() {
+                    for x in added[0].clone() {
+                        let chunk = self.generate_chunk(registry, (x, y, z), meshes, entities);
+                        if let None = self.chunks.get_chunk([x, y, z]) {
+                            self.chunks.set_chunk([x, y, z], chunk);
                         }
-                        let mesh = greedy_mesh(vox_to_gen);
-                        add_mesh(
-                            mesh,
-                            Transform::from_translation(Vec3::new(
-                                x as f32 * self.chunk_size as f32 * 0.1,
-                                y as f32 * self.chunk_size as f32 * 0.1,
-                                z as f32 * self.chunk_size as f32 * 0.1,
-                            )),
-                        );
                     }
                 }
             }

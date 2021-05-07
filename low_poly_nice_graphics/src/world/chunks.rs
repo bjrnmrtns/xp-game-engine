@@ -1,9 +1,13 @@
+use crate::{entity::Entity, registry::Handle};
+
 #[derive(Clone)]
-pub struct Chunk {}
+pub struct Chunk {
+    pub entity: Handle<Entity>,
+}
 
 pub struct Diff {
-    pub removed: [std::ops::Range<i32>; 3],
-    pub added: [std::ops::Range<i32>; 3],
+    pub removed: [[std::ops::Range<i32>; 3]; 3],
+    pub added: [[std::ops::Range<i32>; 3]; 3],
 }
 
 pub struct Chunks {
@@ -55,13 +59,21 @@ impl Chunks {
         let (x_removed, x_added) = self.range_diff_1d_i32(old[0], new[0]);
         let (y_removed, y_added) = self.range_diff_1d_i32(old[1], new[1]);
         let (z_removed, z_added) = self.range_diff_1d_i32(old[2], new[2]);
+        let extent = (self.size as i32) / 2;
+        let x_total_range = new[0] - extent..new[0] + extent;
+        let y_total_range = new[1] - extent..new[1] + extent;
+        let z_total_range = new[2] - extent..new[2] + extent;
         Diff {
             removed: [
-                x_removed[0]..x_removed[1],
-                y_removed[0]..y_removed[1],
-                z_removed[0]..z_removed[1],
+                [x_removed[0]..x_removed[1], y_total_range.clone(), z_total_range.clone()],
+                [x_total_range.clone(), y_removed[0]..y_removed[1], z_total_range.clone()],
+                [x_total_range.clone(), y_total_range.clone(), z_removed[0]..z_removed[1]],
             ],
-            added: [x_added[0]..x_added[1], y_added[0]..y_added[1], z_added[0]..z_added[1]],
+            added: [
+                [x_added[0]..x_added[1], y_total_range.clone(), z_total_range.clone()],
+                [x_total_range.clone(), y_added[0]..y_added[1], z_total_range.clone()],
+                [x_total_range.clone(), y_total_range.clone(), z_added[0]..z_added[1]],
+            ],
         }
     }
 
@@ -73,14 +85,32 @@ impl Chunks {
         } else {
             let extent = self.size as i32 / 2;
             Diff {
-                removed: [0..0, 0..0, 0..0],
+                removed: [[0..0, 0..0, 0..0], [0..0, 0..0, 0..0], [0..0, 0..0, 0..0]],
                 added: [
-                    pos[0] - extent..pos[0] + extent,
-                    pos[1] - extent..pos[1] + extent,
-                    pos[2] - extent..pos[2] + extent,
+                    [
+                        pos[0] - extent..pos[0] + extent,
+                        pos[1] - extent..pos[1] + extent,
+                        pos[2] - extent..pos[2] + extent,
+                    ],
+                    [0..0, 0..0, 0..0],
+                    [0..0, 0..0, 0..0],
                 ],
             }
         }
+    }
+
+    pub fn set_chunk(&mut self, chunk_position: [i32; 3], chunk: Option<Chunk>) {
+        let x = chunk_position[0] as usize % self.size;
+        let y = chunk_position[1] as usize % self.size;
+        let z = chunk_position[2] as usize % self.size;
+        self.chunks[z * self.size * self.size + y * self.size + x] = chunk;
+    }
+
+    pub fn get_chunk(&mut self, chunk_position: [i32; 3]) -> Option<Chunk> {
+        let x = chunk_position[0] as usize % self.size;
+        let y = chunk_position[1] as usize % self.size;
+        let z = chunk_position[2] as usize % self.size;
+        self.chunks[z * self.size * self.size + y * self.size + x].clone()
     }
 
     pub fn set_position(&mut self, position: [f32; 3]) {
@@ -136,13 +166,26 @@ mod tests {
     }
 
     #[test]
-    fn range_diff_test() {
+    fn range_diff_i32_test() {
         let chunk_size = 4;
         let voxel_size = 0.1;
         let world_size = 16;
 
         let mut world = Chunks::new(world_size, chunk_size, voxel_size);
         let diff = world.range_diff_i32([0, 0, 0], [1, 1, 1]);
+        let x = 0;
+    }
+
+    #[test]
+    fn range_diff_test() {
+        let chunk_size = 1;
+        let voxel_size = 0.1;
+        let world_size = 16;
+
+        let mut world = Chunks::new(world_size, chunk_size, voxel_size);
+        world.set_position([0.09999, 0.09999, 0.09999]);
+        world.set_position([0.1001, 0.1001, 0.1001]);
+        let diff = world.range_diff();
         let x = 0;
     }
 }
