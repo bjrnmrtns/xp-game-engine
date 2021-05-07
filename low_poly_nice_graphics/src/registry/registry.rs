@@ -25,6 +25,10 @@ impl<T> Registry<T> {
         Handle::new(id)
     }
 
+    pub fn remove(&mut self, handle: Handle<T>) {
+        self.registry.remove(&handle.id);
+    }
+
     pub fn get(&self, handle: &Handle<T>) -> Option<&T> {
         self.registry.get(&handle.id)
     }

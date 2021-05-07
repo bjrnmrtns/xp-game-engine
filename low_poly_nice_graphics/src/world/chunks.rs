@@ -3,6 +3,7 @@ use crate::{entity::Entity, registry::Handle};
 #[derive(Clone)]
 pub struct Chunk {
     pub entity: Handle<Entity>,
+    pub just_added: bool,
 }
 
 pub struct Diff {
@@ -28,6 +29,14 @@ impl Chunks {
             voxel_size,
             previous_position: None,
             position: None,
+        }
+    }
+
+    pub fn clear_just_added(&mut self) {
+        for chunk in &mut self.chunks {
+            if let Some(chunk) = chunk {
+                chunk.just_added = false;
+            }
         }
     }
 

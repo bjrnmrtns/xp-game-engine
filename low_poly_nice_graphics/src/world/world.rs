@@ -70,8 +70,8 @@ impl World {
         Self {
             entities: vec![],
             chunk_entity_map: HashMap::new(),
-            chunk_size: 32,
-            chunks: Chunks::new(2, 32, 0.1),
+            chunk_size: 16,
+            chunks: Chunks::new(6, 16, 0.1),
         }
     }
 
@@ -176,6 +176,7 @@ impl World {
                         chunk.2 as f32 * self.chunk_size as f32 * 0.1,
                     )),
                 }),
+                just_added: true,
             })
         } else {
             None
@@ -189,23 +190,24 @@ impl World {
         meshes: &mut Registry<Mesh>,
         entities: &mut Registry<Entity>,
     ) {
+        self.chunks.clear_just_added();
         self.chunks.set_position(position);
         let diff = self.chunks.range_diff();
-        for removed in diff.removed.iter() {
-            for z in removed[2].clone() {
-                for y in removed[1].clone() {
-                    for x in removed[0].clone() {
-                        self.chunks.set_chunk([x, y, z], None);
-                    }
-                }
-            }
-        }
         for added in diff.added.iter() {
             for z in added[2].clone() {
                 for y in added[1].clone() {
                     for x in added[0].clone() {
-                        let chunk = self.generate_chunk(registry, (x, y, z), meshes, entities);
-                        if let None = self.chunks.get_chunk([x, y, z]) {
+                        if let Some(previous_chunk) = self.chunks.get_chunk([x, y, z]) {
+                            if !previous_chunk.just_added {
+                                if let Some(previous_entity) = entities.get(&previous_chunk.entity) {
+                                    meshes.remove(previous_entity.mesh_handle.clone());
+                                    entities.remove(previous_chunk.entity.clone());
+                                }
+                                let chunk = self.generate_chunk(registry, (x, y, z), meshes, entities);
+                                self.chunks.set_chunk([x, y, z], chunk);
+                            }
+                        } else {
+                            let chunk = self.generate_chunk(registry, (x, y, z), meshes, entities);
                             self.chunks.set_chunk([x, y, z], chunk);
                         }
                     }
