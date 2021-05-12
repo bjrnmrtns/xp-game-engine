@@ -109,16 +109,18 @@ impl Chunks {
     }
 
     pub fn set_chunk(&mut self, chunk_position: [i32; 3], chunk: Option<Chunk>) {
-        let x = chunk_position[0] as usize % self.size;
-        let y = chunk_position[1] as usize % self.size;
-        let z = chunk_position[2] as usize % self.size;
+        let max = i32::MAX / (self.size as i32 * 2) * self.size as i32;
+        let x = (max + chunk_position[0]) as usize % self.size;
+        let y = (max + chunk_position[1]) as usize % self.size;
+        let z = (max + chunk_position[2]) as usize % self.size;
         self.chunks[z * self.size * self.size + y * self.size + x] = chunk;
     }
 
     pub fn get_chunk(&mut self, chunk_position: [i32; 3]) -> Option<Chunk> {
-        let x = chunk_position[0] as usize % self.size;
-        let y = chunk_position[1] as usize % self.size;
-        let z = chunk_position[2] as usize % self.size;
+        let max = i32::MAX / (self.size as i32 * 2) * self.size as i32;
+        let x = (max + chunk_position[0]) as usize % self.size;
+        let y = (max + chunk_position[1]) as usize % self.size;
+        let z = (max + chunk_position[2]) as usize % self.size;
         self.chunks[z * self.size * self.size + y * self.size + x].clone()
     }
 
@@ -196,5 +198,23 @@ mod tests {
         world.set_position([0.1001, 0.1001, 0.1001]);
         let diff = world.range_diff();
         let x = 0;
+    }
+
+    #[test]
+    fn modulo_test() {
+        assert_eq!(((i32::MAX / (6 * 2) * 6) + 6i32) % 6, 0);
+        assert_eq!(((i32::MAX / (6 * 2) * 6) + 5i32) % 6, 5);
+        assert_eq!(((i32::MAX / (6 * 2) * 6) + 4i32) % 6, 4);
+        assert_eq!(((i32::MAX / (6 * 2) * 6) + 3i32) % 6, 3);
+        assert_eq!(((i32::MAX / (6 * 2) * 6) + 2i32) % 6, 2);
+        assert_eq!(((i32::MAX / (6 * 2) * 6) + 1i32) % 6, 1);
+        assert_eq!(((i32::MAX / (6 * 2) * 6) + 0i32) % 6, 0);
+        assert_eq!(((i32::MAX / (6 * 2) * 6) - 1i32) % 6, 5);
+        assert_eq!(((i32::MAX / (6 * 2) * 6) - 2i32) % 6, 4);
+        assert_eq!(((i32::MAX / (6 * 2) * 6) - 3i32) % 6, 3);
+        assert_eq!(((i32::MAX / (6 * 2) * 6) - 4i32) % 6, 2);
+        assert_eq!(((i32::MAX / (6 * 2) * 6) - 5i32) % 6, 1);
+        assert_eq!(((i32::MAX / (6 * 2) * 6) - 6i32) % 6, 0);
+        assert_eq!(((i32::MAX / (6 * 2) * 6) - 7i32) % 6, 5);
     }
 }

@@ -79,7 +79,7 @@ fn main() -> Result<(), GameError> {
         .unwrap(),
         &mut vox_models,
     );
-    world.add(tree_house_hanlde, [-32, 0, -32], &vox_models);
+    world.add(tree_house_hanlde, [0, 0, 0], &vox_models);
 
     let cube = entities.add(Entity {
         mesh_handle: meshes.add(Mesh::from(Cube::new(1.0))),

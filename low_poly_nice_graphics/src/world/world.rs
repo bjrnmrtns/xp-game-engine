@@ -1,6 +1,6 @@
 use crate::{
     entity::Entity,
-    mesh::{Mesh, Vertex},
+    mesh::{Mesh, Plane, Vertex},
     registry::{Handle, Registry},
     transform::Transform,
     vox,
@@ -194,6 +194,7 @@ impl World {
         self.chunks.set_position(position);
         let diff = self.chunks.range_diff();
         for added in diff.added.iter() {
+            println!("{:?}, {:?}, {:?}", added[0], added[1], added[2]);
             for z in added[2].clone() {
                 for y in added[1].clone() {
                     for x in added[0].clone() {
