@@ -6,6 +6,7 @@ pub struct Vox {
     pub x_size: usize,
     pub y_size: usize,
     pub z_size: usize,
+    pub touched: bool,
 }
 
 impl Vox {
@@ -16,10 +17,12 @@ impl Vox {
             x_size,
             y_size,
             z_size,
+            touched: false,
         }
     }
 
     pub fn set(&mut self, x: usize, y: usize, z: usize, color_id: u8, color: [f32; 3]) {
+        self.touched = true;
         self.data[z * self.y_size * self.x_size + y * self.x_size + x] = Some(color_id);
         self.palette.insert(color_id, color);
     }

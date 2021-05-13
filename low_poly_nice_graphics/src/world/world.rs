@@ -142,10 +142,22 @@ impl World {
         meshes: &mut Registry<Mesh>,
         entities: &mut Registry<Entity>,
     ) -> Option<Chunk> {
+        let mut vox_to_gen = Vox::new(self.chunk_size, self.chunk_size, self.chunk_size);
+        for z in 0..self.chunk_size {
+            for y in 0..self.chunk_size {
+                for x in 0..self.chunk_size {
+                    let x_w = chunk.0 as f32 * self.chunk_size as f32 * 0.1 + x as f32 * 0.1;
+                    let y_w = chunk.1 as f32 * self.chunk_size as f32 * 0.1 + y as f32 * 0.1;
+                    let z_w = chunk.2 as f32 * self.chunk_size as f32 * 0.1 + z as f32 * 0.1;
+                    if y_w > -5.0 && ((x_w as f32).sin() * (z_w as f32).sin()) > y_w {
+                        vox_to_gen.set(x, y, z, 255, [1.0, 0.0, 0.0]);
+                    }
+                }
+            }
+        }
         if let Some((vox_id, source_offset, target_offset, size)) = &self.chunk_entity_map.get(&chunk) {
             let (handle, _, _) = &self.entities[*vox_id];
             let vox = registry.get(handle).unwrap();
-            let mut vox_to_gen = Vox::new(self.chunk_size, self.chunk_size, self.chunk_size);
             for z in 0..size[2] {
                 for y in 0..size[1] {
                     for x in 0..size[0] {
@@ -164,7 +176,9 @@ impl World {
                     }
                 }
             }
-            let mesh = greedy_mesh(vox_to_gen);
+        }
+        let mesh = greedy_mesh(vox_to_gen);
+        if let Some(mesh) = mesh {
             let mesh_handle = meshes.add(mesh);
             Some(Chunk {
                 entity: entities.add(Entity {
@@ -217,7 +231,7 @@ impl World {
     }
 }
 
-fn greedy_mesh(vox: vox::Vox) -> Mesh {
+fn greedy_mesh(vox: vox::Vox) -> Option<Mesh> {
     let mut vertices = Vec::new();
     let mut indices = Vec::new();
 
@@ -339,10 +353,14 @@ fn greedy_mesh(vox: vox::Vox) -> Mesh {
             }
         }
     }
-    Mesh {
-        vertices,
-        indices,
-        just_loaded: true,
+    if vox.touched {
+        Some(Mesh {
+            vertices,
+            indices,
+            just_loaded: true,
+        })
+    } else {
+        None
     }
 }
 #[cfg(test)]

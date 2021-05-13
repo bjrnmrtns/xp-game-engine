@@ -79,6 +79,7 @@ fn main() -> Result<(), GameError> {
         .unwrap(),
         &mut vox_models,
     );
+
     world.add(tree_house_hanlde.clone(), [0, 0, 0], &vox_models);
     world.add(tree_house_hanlde.clone(), [0, 0, 128], &vox_models);
     world.add(tree_house_hanlde.clone(), [128, 0, 128], &vox_models);
