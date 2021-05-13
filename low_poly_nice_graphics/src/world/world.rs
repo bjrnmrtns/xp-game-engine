@@ -71,7 +71,7 @@ impl World {
             entities: vec![],
             chunk_entity_map: HashMap::new(),
             chunk_size: 16,
-            chunks: Chunks::new(6, 16, 0.1),
+            chunks: Chunks::new(16, 16, 0.1),
         }
     }
 
@@ -194,7 +194,6 @@ impl World {
         self.chunks.set_position(position);
         let diff = self.chunks.range_diff();
         for added in diff.added.iter() {
-            println!("{:?}, {:?}, {:?}", added[0], added[1], added[2]);
             for z in added[2].clone() {
                 for y in added[1].clone() {
                     for x in added[0].clone() {

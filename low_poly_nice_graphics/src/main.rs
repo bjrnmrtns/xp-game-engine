@@ -79,7 +79,25 @@ fn main() -> Result<(), GameError> {
         .unwrap(),
         &mut vox_models,
     );
-    world.add(tree_house_hanlde, [0, 0, 0], &vox_models);
+    world.add(tree_house_hanlde.clone(), [0, 0, 0], &vox_models);
+    world.add(tree_house_hanlde.clone(), [0, 0, 128], &vox_models);
+    world.add(tree_house_hanlde.clone(), [128, 0, 128], &vox_models);
+    world.add(tree_house_hanlde.clone(), [128, 0, 0], &vox_models);
+
+    world.add(tree_house_hanlde.clone(), [128, 0, 0], &vox_models);
+    world.add(tree_house_hanlde.clone(), [128, 0, 128], &vox_models);
+    world.add(tree_house_hanlde.clone(), [256, 0, 128], &vox_models);
+    world.add(tree_house_hanlde.clone(), [256, 0, 0], &vox_models);
+
+    world.add(tree_house_hanlde.clone(), [0, 0, 128], &vox_models);
+    world.add(tree_house_hanlde.clone(), [0, 0, 256], &vox_models);
+    world.add(tree_house_hanlde.clone(), [128, 0, 256], &vox_models);
+    world.add(tree_house_hanlde.clone(), [128, 0, 128], &vox_models);
+
+    world.add(tree_house_hanlde.clone(), [128, 0, 128], &vox_models);
+    world.add(tree_house_hanlde.clone(), [128, 0, 256], &vox_models);
+    world.add(tree_house_hanlde.clone(), [256, 0, 256], &vox_models);
+    world.add(tree_house_hanlde.clone(), [256, 0, 128], &vox_models);
 
     let cube = entities.add(Entity {
         mesh_handle: meshes.add(Mesh::from(Cube::new(1.0))),
