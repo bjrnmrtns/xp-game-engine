@@ -70,8 +70,8 @@ impl World {
         Self {
             entities: vec![],
             chunk_entity_map: HashMap::new(),
-            chunk_size: 16,
-            chunks: Chunks::new(16, 16, 0.1),
+            chunk_size: 32,
+            chunks: Chunks::new(16, 32, 0.1),
         }
     }
 

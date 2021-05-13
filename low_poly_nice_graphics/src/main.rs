@@ -152,12 +152,14 @@ fn main() -> Result<(), GameError> {
                 follow_camera.follow(entities.get(&character).unwrap().transform.clone());
                 input_all.clear_events();
                 let player_position = entities.get(&character).unwrap().transform.clone().translation;
+                let before_generate = std::time::Instant::now();
                 world.generate_around(
                     &vox_models,
                     [player_position.x, player_position.y, player_position.z],
                     &mut meshes,
                     &mut entities,
                 );
+                let after_generate = std::time::Instant::now();
 
                 let before_render = std::time::Instant::now();
                 let target = &renderer
@@ -176,7 +178,6 @@ fn main() -> Result<(), GameError> {
                     &mut renderer,
                     target,
                 );
-                let after_render = std::time::Instant::now();
                 pipeline_light.render(
                     &light_mesh_handle,
                     &lights,
@@ -185,7 +186,12 @@ fn main() -> Result<(), GameError> {
                     &mut renderer,
                     target,
                 );
-                println!("render-time: {}", (after_render - before_render).as_millis());
+                let after_render = std::time::Instant::now();
+                println!(
+                    "render-time: {}, generate_time: {}",
+                    (after_render - before_render).as_millis(),
+                    (after_generate - before_generate).as_millis()
+                );
             }
             Event::MainEventsCleared => {
                 window.request_redraw();

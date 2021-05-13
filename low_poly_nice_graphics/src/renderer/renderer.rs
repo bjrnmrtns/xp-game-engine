@@ -18,7 +18,7 @@ impl Renderer {
         let surface = unsafe { instance.create_surface(window) };
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
-                power_preference: Default::default(),
+                power_preference: Default::default(), // performance: change to wgpu::PowerPreference::HighPerformance, not sure what impact is
                 compatible_surface: Some(&surface),
             })
             .await;
@@ -45,7 +45,7 @@ impl Renderer {
             format: wgpu::TextureFormat::Bgra8UnormSrgb,
             width: window.inner_size().width,
             height: window.inner_size().height,
-            present_mode: wgpu::PresentMode::Fifo,
+            present_mode: wgpu::PresentMode::Fifo, // performance: change to Immediate for no vsync
         };
         let depth_texture = DepthTexture::create_depth_texture(&device, &swap_chain_descriptor);
         let swap_chain = device.create_swap_chain(&surface, &swap_chain_descriptor);
